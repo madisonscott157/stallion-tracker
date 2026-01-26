@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Primary - Dark navy */
+  --color-primary: #0f172a;
+  --color-primary-light: #1e293b;
+
+  /* Accent - Gold */
+  --color-accent: #b45309;
+  --color-accent-light: #d97706;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent iOS zoom on input focus */
+input, select, textarea {
+  font-size: 16px;
+}
+
+/* Touch-friendly tap targets */
+button, a {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Section headers */
+.section-header {
+  @apply text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4;
+}
+
+/* Card spacing */
+.card-stack > * + * {
+  @apply mt-4;
+}
+
+/* Empty state */
+.empty-state {
+  @apply text-center py-12 text-slate-500;
+}

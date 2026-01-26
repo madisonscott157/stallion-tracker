@@ -1,0 +1,25 @@
+# Stallion Tracker Email Parser Dependencies
+
+# Email handling
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+
+# Database
+supabase>=2.0.0
+
+# Data validation
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Scheduling
+schedule>=1.2.0
+
+# Date/time handling
+python-dateutil>=2.8.0
+pytz>=2024.1
+
+# HTTP requests (for chart PDFs)
+requests>=2.31.0
+
+# Environment variables
+python-dotenv>=1.0.0

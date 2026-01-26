@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ stallion }} Progeny Report</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc; color: #0f172a;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc;">
+        <tr>
+            <td align="center" style="padding: 20px 10px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #0f172a; padding: 24px 32px;">
+                            <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #ffffff; letter-spacing: 0.05em;">
+                                {{ stallion }} PROGENY REPORT
+                            </h1>
+                            <p style="margin: 8px 0 0 0; font-size: 14px; color: #94a3b8;">
+                                {{ date }}
+                            </p>
+                        </td>
+                    </tr>
+
+                    {% if entries_today %}
+                    <!-- Today's Entries -->
+                    <tr>
+                        <td style="padding: 32px 32px 0 32px;">
+                            <h2 style="margin: 0 0 20px 0; font-size: 12px; font-weight: 600; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+                                TODAY'S ENTRIES
+                            </h2>
+
+                            {% for entry in entries_today %}
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px; {% if entry.is_stakes %}border-left: 4px solid #b45309;{% else %}border-left: 4px solid #e2e8f0;{% endif %} padding-left: 16px;">
+                                <tr>
+                                    <td>
+                                        <!-- Horse name and stakes badge -->
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                            <tr>
+                                                <td>
+                                                    {% if entry.stakes_grade %}
+                                                    <span style="display: inline-block; background-color: #b45309; color: #ffffff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-right: 8px;">
+                                                        {{ entry.stakes_grade }}
+                                                    </span>
+                                                    {% endif %}
+                                                    <strong style="font-size: 16px; color: #0f172a;">{{ entry.horse_name }}</strong>
+                                                    {% if entry.sex or entry.yob %}
+                                                    <span style="color: #64748b; font-size: 14px;"> ({{ format_horse_desc(entry.sex, entry.yob) }})</span>
+                                                    {% endif %}
+                                                </td>
+                                                {% if entry.morning_line %}
+                                                <td align="right" style="font-size: 16px; font-weight: 500; color: #475569;">
+                                                    {{ entry.morning_line }}
+                                                </td>
+                                                {% endif %}
+                                            </tr>
+                                        </table>
+
+                                        <!-- Race details -->
+                                        <p style="margin: 8px 0 4px 0; font-size: 14px; color: #334155;">
+                                            {{ entry.track }} R{{ entry.race_number }}
+                                            {% if entry.post_time %} &middot; {{ entry.post_time }} {{ entry.timezone }}{% endif %}
+                                        </p>
+                                        <p style="margin: 0; font-size: 13px; color: #64748b;">
+                                            {{ entry.race_type }}{% if entry.purse %} ${{ '{:,}'.format(entry.purse) }}{% endif %}{% if entry.distance %} &middot; {{ entry.distance }}{% endif %}{% if entry.surface %} &middot; {{ entry.surface }}{% endif %}
+                                        </p>
+
+                                        <!-- Connections -->
+                                        {% if entry.jockey or entry.trainer %}
+                                        <p style="margin: 8px 0 0 0; font-size: 13px; color: #64748b;">
+                                            {% if entry.jockey %}J: {{ entry.jockey }}{% endif %}
+                                            {% if entry.jockey and entry.trainer %} &middot; {% endif %}
+                                            {% if entry.trainer %}T: {{ entry.trainer }}{% endif %}
+                                        </p>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% if entries_tomorrow %}
+                    <!-- Tomorrow's Entries -->
+                    <tr>
+                        <td style="padding: 24px 32px 0 32px;">
+                            <h2 style="margin: 0 0 20px 0; font-size: 12px; font-weight: 600; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+                                TOMORROW
+                            </h2>
+
+                            {% for entry in entries_tomorrow %}
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 12px; border-left: 4px solid #e2e8f0; padding-left: 16px;">
+                                <tr>
+                                    <td>
+                                        <strong style="font-size: 15px; color: #0f172a;">{{ entry.horse_name }}</strong>
+                                        <span style="color: #64748b; font-size: 13px;"> &middot; {{ entry.track }} R{{ entry.race_number }}</span>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% if results_yesterday %}
+                    <!-- Yesterday's Results -->
+                    <tr>
+                        <td style="padding: 32px 32px 0 32px; border-top: 1px solid #e2e8f0; margin-top: 16px;">
+                            <h2 style="margin: 0 0 20px 0; font-size: 12px; font-weight: 600; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+                                YESTERDAY'S RESULTS
+                            </h2>
+
+                            {% for result in results_yesterday %}
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px; {% if result.is_stakes %}border-left: 4px solid #b45309;{% else %}border-left: 4px solid #e2e8f0;{% endif %} padding-left: 16px;">
+                                <tr>
+                                    <td>
+                                        <!-- Position badge and horse name -->
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                            <tr>
+                                                <td>
+                                                    {% if result.stakes_grade %}
+                                                    <span style="display: inline-block; background-color: #b45309; color: #ffffff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-right: 8px;">
+                                                        {{ result.stakes_grade }}
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if result.finish_position == 1 %}
+                                                    <span style="display: inline-block; background-color: #15803d; color: #ffffff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-right: 8px;">
+                                                        WIN
+                                                    </span>
+                                                    {% else %}
+                                                    <span style="display: inline-block; color: #64748b; font-size: 13px; font-weight: 500; margin-right: 8px;">
+                                                        {{ format_ordinal(result.finish_position) }}
+                                                    </span>
+                                                    {% endif %}
+                                                    <strong style="font-size: 16px; color: #0f172a;">{{ result.horse_name }}</strong>
+                                                    {% if result.sex or result.yob %}
+                                                    <span style="color: #64748b; font-size: 14px;"> ({{ format_horse_desc(result.sex, result.yob) }})</span>
+                                                    {% endif %}
+                                                </td>
+                                                {% if result.odds %}
+                                                <td align="right" style="font-size: 13px; color: #64748b;">
+                                                    {{ result.odds }}
+                                                </td>
+                                                {% endif %}
+                                            </tr>
+                                        </table>
+
+                                        <!-- Race details -->
+                                        <p style="margin: 8px 0 4px 0; font-size: 14px; color: #334155;">
+                                            {{ result.track }} R{{ result.race_number }}
+                                            &middot; {{ result.race_type }}{% if result.purse %} ${{ '{:,}'.format(result.purse) }}{% endif %}
+                                        </p>
+
+                                        <!-- Result details -->
+                                        <p style="margin: 0; font-size: 13px; color: #64748b;">
+                                            {% if result.finish_position == 1 and result.win_margin %}
+                                            <span style="color: #15803d;">Won by {{ result.win_margin }}</span>
+                                            {% elif result.beaten_lengths %}
+                                            Beaten {{ result.beaten_lengths }}
+                                            {% endif %}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Stats Summary -->
+                    <tr>
+                        <td style="padding: 32px; border-top: 1px solid #e2e8f0; background-color: #f8fafc;">
+                            <h2 style="margin: 0 0 12px 0; font-size: 12px; font-weight: 600; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+                                {{ year }} SUMMARY
+                            </h2>
+                            <p style="margin: 0; font-size: 15px; color: #334155;">
+                                Starters: <strong>{{ stats.starters }}</strong>
+                                &middot; Winners: <strong>{{ stats.winners }}</strong>
+                                &middot; Win%: <strong>{{ '%.1f' % (stats.win_pct or 0) }}%</strong>
+                            </p>
+                            <p style="margin: 8px 0 0 0; font-size: 15px; color: #334155;">
+                                Earnings: <strong>{{ format_money(stats.total_earnings or 0) }}</strong>
+                                {% if stats.stakes_winners %}
+                                &middot; Stakes Winners: <strong>{{ stats.stakes_winners }}</strong>
+                                {% endif %}
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px 32px; background-color: #0f172a;">
+                            <p style="margin: 0; font-size: 12px; color: #64748b; text-align: center;">
+                                Stallion Tracker &middot; Data from Equibase Virtual Stable
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
