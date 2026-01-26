@@ -1802,9 +1802,38 @@ Once McKinzie testing confirms the system works:
 - YTD statistics
 - Resend integration for email delivery
 
+#### Chart PDF Scraping (`/parser/parsers/chart_scraper.py`)
+- Fetches Equibase chart PDFs and extracts race details
+- Extracts: distance, surface, purse, race type, race name, stakes grade (G1/G2/G3)
+- Position-based earnings extraction from "Value of Race" line
+- Automatic static-to-premium URL conversion (static URLs expire, premium work permanently)
+- Handles concatenated PDF text (words run together without spaces)
+
+#### BloodHorse Replay Integration (`/parser/parsers/bloodhorse_replay.py`)
+- Generates BloodHorse replay video URLs for winners
+- Constructs URL from race parameters (track, date, race number, purse, etc.)
+- Track name mapping for proper URL formatting
+
+#### ResultCard Enhancements
+- Horse name as clickable link to Equibase profile
+- Race info (type, purse, distance) on same line as horse name
+- Chart link to Equibase PDF (uses premium URL format)
+- Replay link for winners (BloodHorse video)
+- Gold/silver color scheme:
+  - WIN badge + G1 badge: Gold background
+  - 2nd badge + G2 badge: Silver background
+  - G1 races: Gold left border
+  - G2 races: Silver left border
+  - G3/other graded: Orange accent border
+  - Non-graded stakes: Navy primary border
+- Stakes winners: Bold race info text
+- Stakes race names in grade-appropriate colors (gold for G1, silver for G2)
+
+#### Backfill Scripts (`/parser/backfill_charts.py`)
+- Backfills existing results with missing chart data (distance, surface, earnings)
+- Converts static chart URLs to premium format (`--convert-urls` flag)
+
 ### Pending Features
-- **PDF Export** - Export dashboard as PDF report
-- Chart PDF parsing ("Pull Data" button)
 - Push notifications for winners
 - Historical data import
 - Multi-stallion selector UI

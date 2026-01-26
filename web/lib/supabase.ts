@@ -79,11 +79,13 @@ export interface Result {
   jockey: string | null
   trainer: string | null
   chart_url: string | null
+  replay_url: string | null
   // Joined fields
   horse_name?: string | null
   horse_sex?: string | null
   horse_yob?: number | null
   horse_dam?: string | null
+  horse_profile_url?: string | null
   sire_name?: string
 }
 

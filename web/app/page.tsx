@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Header } from '@/components/Header'
 import { StatsBar } from '@/components/StatsBar'
 import { EntryCard } from '@/components/EntryCard'
@@ -16,8 +16,10 @@ export default function Home() {
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [stats, setStats] = useState<StallionStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isExporting, setIsExporting] = useState(false)
   const [stallion] = useState(DEFAULT_STALLION)
   const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats'>('overview')
+  const mainRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     async function fetchData() {
@@ -64,9 +66,22 @@ export default function Home() {
 
   const currentYear = new Date().getFullYear()
 
+  const handleExportPDF = async () => {
+    if (!mainRef.current || isExporting) return
+    setIsExporting(true)
+    try {
+      const { exportDashboardToPDF } = await import('@/lib/pdf-export')
+      await exportDashboardToPDF(mainRef.current, { stallionName: stallion })
+    } catch (error) {
+      console.error('Error exporting PDF:', error)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header stallionName={stallion} />
+      <Header stallionName={stallion} onExportPDF={handleExportPDF} isExporting={isExporting} />
 
       {stats && (
         <StatsBar
@@ -78,7 +93,7 @@ export default function Home() {
         />
       )}
 
-      <main className="flex-1 px-5 py-6">
+      <main ref={mainRef} className="flex-1 px-5 py-6">
         {loading ? (
           <div className="text-center py-12 text-slate-500">
             Loading...

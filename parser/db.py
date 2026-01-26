@@ -229,6 +229,7 @@ class Database:
             "owner": result_data.owner,
             "post_position": result_data.post_position,
             "chart_url": result_data.chart_url,
+            "replay_url": result_data.replay_url,
             "equibase_email_id": result_data.equibase_email_id,
             "raw_email_subject": result_data.raw_email_subject,
         }

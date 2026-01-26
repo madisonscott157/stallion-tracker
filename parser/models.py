@@ -80,6 +80,7 @@ class ResultData(BaseModel):
     owner: Optional[str] = None
     post_position: Optional[int] = None
     chart_url: Optional[str] = None
+    replay_url: Optional[str] = None
     equibase_email_id: Optional[str] = None
     raw_email_subject: Optional[str] = None
 

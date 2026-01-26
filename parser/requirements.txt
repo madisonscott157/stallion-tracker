@@ -21,5 +21,8 @@ pytz>=2024.1
 # HTTP requests (for chart PDFs)
 requests>=2.31.0
 
+# PDF parsing (for chart scraping)
+pdfplumber>=0.10.0
+
 # Environment variables
 python-dotenv>=1.0.0

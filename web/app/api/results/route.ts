@@ -7,14 +7,26 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '20')
   const winnersOnly = searchParams.get('winners') === 'true'
 
-  // Build query using the view
+  // Query results table with joins to get horse profile URL
   let query = supabase
-    .from('recent_results')
-    .select('*')
+    .from('results')
+    .select(`
+      *,
+      horses!inner (
+        name,
+        sex,
+        yob,
+        dam,
+        equibase_profile_url,
+        stallions!inner (
+          name
+        )
+      )
+    `)
 
   // Filter by stallion if specified
   if (stallion) {
-    query = query.ilike('sire_name', stallion)
+    query = query.ilike('horses.stallions.name', stallion)
   }
 
   // Filter to winners only if requested
@@ -32,5 +44,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(data)
+  // Flatten the response for easier frontend consumption
+  const results = data?.map(result => ({
+    ...result,
+    horse_name: result.horses?.name,
+    horse_sex: result.horses?.sex,
+    horse_yob: result.horses?.yob,
+    horse_dam: result.horses?.dam,
+    horse_profile_url: result.horses?.equibase_profile_url,
+    sire_name: result.horses?.stallions?.name,
+  })) || []
+
+  return NextResponse.json(results)
 }

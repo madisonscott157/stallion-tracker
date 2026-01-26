@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup
 
 from models import ResultData, HorseData
 from comments_parser import parse_comments
+from parsers.chart_scraper import scrape_chart, convert_static_to_premium_url
+from parsers.bloodhorse_replay import build_replay_url, get_track_name
 
 
 def parse_result_email(html_content: str, email_id: str, subject: str) -> Optional[ResultData]:
@@ -134,11 +136,13 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
 
     chart_link = soup.find('a', href=re.compile(r'equibase\.com/static/chart/pdf'))
     if chart_link:
-        chart_url = chart_link['href']
+        static_chart_url = chart_link['href']
         # Parse chart filename for metadata: {TrackCode}{Date}{Country}{RaceNum}.pdf
-        chart_match = re.search(r'/([A-Z]{2,3})(\d{6})([A-Z]{2,3})(\d+)\.pdf', chart_url)
+        chart_match = re.search(r'/([A-Z]{2,3})(\d{6})([A-Z]{2,3})(\d+)\.pdf', static_chart_url)
         if chart_match:
             track_code = chart_match.group(1)
+        # Convert to premium URL format (static URLs expire, premium URLs work permanently)
+        chart_url = convert_static_to_premium_url(static_chart_url) or static_chart_url
 
     # 5. Extract horse profile URL if present
     horse_link = soup.find('a', href=re.compile(r'equibase\.com/profiles/Results\.cfm'))
@@ -183,6 +187,58 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
     if is_stakes and not race_type:
         race_type = 'STK'
 
+    # Initialize additional fields
+    distance = None
+    surface = None
+    earnings = None
+    race_name = None
+
+    # Scrape chart PDF for additional race details (use static URL which scrape_chart handles with fallback)
+    static_url_for_scrape = chart_link['href'] if chart_link else None
+    if static_url_for_scrape:
+        print(f"Scraping chart: {static_url_for_scrape}")
+        chart_data = scrape_chart(static_url_for_scrape)
+        if chart_data:
+            distance = chart_data.distance
+            surface = chart_data.surface
+            # Get earnings for this horse's finish position (not total purse)
+            earnings = chart_data.get_earnings(finish_position)
+            if chart_data.race_name:
+                # Clean race name - remove STAKES prefix and fix concatenation
+                race_name = chart_data.race_name
+                race_name = re.sub(r'^STAKES\s*', '', race_name)  # Remove STAKES prefix
+                # Add spaces before capital letters to fix concatenation like "PennsylvaniaDerby"
+                race_name = re.sub(r'([a-z])([A-Z])', r'\1 \2', race_name)
+                race_name = race_name.strip()
+            if chart_data.race_type and not race_type:
+                race_type = chart_data.race_type
+            # If chart indicates stakes race, update is_stakes and try to get grade
+            if chart_data.race_type == 'STK' or (race_name and 'stakes' in race_name.lower()):
+                is_stakes = True
+            # Try to extract stakes grade from chart text or race conditions
+            if chart_data.stakes_grade and not stakes_grade:
+                stakes_grade = chart_data.stakes_grade
+            print(f"  -> Distance: {distance}, Surface: {surface}, Earnings: ${earnings:,}" if earnings else f"  -> Distance: {distance}, Surface: {surface}, Earnings: None")
+
+    # Build replay URL for winners
+    replay_url = None
+    if finish_position == 1 and track_code:
+        try:
+            track_name = get_track_name(track_code, track)
+            replay_url = build_replay_url(
+                track_name=track_name,
+                track_code=track_code,
+                race_date=race_date,
+                race_number=race_number,
+                purse=earnings,
+                race_type=race_type,
+                distance=distance,
+                surface=surface,
+            )
+            print(f"  -> Replay URL generated for winner")
+        except Exception as e:
+            print(f"  -> Could not generate replay URL: {e}")
+
     return ResultData(
         horse=horse,
         race_date=race_date,
@@ -190,13 +246,18 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
         track_code=track_code,
         race_number=race_number,
         race_type=race_type,
+        race_name=race_name,
         is_stakes=is_stakes,
         stakes_grade=stakes_grade,
+        purse=earnings,  # Horse's earnings for their finish position
+        distance=distance,
+        surface=surface,
         finish_position=finish_position,
         beaten_lengths=beaten_lengths,
         win_margin=win_margin,
         odds=odds,
         chart_url=chart_url,
+        replay_url=replay_url,
         equibase_email_id=email_id,
         raw_email_subject=subject,
     )

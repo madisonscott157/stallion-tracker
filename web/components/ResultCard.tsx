@@ -20,6 +20,7 @@ export function ResultCard({ result }: ResultCardProps) {
   const horseName = result.horse_name || 'Unknown'
   const horseDesc = formatHorseDescription(result.horse_sex || null, result.horse_yob || null)
   const isWinner = result.finish_position === 1
+  const isTopThree = result.finish_position <= 3
 
   const dateLabel = isToday(result.race_date)
     ? 'Today'
@@ -34,12 +35,28 @@ export function ResultCard({ result }: ResultCardProps) {
     ? cleanRaceName(result.race_name.replace(/^STAKES\s*/i, '').trim())
     : null
 
-  // Determine border color based on stakes status
-  const borderClass = result.stakes_grade
-    ? 'border-l-4 border-l-accent'  // Graded stakes: orange
-    : result.is_stakes
-    ? 'border-l-4 border-l-primary' // Non-graded stakes: navy
-    : ''                             // Non-stakes: no colored border
+  // Stakes winner should have bold race info
+  const isStakesWinner = isWinner && result.is_stakes
+  const isSecond = result.finish_position === 2
+  const isG1 = result.stakes_grade === 'G1'
+  const isG2 = result.stakes_grade === 'G2'
+
+  // Determine border color:
+  // - WIN or G1: gold
+  // - 2nd place or G2: silver
+  // - G3 or other stakes: accent (orange)
+  // - Non-graded stakes: navy
+  // - Other: no border
+  let borderClass = ''
+  if (isWinner || isG1) {
+    borderClass = 'border-l-4 border-l-gold-border'
+  } else if (isSecond || isG2) {
+    borderClass = 'border-l-4 border-l-silver-border'
+  } else if (result.stakes_grade) {
+    borderClass = 'border-l-4 border-l-accent'
+  } else if (result.is_stakes) {
+    borderClass = 'border-l-4 border-l-primary'
+  }
 
   return (
     <div
@@ -48,69 +65,61 @@ export function ResultCard({ result }: ResultCardProps) {
         borderClass
       )}
     >
-      {/* Row 1: Position + Horse name + sex/age | Date, Track */}
+      {/* Row 1: Position + Horse name + sex/age + race info | Date, Track, Chart */}
       <div className="flex items-baseline justify-between gap-4">
-        <div className="flex items-baseline gap-2 min-w-0">
+        <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
           {isWinner ? (
-            <span className="bg-green-700 text-white text-xs px-1.5 py-0.5 rounded font-medium shrink-0 relative top-[-1px]">
+            <span className="bg-gold text-white text-xs px-1.5 py-0.5 rounded font-medium shrink-0 relative top-[-1px]">
               WIN
+            </span>
+          ) : isSecond ? (
+            <span className="bg-silver text-white text-xs px-1.5 py-0.5 rounded font-medium shrink-0 relative top-[-1px]">
+              2nd
             </span>
           ) : (
             <span className="text-slate-500 text-sm font-medium shrink-0">
               {formatOrdinal(result.finish_position)}
             </span>
           )}
-          <span className="font-medium text-slate-900">{horseName}</span>
+          {result.horse_profile_url ? (
+            <a
+              href={result.horse_profile_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-slate-900 hover:text-primary hover:underline"
+            >
+              {horseName}
+            </a>
+          ) : (
+            <span className="font-medium text-slate-900">{horseName}</span>
+          )}
           {horseDesc && (
             <span className="text-sm text-slate-400">{horseDesc}</span>
           )}
+          {/* Race info inline with horse name */}
+          {(result.race_type || result.purse || result.distance) && (
+            <>
+              <span className="text-slate-300">|</span>
+              <span className={cn(
+                "text-sm text-slate-500",
+                isStakesWinner && "font-semibold text-slate-700"
+              )}>
+                {[
+                  result.race_type,
+                  result.purse && `$${result.purse.toLocaleString()}`,
+                  result.distance && formatDistance(result.distance)
+                ].filter(Boolean).join(' | ')}
+              </span>
+            </>
+          )}
         </div>
-        <div className="flex items-center gap-3 text-sm text-slate-600 whitespace-nowrap shrink-0">
+        <div className="flex items-baseline gap-3 text-sm text-slate-600 whitespace-nowrap shrink-0">
           <span className="font-medium">{dateLabel}</span>
           <span className="text-slate-300">|</span>
           <span>{trackDisplay} R{result.race_number}</span>
-        </div>
-      </div>
-
-      {/* Row 2: Grade badge + Race name + details | Margin, Chart */}
-      <div className="flex items-baseline justify-between gap-4 mt-1 text-sm text-slate-500">
-        <div className="flex items-baseline gap-2 min-w-0">
-          {result.stakes_grade && (
-            <span className="bg-accent text-white text-xs px-1.5 py-0.5 rounded font-medium relative top-[-1px]">
-              {result.stakes_grade}
-            </span>
-          )}
-          {stakesRaceName && (
-            <span className={cn(
-              "font-medium",
-              result.stakes_grade ? "text-accent" : "text-primary"
-            )}>{stakesRaceName}</span>
-          )}
-          {stakesRaceName && <span className="text-slate-300">|</span>}
-          {result.race_type && <span>{result.race_type}</span>}
-          {result.purse && (
-            <>
-              <span className="text-slate-300">|</span>
-              <span>${result.purse.toLocaleString()}</span>
-            </>
-          )}
-          {result.distance && (
-            <>
-              <span className="text-slate-300">|</span>
-              <span>{formatDistance(result.distance)}</span>
-            </>
-          )}
-        </div>
-        <div className="flex items-center gap-3 whitespace-nowrap shrink-0">
-          {isWinner && result.win_margin && (
-            <span className="text-green-700 font-medium">Won by {result.win_margin}</span>
-          )}
-          {!isWinner && result.beaten_lengths && (
-            <span>Beaten {result.beaten_lengths}</span>
-          )}
           {result.chart_url && (
             <>
-              {(result.win_margin || result.beaten_lengths) && <span className="text-slate-300">|</span>}
+              <span className="text-slate-300">|</span>
               <a
                 href={result.chart_url}
                 target="_blank"
@@ -121,8 +130,58 @@ export function ResultCard({ result }: ResultCardProps) {
               </a>
             </>
           )}
+          {result.replay_url && (
+            <>
+              <span className="text-slate-300">|</span>
+              <a
+                href={result.replay_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Replay
+              </a>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Row 2: Stakes info (only shown for stakes races) */}
+      {(result.stakes_grade || stakesRaceName) && (
+        <div className="flex items-baseline gap-2 mt-1 text-sm">
+          {result.stakes_grade && (
+            <span className={cn(
+              "text-white text-xs px-1.5 py-0.5 rounded font-medium relative top-[-1px]",
+              isG1 ? "bg-gold" : isG2 ? "bg-silver" : "bg-accent"
+            )}>
+              {result.stakes_grade}
+            </span>
+          )}
+          {stakesRaceName && (
+            <span className={cn(
+              "font-medium",
+              isG1 ? "text-gold-border" : isG2 ? "text-silver-border" : result.stakes_grade ? "text-accent" : "text-primary",
+              isStakesWinner && "font-bold"
+            )}>{stakesRaceName}</span>
+          )}
+          {isWinner && result.win_margin && (
+            <>
+              <span className="text-slate-300">|</span>
+              <span className={cn(
+                "text-green-700 font-medium",
+                isStakesWinner && "font-bold"
+              )}>Won by {result.win_margin}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Win margin for non-stakes winners */}
+      {isWinner && result.win_margin && !result.is_stakes && (
+        <div className="mt-1 text-sm">
+          <span className="text-green-700 font-medium">Won by {result.win_margin}</span>
+        </div>
+      )}
     </div>
   )
 }
