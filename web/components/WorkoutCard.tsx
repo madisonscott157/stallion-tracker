@@ -47,7 +47,8 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
             href={workout.horse_profile_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-slate-900 hover:text-accent hover:underline"
+            className="font-medium hover:underline"
+            style={{ color: 'var(--org-primary)' }}
           >
             {displayName}
           </a>

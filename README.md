@@ -125,3 +125,33 @@ Run parser and dashboard locally, use Supabase cloud for database.
 - **Parser**: Python 3.11+, BeautifulSoup, imaplib
 - **Dashboard**: Next.js 14, Tailwind CSS, TypeScript
 - **Email**: Resend
+
+## UI Guidelines
+
+### Text Alignment in Headers
+When aligning text elements (links, spans, buttons) horizontally in headers/navbars, use `items-baseline` instead of `items-center`. This aligns text by their baseline, ensuring consistent visual alignment regardless of element type.
+
+```jsx
+// Good - text aligns properly
+<div className="flex items-baseline gap-3">
+  <a href="/admin">Admin</a>
+  <span>Solis/Litt</span>
+  <button>Logout</button>
+</div>
+
+// Bad - text may appear misaligned
+<div className="flex items-center gap-3">
+  ...
+</div>
+```
+
+## User Management
+
+Users are created exclusively through the Admin panel (`/admin/users`), which:
+1. Creates the user in Supabase Auth (for login)
+2. Creates a profile row in the `users` table (for org/role assignment)
+3. Sets the password directly (no email verification required)
+
+The initial admin account is the only user that needs to be created manually in Supabase. All subsequent users should be created via the Admin panel.
+
+To disable email confirmations: Supabase Dashboard > Authentication > Providers > Email > Turn off "Confirm email"

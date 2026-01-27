@@ -63,6 +63,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsMounted(true)
   }, [])
 
+  // Apply org theme colors as CSS variables
+  useEffect(() => {
+    if (profile?.organization) {
+      document.documentElement.style.setProperty('--org-primary', profile.organization.primary_color)
+      document.documentElement.style.setProperty('--org-secondary', profile.organization.secondary_color)
+    } else {
+      // Default colors
+      document.documentElement.style.setProperty('--org-primary', '#0f172a')
+      document.documentElement.style.setProperty('--org-secondary', '#64748b')
+    }
+  }, [profile])
+
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {

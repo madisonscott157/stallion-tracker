@@ -132,7 +132,7 @@ export default function Home() {
         )
       })()}
 
-      <main ref={mainRef} className="flex-1 px-5 py-6">
+      <main ref={mainRef} className="flex-1 px-6 py-6 max-w-5xl mx-auto w-full">
         {(authLoading || loading || !stallionId) ? (
           <div className="text-center py-12 text-slate-500">
             Loading...
@@ -245,7 +245,8 @@ export default function Home() {
                                         href={ranking.source_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-primary hover:underline"
+                                        className="hover:underline"
+                                        style={{ color: 'var(--org-primary)' }}
                                       >
                                         {listLabel}
                                       </a>
@@ -453,29 +454,33 @@ export default function Home() {
       </main>
 
       {/* Bottom nav */}
-      <nav className="sticky bottom-0 bg-white border-t border-slate-200 px-5 py-3">
-        <div className="flex justify-around text-sm">
+      <nav className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-3">
+        <div className="flex justify-around text-sm max-w-5xl mx-auto">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-primary font-medium' : 'text-slate-400'}`}
+            className="flex flex-col items-center"
+            style={{ color: activeTab === 'overview' ? 'var(--org-secondary)' : '#94a3b8', fontWeight: activeTab === 'overview' ? 500 : 400 }}
           >
             <span>Overview</span>
           </button>
           <button
             onClick={() => setActiveTab('results')}
-            className={`flex flex-col items-center ${activeTab === 'results' ? 'text-primary font-medium' : 'text-slate-400'}`}
+            className="flex flex-col items-center"
+            style={{ color: activeTab === 'results' ? 'var(--org-secondary)' : '#94a3b8', fontWeight: activeTab === 'results' ? 500 : 400 }}
           >
             <span>Results</span>
           </button>
           <button
             onClick={() => setActiveTab('stats')}
-            className={`flex flex-col items-center ${activeTab === 'stats' ? 'text-primary font-medium' : 'text-slate-400'}`}
+            className="flex flex-col items-center"
+            style={{ color: activeTab === 'stats' ? 'var(--org-secondary)' : '#94a3b8', fontWeight: activeTab === 'stats' ? 500 : 400 }}
           >
             <span>Stats</span>
           </button>
           <button
             onClick={() => setActiveTab('sales')}
-            className={`flex flex-col items-center ${activeTab === 'sales' ? 'text-primary font-medium' : 'text-slate-400'}`}
+            className="flex flex-col items-center"
+            style={{ color: activeTab === 'sales' ? 'var(--org-secondary)' : '#94a3b8', fontWeight: activeTab === 'sales' ? 500 : 400 }}
           >
             <span>Sales</span>
           </button>

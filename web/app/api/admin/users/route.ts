@@ -21,10 +21,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden - admin only' }, { status: 403 })
   }
 
-  const { email, name, organization_id, role = 'user' } = await request.json()
+  const { email, name, password, organization_id, role = 'user' } = await request.json()
 
-  if (!email || !organization_id) {
-    return NextResponse.json({ error: 'Email and organization_id are required' }, { status: 400 })
+  if (!email || !password || !organization_id) {
+    return NextResponse.json({ error: 'Email, password, and organization_id are required' }, { status: 400 })
+  }
+
+  if (password.length < 6) {
+    return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
   }
 
   // Use service role to create user in Supabase Auth
@@ -39,13 +43,10 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  // Generate a temporary password
-  const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12)
-
-  // Create auth user
+  // Create auth user with provided password
   const { data: authUser, error: authError } = await adminClient.auth.admin.createUser({
     email,
-    password: tempPassword,
+    password,
     email_confirm: true,
   })
 
@@ -70,17 +71,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: profileError.message }, { status: 400 })
   }
 
-  // Send password reset email so user can set their own password
-  const { error: resetError } = await adminClient.auth.admin.generateLink({
-    type: 'recovery',
-    email,
-  })
-
-  if (resetError) {
-    console.error('Error sending password reset:', resetError)
-    // Don't fail the request, user was created successfully
-  }
-
   return NextResponse.json({
     success: true,
     user: {
@@ -90,7 +80,5 @@ export async function POST(request: NextRequest) {
       organization_id,
       role,
     },
-    // Only return temp password in development for testing
-    ...(process.env.NODE_ENV === 'development' && { tempPassword }),
   })
 }

@@ -86,7 +86,8 @@ export function ResultCard({ result }: ResultCardProps) {
               href={result.horse_profile_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-slate-900 hover:text-primary hover:underline"
+              className="font-medium hover:underline"
+              style={{ color: 'var(--org-primary)' }}
             >
               {horseName}
             </a>
@@ -124,7 +125,8 @@ export function ResultCard({ result }: ResultCardProps) {
                 href={result.chart_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline"
+                className="hover:underline"
+                style={{ color: 'var(--org-primary)' }}
               >
                 Chart
               </a>
@@ -137,7 +139,8 @@ export function ResultCard({ result }: ResultCardProps) {
                 href={result.replay_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline"
+                className="hover:underline"
+                style={{ color: 'var(--org-primary)' }}
               >
                 Replay
               </a>
@@ -160,9 +163,11 @@ export function ResultCard({ result }: ResultCardProps) {
           {stakesRaceName && (
             <span className={cn(
               "font-medium",
-              isG1 ? "text-gold-border" : isG2 ? "text-silver-border" : result.stakes_grade ? "text-accent" : "text-primary",
-              isStakesWinner && "font-bold"
-            )}>{stakesRaceName}</span>
+              isStakesWinner && "font-bold",
+              isG1 ? "text-gold-border" : isG2 ? "text-silver-border" : result.stakes_grade ? "text-accent" : ""
+            )}
+              style={!result.stakes_grade ? { color: 'var(--org-primary)' } : undefined}
+            >{stakesRaceName}</span>
           )}
           {isWinner && result.win_margin && (
             <>

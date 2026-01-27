@@ -45,43 +45,46 @@ export function EntryCard({ entry }: EntryCardProps) {
     <div
       className={cn(
         'bg-white rounded-lg border border-slate-200 px-4 py-2.5',
-        borderClass,
-        entry.scratched && 'opacity-50'
+        !entry.scratched && borderClass
       )}
     >
       {/* Row 1: Horse name + sex/age | Date, Track, Time */}
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex items-baseline gap-2 min-w-0">
-          {entry.horse_profile_url ? (
+          {entry.horse_profile_url && !entry.scratched ? (
             <a
               href={entry.horse_profile_url}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(
-                'font-medium text-slate-900 hover:text-accent hover:underline',
-                entry.scratched && 'line-through'
-              )}
+              className="font-medium text-slate-900 hover:underline"
+              style={{ color: 'var(--org-primary)' }}
             >
               {horseName}
             </a>
           ) : (
             <span className={cn(
-              'font-medium text-slate-900',
-              entry.scratched && 'line-through'
+              'font-medium',
+              entry.scratched ? 'text-slate-400' : 'text-slate-900'
             )}>
               {horseName}
             </span>
           )}
-          {horseDesc && (
-            <span className="text-sm text-slate-400">{horseDesc}</span>
-          )}
           {entry.scratched && (
-            <span className="text-xs font-medium text-red-600 shrink-0">SCRATCHED</span>
+            <span className="text-xs font-semibold text-slate-400 shrink-0">SCR</span>
+          )}
+          {horseDesc && (
+            <span className={cn(
+              'text-sm',
+              entry.scratched ? 'text-slate-300' : 'text-slate-400'
+            )}>{horseDesc}</span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-sm text-slate-600 whitespace-nowrap shrink-0">
+        <div className={cn(
+          'flex items-center gap-3 text-sm whitespace-nowrap shrink-0',
+          entry.scratched ? 'text-slate-400' : 'text-slate-600'
+        )}>
           <span className="font-medium">{dateLabel}</span>
-          <span className="text-slate-300">|</span>
+          <span className={entry.scratched ? 'text-slate-300' : 'text-slate-300'}>|</span>
           <span>{trackDisplay} R{entry.race_number}</span>
           {entry.post_time && (
             <>
@@ -93,30 +96,42 @@ export function EntryCard({ entry }: EntryCardProps) {
       </div>
 
       {/* Row 2: Grade badge + Race name + details | Trainer, Jockey */}
-      <div className="flex items-baseline justify-between gap-4 mt-1 text-sm text-slate-500">
+      <div className={cn(
+        'flex items-baseline justify-between gap-4 mt-1 text-sm',
+        entry.scratched ? 'text-slate-400' : 'text-slate-500'
+      )}>
         <div className="flex items-baseline gap-2 min-w-0">
           {entry.stakes_grade && (
-            <span className="bg-accent text-white text-xs px-1.5 py-0.5 rounded font-medium relative top-[-1px]">
+            <span className={cn(
+              'text-xs px-1.5 py-0.5 rounded font-medium relative top-[-1px]',
+              entry.scratched ? 'bg-slate-300 text-slate-500' : 'bg-accent text-white'
+            )}>
               {entry.stakes_grade}
             </span>
           )}
           {stakesRaceName && (
-            entry.entries_url ? (
+            entry.entries_url && !entry.scratched ? (
               <a
                 href={entry.entries_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
                   "font-medium hover:underline",
-                  entry.stakes_grade ? "text-accent" : "text-primary"
+                  entry.stakes_grade === 'G1' ? "text-gold-border" :
+                  entry.stakes_grade === 'G2' ? "text-silver-border" :
+                  entry.stakes_grade ? "text-accent" : ""
                 )}
+                style={!entry.stakes_grade ? { color: 'var(--org-primary)' } : undefined}
               >
                 {stakesRaceName}
               </a>
             ) : (
               <span className={cn(
                 "font-medium",
-                entry.stakes_grade ? "text-accent" : "text-primary"
+                entry.scratched ? "text-slate-400" :
+                entry.stakes_grade === 'G1' ? "text-gold-border" :
+                entry.stakes_grade === 'G2' ? "text-silver-border" :
+                entry.stakes_grade ? "text-accent" : "text-slate-900"
               )}>{stakesRaceName}</span>
             )
           )}

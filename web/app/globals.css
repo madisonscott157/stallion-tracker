@@ -10,6 +10,10 @@
   /* Accent - Gold */
   --color-accent: #b45309;
   --color-accent-light: #d97706;
+
+  /* Organization theme colors (set dynamically via JS) */
+  --org-primary: #0f172a;
+  --org-secondary: #64748b;
 }
 
 html {

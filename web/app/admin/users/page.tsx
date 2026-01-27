@@ -23,7 +23,7 @@ export default function AdminUsersPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [newUser, setNewUser] = useState({ email: '', name: '', organization_id: '', role: 'user' })
+  const [newUser, setNewUser] = useState({ email: '', name: '', password: '', organization_id: '', role: 'user' })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const supabase = createClientComponentClient()
@@ -62,7 +62,7 @@ export default function AdminUsersPage() {
       }
 
       setShowAddForm(false)
-      setNewUser({ email: '', name: '', organization_id: '', role: 'user' })
+      setNewUser({ email: '', name: '', password: '', organization_id: '', role: 'user' })
       fetchData()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create user')
@@ -130,6 +130,18 @@ export default function AdminUsersPage() {
                   value={newUser.name}
                   onChange={e => setNewUser({ ...newUser, name: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                <input
+                  type="password"
+                  value={newUser.password}
+                  onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                  required
+                  minLength={6}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                  placeholder="Min 6 characters"
                 />
               </div>
               <div>
