@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createServerComponentClient } from '@/lib/supabase-server'
 
 export async function GET(request: NextRequest) {
+  const supabase = createServerComponentClient()
+
+  // Check authentication
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { searchParams } = new URL(request.url)
   const stallion = searchParams.get('stallion')
   const dateFrom = searchParams.get('from')
@@ -11,6 +19,7 @@ export async function GET(request: NextRequest) {
   const today = new Date().toISOString().split('T')[0]
 
   // Query entries table directly with joins
+  // RLS policies automatically filter to user's organization's stallions
   let query = supabase
     .from('entries')
     .select(`
@@ -34,7 +43,7 @@ export async function GET(request: NextRequest) {
     query = query.lte('race_date', dateTo)
   }
 
-  // Filter by stallion if specified
+  // Filter by stallion if specified (in addition to RLS filtering)
   if (stallion) {
     query = query.ilike('horses.stallions.name', stallion)
   }

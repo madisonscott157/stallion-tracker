@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createServerComponentClient } from '@/lib/supabase-server'
 
 export async function GET(request: NextRequest) {
+  const supabase = createServerComponentClient()
+
+  // Check authentication
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { searchParams } = new URL(request.url)
   const stallion = searchParams.get('stallion')
   const limit = parseInt(searchParams.get('limit') || '20')
   const winnersOnly = searchParams.get('winners') === 'true'
 
   // Query results table with joins to get horse profile URL
+  // RLS policies automatically filter to user's organization's stallions
   let query = supabase
     .from('results')
     .select(`

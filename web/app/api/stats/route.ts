@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createServerComponentClient } from '@/lib/supabase-server'
 
 export async function GET(request: NextRequest) {
+  const supabase = createServerComponentClient()
+
+  // Check authentication
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { searchParams } = new URL(request.url)
   const stallion = searchParams.get('stallion')
 
   // Build query using the view
+  // Note: Views may need RLS policies too, or query the base tables
   let query = supabase
     .from('stallion_ytd_stats')
     .select('*')

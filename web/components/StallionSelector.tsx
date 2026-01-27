@@ -1,0 +1,65 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useAuth } from '@/lib/auth-context'
+import { createClientComponentClient } from '@/lib/supabase'
+
+interface Stallion {
+  id: string
+  name: string
+}
+
+interface StallionSelectorProps {
+  value: string | null
+  onChange: (stallionId: string, stallionName: string) => void
+}
+
+export function StallionSelector({ value, onChange }: StallionSelectorProps) {
+  const [stallions, setStallions] = useState<Stallion[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { profile } = useAuth()
+  const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    async function fetchStallions() {
+      // RLS will automatically filter to user's organization
+      const { data, error } = await supabase
+        .from('stallions')
+        .select('id, name')
+        .order('name')
+
+      if (!error && data) {
+        setStallions(data)
+        // Auto-select first stallion if none selected
+        if (!value && data.length > 0) {
+          onChange(data[0].id, data[0].name)
+        }
+      }
+      setIsLoading(false)
+    }
+
+    if (profile) {
+      fetchStallions()
+    }
+  }, [profile, value, onChange, supabase])
+
+  if (isLoading) return null
+  if (stallions.length <= 1) return null // Don't show selector if only one stallion
+
+  return (
+    <select
+      value={value || ''}
+      onChange={(e) => {
+        const stallion = stallions.find(s => s.id === e.target.value)
+        if (stallion) onChange(stallion.id, stallion.name)
+      }}
+      className="px-3 py-1.5 text-sm bg-white/10 border border-white/20 rounded text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+    >
+      {stallions.map(s => (
+        <option key={s.id} value={s.id} className="text-slate-900 bg-white">
+          {s.name}
+        </option>
+      ))}
+    </select>
+  )
+}

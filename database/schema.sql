@@ -393,3 +393,105 @@ LEFT JOIN horses h ON h.sire_id = s.id
 LEFT JOIN results r ON r.horse_id = h.id
     AND EXTRACT(YEAR FROM r.race_date) = EXTRACT(YEAR FROM CURRENT_DATE)
 GROUP BY s.id, s.name;
+
+-- ============================================
+-- SALES STATS (TDN Insta-tistics)
+-- ============================================
+CREATE TABLE sales_stats (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    stallion_id UUID REFERENCES stallions(id) NOT NULL,
+
+    -- Time period
+    sale_year INTEGER NOT NULL,
+    sale_type TEXT NOT NULL,  -- 'yearlings', 'weanlings', '2yo_training', 'covering_sires'
+
+    -- Aggregate stats
+    through_ring INTEGER,
+    number_sold INTEGER,
+    gross_sales INTEGER,
+    average_price INTEGER,
+    median_price INTEGER,
+
+    -- Rankings
+    average_rank INTEGER,
+    median_rank INTEGER,
+
+    -- Top prices
+    top_colt_price INTEGER,
+    top_filly_price INTEGER,
+
+    -- Metadata
+    source_url TEXT,
+    scraped_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+    UNIQUE(stallion_id, sale_year, sale_type)
+);
+
+CREATE INDEX idx_sales_stats_stallion_id ON sales_stats(stallion_id);
+CREATE INDEX idx_sales_stats_sale_year ON sales_stats(sale_year);
+CREATE INDEX idx_sales_stats_sale_type ON sales_stats(sale_type);
+
+-- Trigger for updated_at
+CREATE TRIGGER update_sales_stats_updated_at
+    BEFORE UPDATE ON sales_stats
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- SIRE RANKINGS (TDN Sire Lists)
+-- ============================================
+CREATE TABLE sire_rankings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    stallion_id UUID REFERENCES stallions(id) NOT NULL,
+
+    -- Time period and list type
+    year INTEGER NOT NULL,
+    list_type TEXT NOT NULL,  -- 'ytd', 'freshman', 'second_crop', 'third_crop', 'general'
+
+    -- Ranking
+    rank INTEGER,
+
+    -- Progeny stats
+    starters INTEGER,
+    winners INTEGER,
+    wins INTEGER,
+    win_pct DECIMAL(5,2),
+
+    -- Black type stats
+    black_type_winners INTEGER,
+    black_type_horses INTEGER,
+    graded_stakes_winners INTEGER,
+    graded_stakes_horses INTEGER,
+    g1_winners INTEGER,
+    g1_horses INTEGER,
+
+    -- Financial
+    total_earnings INTEGER,
+    earnings_per_starter INTEGER,
+    highest_earner_name TEXT,
+    highest_earner_amount INTEGER,
+
+    -- Stud info (at time of scrape)
+    stud_fee INTEGER,
+    standing_at TEXT,
+
+    -- Metadata
+    source_url TEXT,
+    scraped_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+    UNIQUE(stallion_id, year, list_type)
+);
+
+CREATE INDEX idx_sire_rankings_stallion_id ON sire_rankings(stallion_id);
+CREATE INDEX idx_sire_rankings_year ON sire_rankings(year);
+CREATE INDEX idx_sire_rankings_list_type ON sire_rankings(list_type);
+
+-- Trigger for updated_at
+CREATE TRIGGER update_sire_rankings_updated_at
+    BEFORE UPDATE ON sire_rankings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();

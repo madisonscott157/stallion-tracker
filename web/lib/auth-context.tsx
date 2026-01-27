@@ -1,0 +1,144 @@
+'use client'
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { User, Session } from '@supabase/supabase-js'
+import { createClientComponentClient } from './supabase'
+
+export interface UserProfile {
+  id: string
+  email: string
+  name: string | null
+  organization_id: string
+  role: 'user' | 'admin'
+  organization?: {
+    id: string
+    name: string
+    slug: string
+    primary_color: string
+    secondary_color: string
+    logo_url: string | null
+  }
+}
+
+interface AuthContextType {
+  user: User | null
+  profile: UserProfile | null
+  session: Session | null
+  isLoading: boolean
+  isAdmin: boolean
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>
+  signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isMounted, setIsMounted] = useState(false)
+
+  const supabase = createClientComponentClient()
+
+  const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        *,
+        organization:organizations(*)
+      `)
+      .eq('auth_id', userId)
+      .single()
+
+    if (error) {
+      console.error('Error fetching profile:', error)
+      return null
+    }
+    return data as UserProfile
+  }
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id)
+        setProfile(profile)
+      }
+      setIsLoading(false)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id)
+          setProfile(profile)
+        } else {
+          setProfile(null)
+        }
+        setIsLoading(false)
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    return { error: error as Error | null }
+  }
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setProfile(null)
+    setSession(null)
+  }
+
+  const refreshProfile = async () => {
+    if (user) {
+      const profile = await fetchProfile(user.id)
+      setProfile(profile)
+    }
+  }
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!isMounted) {
+    return null
+  }
+
+  return (
+    <AuthContext.Provider value={{
+      user,
+      profile,
+      session,
+      isLoading,
+      isAdmin: profile?.role === 'admin',
+      signIn,
+      signOut,
+      refreshProfile,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}
