@@ -125,6 +125,54 @@ Run parser and dashboard locally, use Supabase cloud for database.
 - **Parser**: Python 3.11+, BeautifulSoup, imaplib
 - **Dashboard**: Next.js 14, Tailwind CSS, TypeScript
 - **Email**: Resend
+- **Hosting**: Vercel (frontend), Railway (parser - optional)
+
+## Deployment to Production
+
+### Step 1: Create GitHub Repository
+1. Go to [github.com/new](https://github.com/new)
+2. Create a new **private** repository named `stallion-tracker`
+3. DO NOT initialize with README (we already have code)
+4. Copy the repository URL
+
+### Step 2: Push Code to GitHub
+```bash
+cd /path/to/Olympiad
+git remote add origin https://github.com/YOUR_USERNAME/stallion-tracker.git
+git branch -M main
+git push -u origin main
+```
+
+### Step 3: Deploy to Vercel
+1. Go to [vercel.com](https://vercel.com) and sign in with GitHub
+2. Click "Add New Project"
+3. Import your `stallion-tracker` repository
+4. Configure:
+   - **Root Directory**: `web`
+   - **Framework Preset**: Next.js (auto-detected)
+5. Add Environment Variables:
+   - `NEXT_PUBLIC_SUPABASE_URL` = your Supabase project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = your Supabase anon key
+6. Click "Deploy"
+
+### Step 4: Update Supabase Auth Settings
+After deployment, add your Vercel URL to Supabase:
+1. Go to Supabase Dashboard > Authentication > URL Configuration
+2. Add your Vercel URL to **Site URL** (e.g., `https://stallion-tracker.vercel.app`)
+3. Add to **Redirect URLs**: `https://stallion-tracker.vercel.app/**`
+
+### Continuous Deployment
+Once connected, every push to GitHub automatically redeploys:
+- Push to `main` → Production deployment
+- Push to other branches → Preview deployments with unique URLs
+
+### Parser Deployment (Optional)
+The Python email parser can be deployed to Railway:
+1. Create a Railway account at [railway.app](https://railway.app)
+2. Connect your GitHub repo
+3. Set root directory to `parser`
+4. Add environment variables from `.env`
+5. Set as a worker (runs continuously) or cron job
 
 ## UI Guidelines
 
