@@ -164,6 +164,8 @@ Stallions are managed via the Admin panel (`/admin/stallions`):
 2. **Organization Linking**: Toggle which organizations track which stallions
 3. **Scraping URLs**: Add Equineline and TDN URLs for future stats scraping
 
+**Organization Linking**: Stallions are only visible to users whose organization is linked to that stallion. The dropdown selector filters stallions via the `organization_stallions` junction table.
+
 After adding a stallion, update `TRACKED_STALLIONS` in `.env`:
 ```bash
 TRACKED_STALLIONS=McKinzie,Olympiad,Idol

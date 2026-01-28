@@ -22,17 +22,26 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
 
   useEffect(() => {
     async function fetchStallions() {
-      // RLS will automatically filter to user's organization
+      if (!profile?.organization?.id) {
+        setIsLoading(false)
+        return
+      }
+
+      // Get stallions linked to user's organization
       const { data, error } = await supabase
-        .from('stallions')
-        .select('id, name')
-        .order('name')
+        .from('organization_stallions')
+        .select('stallion_id, stallions(id, name)')
+        .eq('organization_id', profile.organization.id)
+        .order('stallions(name)')
 
       if (!error && data) {
-        setStallions(data)
+        const orgStallions = data
+          .map(os => os.stallions as unknown as Stallion)
+          .filter(Boolean)
+        setStallions(orgStallions)
         // Auto-select first stallion if none selected
-        if (!value && data.length > 0) {
-          onChange(data[0].id, data[0].name)
+        if (!value && orgStallions.length > 0) {
+          onChange(orgStallions[0].id, orgStallions[0].name)
         }
       }
       setIsLoading(false)
