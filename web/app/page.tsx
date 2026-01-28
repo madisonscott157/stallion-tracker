@@ -40,8 +40,8 @@ export default function Home() {
       try {
         const [entriesRes, resultsRes, workoutsRes, statsRes, salesRes, rankingsRes, equinelineRes] = await Promise.all([
           fetch(`/api/entries?stallion=${stallion}`),
-          fetch(`/api/results?stallion=${stallion}&limit=10`),
-          fetch(`/api/workouts?stallion=${stallion}&limit=5`),
+          fetch(`/api/results?stallion=${stallion}&limit=1000`),
+          fetch(`/api/workouts?stallion=${stallion}&limit=25`),
           fetch(`/api/stats?stallion=${stallion}`),
           fetch(`/api/sales?stallion=${stallion}`),
           fetch(`/api/rankings?stallion=${stallion}`),
@@ -156,12 +156,12 @@ export default function Home() {
                   )}
                 </section>
 
-                {/* Recent Results (limited) */}
+                {/* Recent Results (last 10) */}
                 <section className="mb-8">
                   <h2 className="section-header">Recent Results</h2>
                   {results.length > 0 ? (
                     <div className="card-stack">
-                      {results.slice(0, 5).map(result => (
+                      {results.slice(0, 10).map(result => (
                         <ResultCard key={result.id} result={result} />
                       ))}
                     </div>
