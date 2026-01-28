@@ -155,3 +155,71 @@ Users are created exclusively through the Admin panel (`/admin/users`), which:
 The initial admin account is the only user that needs to be created manually in Supabase. All subsequent users should be created via the Admin panel.
 
 To disable email confirmations: Supabase Dashboard > Authentication > Providers > Email > Turn off "Confirm email"
+
+## Stallion Management
+
+Stallions are managed via the Admin panel (`/admin/stallions`):
+
+1. **Add Stallion**: Name, year of birth, sire, dam, dam sire, stud farm
+2. **Organization Linking**: Toggle which organizations track which stallions
+3. **Scraping URLs**: Add Equineline and TDN URLs for future stats scraping
+
+After adding a stallion, update `TRACKED_STALLIONS` in `.env`:
+```bash
+TRACKED_STALLIONS=McKinzie,Olympiad,Idol
+```
+
+Then reprocess emails to pick up progeny:
+```bash
+cd parser
+python3 -c "from db import Database; Database().client.from_('email_log').delete().neq('id', '').execute()"
+python3 main.py --once
+```
+
+**Note**: Avoid periods in stallion/dam sire names (e.g., use "AP Indy" instead of "A.P. Indy") - periods can cause the Supabase client to hang.
+
+## Organization Silks
+
+Organizations can upload silks images that display next to horse names when the logged-in organization owns that horse.
+
+### Setup
+1. Go to Admin > Organizations
+2. Click "Upload" next to Silks
+3. Upload a square PNG/JPG of your silks
+
+### How It Works
+- Silks display on Entry and Result cards
+- Only shows for horses where `owner` field matches the logged-in organization name
+- Owner is parsed from the Virtual Stable comments field (text after the closing parenthesis)
+
+### Supabase Storage Setup
+Create an `assets` bucket and add these RLS policies:
+```sql
+CREATE POLICY "Allow authenticated uploads" ON storage.objects
+  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'assets');
+CREATE POLICY "Allow public reads" ON storage.objects
+  FOR SELECT TO public USING (bucket_id = 'assets');
+```
+
+## Known Issues
+
+### Supabase Client Hanging on Null Values
+When inserting/updating records, avoid sending explicit `null` values. Instead, only include fields that have actual values:
+
+```typescript
+// Good - only send fields with values
+const data: Record<string, string | number> = { name: 'Horse' }
+if (sire) data.sire = sire
+if (yob) data.yob = yob
+await supabase.from('stallions').insert(data)
+
+// Bad - can cause client to hang
+await supabase.from('stallions').insert({
+  name: 'Horse',
+  sire: sire || null,  // Avoid this pattern
+  yob: yob || null,
+})
+```
+
+### Silks Vertical Alignment
+Silks icons use `translate-y-[3px]` to vertically center with horse names in flex containers using `items-baseline`.

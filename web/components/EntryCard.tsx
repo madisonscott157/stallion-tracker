@@ -89,7 +89,7 @@ export function EntryCard({ entry }: EntryCardProps) {
             <img
               src={silksUrl}
               alt="Silks"
-              className="w-7 h-7 object-contain shrink-0 mt-1"
+              className="w-7 h-7 object-contain shrink-0 translate-y-[3px]"
             />
           )}
         </div>
