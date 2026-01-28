@@ -17,6 +17,7 @@ export interface UserProfile {
     primary_color: string
     secondary_color: string
     logo_url: string | null
+    silks_url: string | null
   }
 }
 

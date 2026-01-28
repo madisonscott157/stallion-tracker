@@ -248,24 +248,40 @@ def extract_race_details(text: str) -> ChartData:
 
     # Extract race type - MSW, MCL, CLM, AOC, ALW, STK
     # Order matters - more specific patterns first
+    # Note: PDF text often has no spaces, so patterns use \s* liberally
     race_type_patterns = [
         (r'MAIDEN\s*SPECIAL\s*WEIGHT', 'MSW'),
+        (r'MSW', 'MSW'),  # Abbreviation
         (r'MAIDEN\s*CLAIMING', 'MCL'),
+        (r'MCL', 'MCL'),  # Abbreviation
         (r'ALLOWANCE\s*OPTIONAL\s*CLAIMING', 'AOC'),
         (r'OPTIONAL\s*CLAIMING\s*ALLOWANCE', 'AOC'),
         (r'OPTIONAL\s*CLAIMING', 'AOC'),
+        (r'AOC', 'AOC'),  # Abbreviation
         (r'STARTER\s*OPTIONAL\s*CLAIMING', 'SOC'),
         (r'STARTER\s*ALLOWANCE', 'SOC'),
         (r'GRADED\s*STAKES', 'STK'),
         (r'STAKES', 'STK'),
         (r'ALLOWANCE', 'ALW'),
+        (r'ALW', 'ALW'),  # Abbreviation
         (r'CLAIMING', 'CLM'),
     ]
+
+    # Special handling: if we detect MAIDEN anywhere but no CLAIMING, it's likely MSW
+    has_maiden = bool(re.search(r'\bMAIDEN\b', text, re.IGNORECASE))
+    has_claiming = bool(re.search(r'\bCLAIMING\b', text, re.IGNORECASE))
 
     for pattern, race_type in race_type_patterns:
         if re.search(pattern, text, re.IGNORECASE):
             data.race_type = race_type
             break
+
+    # Override: if we found MAIDEN but not CLAIMING, and got CLM, it's actually MSW
+    if data.race_type == 'CLM' and has_maiden and not has_claiming:
+        data.race_type = 'MSW'
+    # Also: if we found MAIDEN but no specific type matched, default to MSW
+    if not data.race_type and has_maiden and not has_claiming:
+        data.race_type = 'MSW'
 
     # Extract stakes race name if present (only for stakes races)
     # Look for explicit stakes indicators first

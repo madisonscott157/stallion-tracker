@@ -11,6 +11,7 @@ CREATE TABLE organizations (
     primary_color TEXT DEFAULT '#0f172a',
     secondary_color TEXT DEFAULT '#b45309',
     logo_url TEXT,
+    silks_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -38,6 +39,8 @@ CREATE TABLE stallions (
     dam TEXT,
     dam_sire TEXT,
     stud_farm TEXT,
+    equineline_url TEXT,
+    tdn_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

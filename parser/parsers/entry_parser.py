@@ -93,6 +93,7 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
         text,
         re.IGNORECASE
     )
+    owner = None
     if comments_match:
         comments = comments_match.group(1).strip()
         parsed = parse_comments(comments)
@@ -101,6 +102,8 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
         horse.dam_sire = parsed.dam_sire
         if parsed.yob:
             horse.yob = parsed.yob
+        if parsed.notes:
+            owner = parsed.notes
 
     # 3. Extract race number and post time
     # Pattern: "Race: 8 - 8:01 PM"
@@ -344,6 +347,7 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
         surface=surface,
         jockey=jockey,
         trainer=trainer,
+        owner=owner,
         weight=weight,
         post_position=post_position,
         morning_line=morning_line,

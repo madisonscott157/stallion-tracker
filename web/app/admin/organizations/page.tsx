@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClientComponentClient } from '@/lib/supabase'
 
 interface Organization {
@@ -10,6 +10,7 @@ interface Organization {
   primary_color: string
   secondary_color: string
   logo_url: string | null
+  silks_url: string | null
 }
 
 export default function AdminOrganizationsPage() {
@@ -19,6 +20,8 @@ export default function AdminOrganizationsPage() {
   const [newOrg, setNewOrg] = useState({ name: '', slug: '', primary_color: '#1e293b', secondary_color: '#64748b' })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [uploadingOrgId, setUploadingOrgId] = useState<string | null>(null)
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
   const supabase = createClientComponentClient()
 
   async function fetchData() {
@@ -59,6 +62,38 @@ export default function AdminOrganizationsPage() {
     const { error } = await supabase.from('organizations').update(updates).eq('id', orgId)
     if (!error) {
       fetchData()
+    }
+  }
+
+  async function handleSilksUpload(orgId: string, file: File) {
+    setUploadingOrgId(orgId)
+
+    try {
+      // Create unique filename
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${orgId}-silks.${fileExt}`
+      const filePath = `silks/${fileName}`
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('assets')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError)
+        alert('Failed to upload silks: ' + uploadError.message)
+        return
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('assets')
+        .getPublicUrl(filePath)
+
+      // Update organization with silks URL
+      await handleUpdateOrg(orgId, { silks_url: publicUrl })
+    } finally {
+      setUploadingOrgId(null)
     }
   }
 
@@ -180,6 +215,7 @@ export default function AdminOrganizationsPage() {
               <th className="py-3 px-4 text-left font-medium">Name</th>
               <th className="py-3 px-4 text-left font-medium">Slug</th>
               <th className="py-3 px-4 text-left font-medium">Colors</th>
+              <th className="py-3 px-4 text-left font-medium">Silks</th>
               <th className="py-3 px-4 text-right font-medium">Actions</th>
             </tr>
           </thead>
@@ -206,6 +242,36 @@ export default function AdminOrganizationsPage() {
                     />
                   </div>
                 </td>
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-2">
+                    {org.silks_url ? (
+                      <img
+                        src={org.silks_url}
+                        alt={`${org.name} silks`}
+                        className="w-8 h-8 object-contain rounded border border-slate-200"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded border border-dashed border-slate-300 bg-slate-50" />
+                    )}
+                    <input
+                      type="file"
+                      ref={el => { fileInputRefs.current[org.id] = el }}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) handleSilksUpload(org.id, file)
+                      }}
+                    />
+                    <button
+                      onClick={() => fileInputRefs.current[org.id]?.click()}
+                      disabled={uploadingOrgId === org.id}
+                      className="text-xs text-primary hover:text-primary/80 disabled:opacity-50"
+                    >
+                      {uploadingOrgId === org.id ? 'Uploading...' : org.silks_url ? 'Change' : 'Upload'}
+                    </button>
+                  </div>
+                </td>
                 <td className="py-3 px-4 text-right">
                   <button
                     onClick={() => handleDeleteOrg(org.id)}
@@ -218,7 +284,7 @@ export default function AdminOrganizationsPage() {
             ))}
             {organizations.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-8 text-center text-slate-500">
+                <td colSpan={5} className="py-8 text-center text-slate-500">
                   No organizations yet. Add your first organization above.
                 </td>
               </tr>

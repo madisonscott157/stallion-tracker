@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gmail_client import GmailClient
 from email_parser import detect_email_type, should_process_email, parse_email
 from db import Database
-from models import EntryData, ResultData, WorkoutData
+from models import EntryData, ResultData, WorkoutData, ScratchData
 
 load_dotenv()
 
@@ -112,6 +112,26 @@ def process_workout(db: Database, workout: WorkoutData) -> bool:
         return False
 
 
+def process_scratch(db: Database, scratch: ScratchData) -> bool:
+    """Process a scratch notification and mark the entry as scratched."""
+    # Get stallion ID
+    sire_id = db.get_stallion_id(scratch.horse.sire)
+    if not sire_id:
+        print(f"  Stallion not found: {scratch.horse.sire}")
+        return False
+
+    # Find the horse
+    horse_id = db._find_horse(scratch.horse, sire_id)
+    if not horse_id:
+        print(f"  Horse not found: {scratch.horse.name}")
+        return False
+
+    # Mark the entry as scratched
+    db.mark_entry_scratched(horse_id, scratch.race_date, scratch.track, scratch.race_number)
+    print(f"  Marked scratched: {scratch.horse.name} @ {scratch.track} R{scratch.race_number} on {scratch.race_date}")
+    return True
+
+
 def check_emails(db: Database, tracked_stallions: list[str], limit: int = 20):
     """Check Gmail for new Equibase emails and process them."""
     print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Checking for new emails...")
@@ -173,6 +193,8 @@ def check_emails(db: Database, tracked_stallions: list[str], limit: int = 20):
                         success = process_result(db, parsed_data)
                     elif email_type == 'workout' and isinstance(parsed_data, WorkoutData):
                         success = process_workout(db, parsed_data)
+                    elif email_type == 'scratch' and isinstance(parsed_data, ScratchData):
+                        success = process_scratch(db, parsed_data)
 
                     if success:
                         db.log_email(email_msg.id, email_msg.subject, email_msg.date, email_type)

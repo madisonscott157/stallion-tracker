@@ -54,6 +54,7 @@ export interface Entry {
   trainer: string | null
   scratched: boolean
   entries_url: string | null
+  owner: string | null
   // Joined fields
   horse_name?: string | null
   horse_sex?: string | null
@@ -86,6 +87,7 @@ export interface Result {
   trainer: string | null
   chart_url: string | null
   replay_url: string | null
+  owner: string | null
   // Joined fields
   horse_name?: string | null
   horse_sex?: string | null

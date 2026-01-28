@@ -121,6 +121,7 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
         text,
         re.IGNORECASE
     )
+    owner = None
     if comments_match:
         comments = comments_match.group(1).strip()
         parsed = parse_comments(comments)
@@ -129,6 +130,8 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
         horse.dam_sire = parsed.dam_sire
         if parsed.yob:
             horse.yob = parsed.yob
+        if parsed.notes:
+            owner = parsed.notes
 
     # 4. Extract chart PDF URL and track code
     chart_url = None
@@ -256,6 +259,7 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
         beaten_lengths=beaten_lengths,
         win_margin=win_margin,
         odds=odds,
+        owner=owner,
         chart_url=chart_url,
         replay_url=replay_url,
         equibase_email_id=email_id,

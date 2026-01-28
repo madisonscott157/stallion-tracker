@@ -133,13 +133,19 @@ class Database:
             if result.data:
                 return result.data[0]["id"]
 
-        # Try by sire + dam (for unnamed horses or matching)
+        # Try by sire + dam + yob (for unnamed horses or matching siblings)
+        # Include YOB to avoid matching the wrong sibling
         if horse.dam:
-            result = self.client.table("horses") \
+            query = self.client.table("horses") \
                 .select("id") \
                 .eq("sire_id", sire_id) \
-                .eq("dam_normalized", horse.dam.lower().strip()) \
-                .execute()
+                .eq("dam_normalized", horse.dam.lower().strip())
+
+            # If we have YOB, include it to avoid matching siblings from different years
+            if horse.yob:
+                query = query.eq("yob", horse.yob)
+
+            result = query.execute()
             if result.data:
                 return result.data[0]["id"]
 
@@ -310,3 +316,229 @@ class Database:
                 "error_message": error_message,
             }) \
             .execute()
+
+    def upsert_sales_stats(self, stallion_id: str, data) -> Optional[str]:
+        """
+        Insert or update sales statistics for a stallion.
+
+        Args:
+            stallion_id: UUID of the stallion
+            data: SalesData object from tdn_sales_scraper
+
+        Returns:
+            ID of the inserted/updated record, or None on error
+        """
+        insert_data = {
+            "stallion_id": stallion_id,
+            "sale_year": data.sale_year,
+            "sale_type": data.sale_type,
+            "through_ring": data.through_ring,
+            "number_sold": data.number_sold,
+            "gross_sales": data.gross_sales,
+            "average_price": data.average_price,
+            "median_price": data.median_price,
+            "average_rank": data.average_rank,
+            "median_rank": data.median_rank,
+            "top_colt_price": data.top_colt_price,
+            "top_filly_price": data.top_filly_price,
+            "source_url": data.source_url,
+            "scraped_at": "now()",
+            "updated_at": "now()",
+        }
+
+        try:
+            result = self.client.table("sales_stats") \
+                .upsert(insert_data, on_conflict="stallion_id,sale_year,sale_type") \
+                .execute()
+
+            if result.data:
+                return result.data[0]["id"]
+        except Exception as e:
+            print(f"Error upserting sales stats: {e}")
+
+        return None
+
+    def get_sales_stats(self, stallion_id: str) -> list:
+        """Get all sales stats for a stallion."""
+        result = self.client.table("sales_stats") \
+            .select("*") \
+            .eq("stallion_id", stallion_id) \
+            .order("sale_year", desc=True) \
+            .order("sale_type") \
+            .execute()
+
+        return result.data or []
+
+    def upsert_sire_ranking(self, stallion_id: str, data) -> Optional[str]:
+        """
+        Insert or update sire ranking data.
+
+        Args:
+            stallion_id: UUID of the stallion
+            data: SireRankingData object from tdn_sire_list_scraper
+
+        Returns:
+            ID of the inserted/updated record, or None on error
+        """
+        insert_data = {
+            "stallion_id": stallion_id,
+            "year": data.year,
+            "list_type": data.list_type,
+            "rank": data.rank,
+            "starters": data.starters,
+            "winners": data.winners,
+            "wins": data.wins,
+            "win_pct": data.win_pct,
+            "black_type_winners": data.black_type_winners,
+            "black_type_horses": data.black_type_horses,
+            "graded_stakes_winners": data.graded_stakes_winners,
+            "graded_stakes_horses": data.graded_stakes_horses,
+            "g1_winners": data.g1_winners,
+            "g1_horses": data.g1_horses,
+            "total_earnings": data.total_earnings,
+            "earnings_per_starter": data.earnings_per_starter,
+            "highest_earner_name": data.highest_earner_name,
+            "highest_earner_amount": data.highest_earner_amount,
+            "stud_fee": data.stud_fee,
+            "standing_at": data.standing_at,
+            "source_url": data.source_url,
+            "scraped_at": "now()",
+            "updated_at": "now()",
+        }
+
+        try:
+            result = self.client.table("sire_rankings") \
+                .upsert(insert_data, on_conflict="stallion_id,year,list_type") \
+                .execute()
+
+            if result.data:
+                return result.data[0]["id"]
+        except Exception as e:
+            print(f"Error upserting sire ranking: {e}")
+
+        return None
+
+    def get_sire_rankings(self, stallion_id: str) -> list:
+        """Get all sire rankings for a stallion."""
+        result = self.client.table("sire_rankings") \
+            .select("*") \
+            .eq("stallion_id", stallion_id) \
+            .order("year", desc=True) \
+            .order("list_type") \
+            .execute()
+
+        return result.data or []
+
+    def upsert_equineline_stats(self, stallion_id: str, data) -> Optional[str]:
+        """
+        Insert or update Equineline racing statistics.
+
+        Args:
+            stallion_id: UUID of the stallion
+            data: EquinelineStats object from equineline_stats_scraper
+
+        Returns:
+            ID of the inserted/updated record, or None on error
+        """
+        insert_data = {
+            "stallion_id": stallion_id,
+
+            # Summary stats
+            "crops": data.crops,
+            "foals": data.foals,
+            "crops_racing_age": data.crops_racing_age,
+            "foals_racing_age": data.foals_racing_age,
+            "current_2yo_foals": data.current_2yo_foals,
+            "yearlings": data.yearlings,
+            "weanlings": data.weanlings,
+
+            # Achievement counts
+            "champions": data.champions,
+            "graded_stakes_winners": data.graded_stakes_winners,
+            "blacktype_winners": data.blacktype_winners,
+            "blacktype_placers": data.blacktype_placers,
+
+            # Lifetime stats
+            "lifetime_starters": data.lifetime_starters,
+            "lifetime_starters_pct": data.lifetime_starters_pct,
+            "lifetime_winners": data.lifetime_winners,
+            "lifetime_winners_pct": data.lifetime_winners_pct,
+            "lifetime_btw": data.lifetime_btw,
+            "lifetime_btw_pct": data.lifetime_btw_pct,
+            "lifetime_btp": data.lifetime_btp,
+            "lifetime_btp_pct": data.lifetime_btp_pct,
+            "lifetime_starts": data.lifetime_starts,
+            "lifetime_wins": data.lifetime_wins,
+            "lifetime_wins_pct": data.lifetime_wins_pct,
+            "lifetime_placings": data.lifetime_placings,
+            "lifetime_placings_pct": data.lifetime_placings_pct,
+            "lifetime_earnings": data.lifetime_earnings,
+            "lifetime_avg_earnings": data.lifetime_avg_earnings,
+
+            # Current year stats
+            "current_year": data.current_year,
+            "current_starters": data.current_starters,
+            "current_starters_pct": data.current_starters_pct,
+            "current_winners": data.current_winners,
+            "current_winners_pct": data.current_winners_pct,
+            "current_btw": data.current_btw,
+            "current_btw_pct": data.current_btw_pct,
+            "current_btp": data.current_btp,
+            "current_btp_pct": data.current_btp_pct,
+            "current_starts": data.current_starts,
+            "current_wins": data.current_wins,
+            "current_wins_pct": data.current_wins_pct,
+            "current_placings": data.current_placings,
+            "current_placings_pct": data.current_placings_pct,
+            "current_earnings": data.current_earnings,
+            "current_avg_earnings": data.current_avg_earnings,
+
+            # Current 2yo stats
+            "current_2yo_starters": data.current_2yo_starters,
+            "current_2yo_starters_pct": data.current_2yo_starters_pct,
+            "current_2yo_winners": data.current_2yo_winners,
+            "current_2yo_winners_pct": data.current_2yo_winners_pct,
+            "current_2yo_btw": data.current_2yo_btw,
+            "current_2yo_btw_pct": data.current_2yo_btw_pct,
+            "current_2yo_btp": data.current_2yo_btp,
+            "current_2yo_btp_pct": data.current_2yo_btp_pct,
+            "current_2yo_starts": data.current_2yo_starts,
+            "current_2yo_wins": data.current_2yo_wins,
+            "current_2yo_wins_pct": data.current_2yo_wins_pct,
+            "current_2yo_placings": data.current_2yo_placings,
+            "current_2yo_placings_pct": data.current_2yo_placings_pct,
+            "current_2yo_earnings": data.current_2yo_earnings,
+            "current_2yo_avg_earnings": data.current_2yo_avg_earnings,
+
+            # Top earners
+            "chief_earner_name": data.chief_earner_name,
+            "chief_earner_amount": data.chief_earner_amount,
+            "current_top_earner_name": data.current_top_earner_name,
+            "current_top_earner_amount": data.current_top_earner_amount,
+
+            "source_url": data.source_url,
+            "scraped_at": "now()",
+            "updated_at": "now()",
+        }
+
+        try:
+            result = self.client.table("equineline_stats") \
+                .upsert(insert_data, on_conflict="stallion_id") \
+                .execute()
+
+            if result.data:
+                return result.data[0]["id"]
+        except Exception as e:
+            print(f"Error upserting Equineline stats: {e}")
+
+        return None
+
+    def get_equineline_stats(self, stallion_id: str) -> Optional[dict]:
+        """Get Equineline stats for a stallion."""
+        result = self.client.table("equineline_stats") \
+            .select("*") \
+            .eq("stallion_id", stallion_id) \
+            .single() \
+            .execute()
+
+        return result.data if result.data else None

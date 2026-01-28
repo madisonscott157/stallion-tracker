@@ -64,14 +64,31 @@ export async function exportDashboardToPDF(
     (header as HTMLElement).style.marginBottom = '8px'
   })
 
-  // Ensure badges don't get clipped
+  // Ensure badges don't get clipped - check all badge color classes
   clone.querySelectorAll('span').forEach(span => {
     const el = span as HTMLElement
-    if (el.classList.contains('bg-accent') || el.classList.contains('bg-green-700')) {
+    if (
+      el.classList.contains('bg-accent') ||
+      el.classList.contains('bg-green-700') ||
+      el.classList.contains('bg-gold') ||
+      el.classList.contains('bg-silver')
+    ) {
       el.style.overflow = 'visible'
       el.style.display = 'inline-block'
-      el.style.position = 'relative'
-      el.style.top = '0'
+      el.style.position = 'static'
+      el.style.marginRight = '4px'
+      el.style.verticalAlign = 'middle'
+    }
+  })
+
+  // Ensure parent containers don't clip badges and fix flex alignment
+  clone.querySelectorAll('div').forEach(div => {
+    const el = div as HTMLElement
+    el.style.overflow = 'visible'
+    // Fix flex containers that use items-baseline - change to items-center
+    if (el.classList.contains('items-baseline')) {
+      el.style.alignItems = 'center'
+      el.style.paddingTop = '2px'
     }
   })
 
@@ -91,6 +108,32 @@ export async function exportDashboardToPDF(
   document.body.appendChild(wrapper)
 
   try {
+    // Collect link positions before rendering
+    interface LinkInfo {
+      url: string
+      x: number
+      y: number
+      width: number
+      height: number
+    }
+    const links: LinkInfo[] = []
+    const wrapperRect = wrapper.getBoundingClientRect()
+
+    wrapper.querySelectorAll('a[href]').forEach(anchor => {
+      const a = anchor as HTMLAnchorElement
+      const href = a.getAttribute('href')
+      if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+        const rect = a.getBoundingClientRect()
+        links.push({
+          url: href,
+          x: rect.left - wrapperRect.left,
+          y: rect.top - wrapperRect.top,
+          width: rect.width,
+          height: rect.height,
+        })
+      }
+    })
+
     const canvas = await html2canvas(wrapper, {
       scale: 2,
       useCORS: true,
@@ -103,6 +146,9 @@ export async function exportDashboardToPDF(
     const imgWidth = 210 // A4 width in mm
     const pageHeight = 297 // A4 height in mm
     const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+    // Scale factor: wrapper pixels to PDF mm
+    const scaleFactor = imgWidth / 800
 
     const pdf = new jsPDF('p', 'mm', 'a4')
     const imgData = canvas.toDataURL('image/png')
@@ -119,6 +165,25 @@ export async function exportDashboardToPDF(
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
       heightLeft -= pageHeight
     }
+
+    // Add clickable link annotations
+    const totalPages = pdf.getNumberOfPages()
+    links.forEach(link => {
+      const linkYInPdf = link.y * scaleFactor
+      const linkPage = Math.floor(linkYInPdf / pageHeight) + 1
+      const linkYOnPage = linkYInPdf - (linkPage - 1) * pageHeight
+
+      if (linkPage >= 1 && linkPage <= totalPages) {
+        pdf.setPage(linkPage)
+        pdf.link(
+          link.x * scaleFactor,
+          linkYOnPage,
+          link.width * scaleFactor,
+          link.height * scaleFactor,
+          { url: link.url }
+        )
+      }
+    })
 
     const safeStallionName = stallionName.toLowerCase().replace(/\s+/g, '-')
     const dateStr = new Date().toISOString().split('T')[0]

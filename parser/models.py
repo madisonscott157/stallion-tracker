@@ -100,6 +100,15 @@ class WorkoutData(BaseModel):
     equibase_email_id: Optional[str] = None
 
 
+class ScratchData(BaseModel):
+    """Scratch notification data extracted from email."""
+    horse: HorseData
+    race_date: date
+    track: str
+    race_number: int
+    equibase_email_id: Optional[str] = None
+
+
 class EmailMessage(BaseModel):
     """Represents an email message from Gmail."""
     id: str

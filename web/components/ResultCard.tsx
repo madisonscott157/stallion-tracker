@@ -1,6 +1,7 @@
 'use client'
 
 import { cn, cleanRaceName, formatDistance, formatHorseDescription, formatDate, formatOrdinal, isToday, isTomorrow } from '@/lib/utils'
+import { useAuth } from '@/lib/auth-context'
 import type { Result } from '@/lib/supabase'
 
 interface ResultCardProps {
@@ -17,10 +18,16 @@ function formatTrack(track: string): string {
 }
 
 export function ResultCard({ result }: ResultCardProps) {
+  const { profile } = useAuth()
   const horseName = result.horse_name || 'Unknown'
   const horseDesc = formatHorseDescription(result.horse_sex || null, result.horse_yob || null)
   const isWinner = result.finish_position === 1
   const isTopThree = result.finish_position <= 3
+
+  // Check if the logged-in org owns this horse
+  const orgName = profile?.organization?.name
+  const silksUrl = profile?.organization?.silks_url
+  const showSilks = orgName && silksUrl && result.owner?.includes(orgName)
 
   const dateLabel = isToday(result.race_date)
     ? 'Today'
@@ -96,6 +103,13 @@ export function ResultCard({ result }: ResultCardProps) {
           )}
           {horseDesc && (
             <span className="text-sm text-slate-400">{horseDesc}</span>
+          )}
+          {showSilks && (
+            <img
+              src={silksUrl}
+              alt="Silks"
+              className="w-7 h-7 object-contain shrink-0 mt-1"
+            />
           )}
           {/* Race info inline with horse name */}
           {(result.race_type || result.purse || result.distance) && (

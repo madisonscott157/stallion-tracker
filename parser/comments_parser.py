@@ -37,7 +37,16 @@ def parse_comments(comments: str) -> ParsedComments:
         paren_match = re.match(r'\(([^)]+)\)(.*)', comments)
         if paren_match:
             inner = paren_match.group(1).strip()
-            result.notes = paren_match.group(2).strip() or None
+            # Extract owner name - text after ) but before common email content patterns
+            after_paren = paren_match.group(2).strip()
+            if after_paren:
+                # Stop at common patterns that indicate end of owner name
+                owner_match = re.match(r'^([A-Za-z][A-Za-z\s&,\.]+?)(?:\s*Full Entries|\s*Overnight|\s*Race:|\s*$)', after_paren)
+                if owner_match:
+                    result.notes = owner_match.group(1).strip() or None
+                elif len(after_paren) < 50 and not any(x in after_paren for x in ['Full Entries', 'Overnight', 'Race:']):
+                    # Short text without email content patterns - likely just the owner
+                    result.notes = after_paren
 
     # Pattern 1: Starts with 2-digit year (23 Olympiad - Gale)
     match = re.match(r'^(\d{2})\s+(.+?)\s*[-x]\s*(.+)$', inner, re.IGNORECASE)
