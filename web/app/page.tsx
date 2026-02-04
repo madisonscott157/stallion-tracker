@@ -456,34 +456,25 @@ export default function Home() {
       {/* Bottom nav */}
       <nav className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-3">
         <div className="flex justify-around text-sm max-w-5xl mx-auto">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className="flex flex-col items-center"
-            style={{ color: activeTab === 'overview' ? 'var(--org-secondary)' : '#94a3b8', fontWeight: activeTab === 'overview' ? 500 : 400 }}
-          >
-            <span>Overview</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('results')}
-            className="flex flex-col items-center"
-            style={{ color: activeTab === 'results' ? 'var(--org-secondary)' : '#94a3b8', fontWeight: activeTab === 'results' ? 500 : 400 }}
-          >
-            <span>Results</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('stats')}
-            className="flex flex-col items-center"
-            style={{ color: activeTab === 'stats' ? 'var(--org-secondary)' : '#94a3b8', fontWeight: activeTab === 'stats' ? 500 : 400 }}
-          >
-            <span>Stats</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('sales')}
-            className="flex flex-col items-center"
-            style={{ color: activeTab === 'sales' ? 'var(--org-secondary)' : '#94a3b8', fontWeight: activeTab === 'sales' ? 500 : 400 }}
-          >
-            <span>Sales</span>
-          </button>
+          {(['overview', 'results', 'stats', 'sales'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="flex flex-col items-center relative pb-1"
+              style={{
+                color: activeTab === tab ? 'var(--org-primary)' : '#94a3b8',
+                fontWeight: activeTab === tab ? 600 : 400,
+              }}
+            >
+              <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+              {activeTab === tab && (
+                <span
+                  className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+                  style={{ backgroundColor: 'var(--org-secondary)' }}
+                />
+              )}
+            </button>
+          ))}
         </div>
       </nav>
     </div>
