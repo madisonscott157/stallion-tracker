@@ -20,29 +20,50 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
   const { profile } = useAuth()
   const supabase = createClientComponentClient()
 
+  const isAdmin = profile?.role === 'admin'
+
   useEffect(() => {
     async function fetchStallions() {
-      if (!profile?.organization?.id) {
+      if (!profile) {
         setIsLoading(false)
         return
       }
 
-      // Get stallions linked to user's organization
-      const { data, error } = await supabase
-        .from('organization_stallions')
-        .select('stallion_id, stallions(id, name)')
-        .eq('organization_id', profile.organization.id)
-        .order('stallions(name)')
+      let stallionList: Stallion[] = []
 
-      if (!error && data) {
-        const orgStallions = data
-          .map(os => os.stallions as unknown as Stallion)
-          .filter(Boolean)
-        setStallions(orgStallions)
-        // Auto-select first stallion if none selected
-        if (!value && orgStallions.length > 0) {
-          onChange(orgStallions[0].id, orgStallions[0].name)
+      if (isAdmin) {
+        // Admin sees all stallions in the system
+        const { data, error } = await supabase
+          .from('stallions')
+          .select('id, name')
+          .order('name')
+
+        if (!error && data) {
+          stallionList = data
         }
+      } else {
+        if (!profile.organization?.id) {
+          setIsLoading(false)
+          return
+        }
+        // Non-admin sees only org-linked stallions
+        const { data, error } = await supabase
+          .from('organization_stallions')
+          .select('stallion_id, stallions(id, name)')
+          .eq('organization_id', profile.organization.id)
+          .order('stallions(name)')
+
+        if (!error && data) {
+          stallionList = data
+            .map(os => os.stallions as unknown as Stallion)
+            .filter(Boolean)
+        }
+      }
+
+      setStallions(stallionList)
+      // Auto-select first stallion if none selected
+      if (!value && stallionList.length > 0) {
+        onChange(stallionList[0].id, stallionList[0].name)
       }
       setIsLoading(false)
     }
@@ -50,10 +71,10 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
     if (profile) {
       fetchStallions()
     }
-  }, [profile, value, onChange, supabase])
+  }, [profile, isAdmin, value, onChange, supabase])
 
   if (isLoading) return null
-  if (stallions.length <= 1) return null // Don't show selector if only one stallion
+  if (stallions.length <= 1 && !isAdmin) return null
 
   return (
     <select
