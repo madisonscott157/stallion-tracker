@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerComponentClient } from '@/lib/supabase-server'
+import { requireAuth, isAuthError } from '@/lib/api-auth'
 
 export async function GET(request: NextRequest) {
-  const supabase = createServerComponentClient()
-
-  // Check authentication
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const auth = await requireAuth()
+  if (isAuthError(auth)) return auth
+  const { supabase } = auth
 
   const { searchParams } = new URL(request.url)
   const stallion = searchParams.get('stallion')

@@ -1,6 +1,6 @@
 'use client'
 
-import { cn, cleanRaceName, formatDate, formatDistance, formatHorseDescription, isToday, isTomorrow } from '@/lib/utils'
+import { cn, cleanRaceName, formatDate, formatDistance, formatHorseDescription, formatTrack, shouldShowSilks, isToday, isTomorrow } from '@/lib/utils'
 import { useAuth } from '@/lib/auth-context'
 import type { Entry } from '@/lib/supabase'
 
@@ -8,24 +8,12 @@ interface EntryCardProps {
   entry: Entry
 }
 
-// Format track name: "GULFSTREAM PARK" → "Gulfstream Park"
-function formatTrack(track: string): string {
-  return track
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
 export function EntryCard({ entry }: EntryCardProps) {
   const { profile } = useAuth()
   const horseName = entry.horse_name || `${entry.horse_yob || ''} ${entry.horse_dam || 'Unknown'}`.trim()
   const horseDesc = formatHorseDescription(entry.horse_sex || null, entry.horse_yob || null)
 
-  // Check if the logged-in org owns this horse
-  const orgName = profile?.organization?.name
-  const silksUrl = profile?.organization?.silks_url
-  const showSilks = orgName && silksUrl && entry.owner?.includes(orgName)
+  const { show: showSilks, silksUrl } = shouldShowSilks(profile?.organization, entry.owner)
 
   const dateLabel = isToday(entry.race_date)
     ? 'Today'

@@ -1,29 +1,17 @@
 'use client'
 
-import { formatDate, formatDistance } from '@/lib/utils'
+import { formatDate, formatDistance, formatTrack } from '@/lib/utils'
 import type { Workout } from '@/lib/supabase'
 
 interface WorkoutCardProps {
   workout: Workout
 }
 
-// Convert track name: "PAYSON PARK TRAINING CENTER" → "Payson Park"
-function formatTrack(track: string | null): string {
+function cleanWorkoutTrack(track: string | null): string {
   if (!track) return ''
-
-  // Clean garbage from parsing issues
   let cleaned = track.split(/Distance:|Time:|Track Condition:/i)[0]?.trim() || track
-
-  // Remove "Training Center", "Farm", etc.
-  cleaned = cleaned.replace(/\s*(Training Center|Farm|Equestrian Center)\s*/gi, '')
-
-  // Convert to Title Case
-  return cleaned
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-    .trim()
+  cleaned = cleaned.replace(/\s*(Training Center|Farm|Equestrian Center)\s*/gi, '').trim()
+  return formatTrack(cleaned)
 }
 
 export function WorkoutCard({ workout }: WorkoutCardProps) {
@@ -32,7 +20,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
     ? workout.horse_name
     : `${workout.horse_yob || ''} ${workout.horse_dam || 'Unknown'}`.trim()
 
-  const track = formatTrack(workout.track)
+  const track = cleanWorkoutTrack(workout.track)
   const distance = formatDistance(workout.distance)
   const surface = workout.surface?.split(/Rank:/i)[0]?.trim()
   const rank = workout.rank_position && workout.rank_total

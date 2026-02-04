@@ -1,20 +1,11 @@
 'use client'
 
-import { cn, cleanRaceName, formatDistance, formatHorseDescription, formatDate, formatOrdinal, isToday, isTomorrow } from '@/lib/utils'
+import { cn, cleanRaceName, formatDistance, formatHorseDescription, formatDate, formatOrdinal, formatTrack, shouldShowSilks, isToday, isTomorrow } from '@/lib/utils'
 import { useAuth } from '@/lib/auth-context'
 import type { Result } from '@/lib/supabase'
 
 interface ResultCardProps {
   result: Result
-}
-
-// Format track name: "FAIR GROUNDS" → "Fair Grounds"
-function formatTrack(track: string): string {
-  return track
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
 }
 
 export function ResultCard({ result }: ResultCardProps) {
@@ -24,10 +15,7 @@ export function ResultCard({ result }: ResultCardProps) {
   const isWinner = result.finish_position === 1
   const isTopThree = result.finish_position <= 3
 
-  // Check if the logged-in org owns this horse
-  const orgName = profile?.organization?.name
-  const silksUrl = profile?.organization?.silks_url
-  const showSilks = orgName && silksUrl && result.owner?.includes(orgName)
+  const { show: showSilks, silksUrl } = shouldShowSilks(profile?.organization, result.owner)
 
   const dateLabel = isToday(result.race_date)
     ? 'Today'

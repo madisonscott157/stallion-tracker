@@ -200,3 +200,23 @@ export function formatDistance(distance: string | null): string {
 
   return cleaned
 }
+
+export function formatTrack(track: string): string {
+  return track
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+export function shouldShowSilks(
+  organization: { name?: string; silks_url?: string | null } | undefined,
+  owner: string | null | undefined
+): { show: boolean; silksUrl: string } {
+  const orgName = organization?.name
+  const silksUrl = organization?.silks_url
+  if (orgName && silksUrl && owner?.includes(orgName)) {
+    return { show: true, silksUrl }
+  }
+  return { show: false, silksUrl: '' }
+}

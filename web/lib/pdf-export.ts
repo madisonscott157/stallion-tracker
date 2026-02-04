@@ -4,22 +4,14 @@
  * simple table-based HTML that renders pixel-perfect.
  */
 
-import type { Result, Entry, StallionStats, SalesStats, SireRanking, EquinelineStats } from './supabase'
-import { formatDate, formatDistance, formatOrdinal, cleanRaceName } from './utils'
+import type { Result, Entry } from './supabase'
+import { formatDate, formatDistance, formatOrdinal, formatTrack, cleanRaceName } from './utils'
 
 export interface ExportData {
   stallionName: string
   results: Result[]
   entries: Entry[]
-  stats: StallionStats | null
-  rankings: SireRanking[]
-  equinelineStats: EquinelineStats | null
-  sales: SalesStats[]
   filename?: string
-}
-
-function formatTrack(track: string): string {
-  return track.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
 function formatHorseDesc(sex: string | null, yob: number | null): string {

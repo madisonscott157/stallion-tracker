@@ -7,6 +7,8 @@ import { EntryCard } from '@/components/EntryCard'
 import { ResultCard } from '@/components/ResultCard'
 import { WorkoutCard } from '@/components/WorkoutCard'
 import { SalesTable } from '@/components/SalesCard'
+import { SireRankingsTable } from '@/components/SireRankingsTable'
+import { EquinelineSection } from '@/components/EquinelineSection'
 import { useAuth } from '@/lib/auth-context'
 import type { Entry, Result, Workout, StallionStats, SalesStats, SireRanking, EquinelineStats } from '@/lib/supabase'
 
@@ -104,10 +106,6 @@ export default function Home() {
         stallionName: stallion,
         results,
         entries,
-        stats,
-        rankings,
-        equinelineStats,
-        sales,
       })
     } catch (error) {
       console.error('Error exporting PDF:', error)
@@ -212,225 +210,9 @@ export default function Home() {
             {/* Stats Tab */}
             {activeTab === 'stats' && (
               <section className="max-w-3xl mx-auto">
-                {/* Sire Rankings */}
-                {rankings.length > 0 && (
-                  <>
-                    <h2 className="section-header">Sire List Rankings</h2>
-                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="text-xs text-slate-500 uppercase tracking-wide border-b border-slate-100 bg-slate-50">
-                            <th className="py-2 px-3 text-center font-medium">Year</th>
-                            <th className="py-2 px-2 text-center font-medium">List</th>
-                            <th className="py-2 px-2 text-center font-medium">Rank</th>
-                            <th className="py-2 px-2 text-center font-medium">Starters</th>
-                            <th className="py-2 px-2 text-center font-medium">Winners</th>
-                            <th className="py-2 px-1 text-center font-medium">BTW</th>
-                            <th className="py-2 px-1 text-center font-medium">BTH</th>
-                            <th className="py-2 px-1 text-center font-medium">GSW</th>
-                            <th className="py-2 px-1 text-center font-medium">GSH</th>
-                            <th className="py-2 px-3 text-center font-medium">Earnings</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[...rankings]
-                            .sort((a, b) => b.year - a.year)
-                            .map(ranking => {
-                              const listLabel = ranking.list_type === 'ytd' ? 'YTD' :
-                                ranking.list_type === 'freshman' ? '1st Crop' :
-                                ranking.list_type === 'second_crop' ? '2nd Crop' :
-                                ranking.list_type === 'third_crop' ? '3rd Crop' :
-                                ranking.list_type
-                              return (
-                                <tr key={ranking.id} className="border-b border-slate-100 last:border-0">
-                                  <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                                    {ranking.year}
-                                  </td>
-                                  <td className="py-2 px-2 text-sm font-medium text-center">
-                                    {ranking.source_url ? (
-                                      <a
-                                        href={ranking.source_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="hover:underline"
-                                        style={{ color: 'var(--org-primary)' }}
-                                      >
-                                        {listLabel}
-                                      </a>
-                                    ) : (
-                                      <span className="text-slate-700">{listLabel}</span>
-                                    )}
-                                  </td>
-                                  <td className="py-2 px-2 text-sm text-slate-900 text-center font-semibold">
-                                    #{ranking.rank}
-                                  </td>
-                                  <td className="py-2 px-2 text-sm text-slate-600 text-center tabular-nums">
-                                    {ranking.starters ?? '-'}
-                                  </td>
-                                  <td className="py-2 px-2 text-sm text-slate-600 text-center tabular-nums">
-                                    {ranking.winners ?? '-'}
-                                  </td>
-                                  <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
-                                    {ranking.black_type_winners ?? '-'}
-                                  </td>
-                                  <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
-                                    {ranking.black_type_horses ?? '-'}
-                                  </td>
-                                  <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
-                                    {ranking.graded_stakes_winners ?? '-'}
-                                  </td>
-                                  <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
-                                    {ranking.graded_stakes_horses ?? '-'}
-                                  </td>
-                                  <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                                    {ranking.total_earnings ? `$${ranking.total_earnings.toLocaleString()}` : '-'}
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                )}
-
-                {/* Equineline Racing Stats */}
+                <SireRankingsTable rankings={rankings} />
                 {equinelineStats && (
-                  <>
-                    {/* Career Summary */}
-                    <h2 className="section-header mt-8">Career Summary</h2>
-                    <div className="bg-white rounded-lg border border-slate-200 p-4 mb-4">
-                      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
-                        <span className="text-slate-600"><span className="font-semibold text-slate-900">{equinelineStats.crops ?? 0}</span> crops</span>
-                        <span className="text-slate-300">|</span>
-                        <span className="text-slate-600"><span className="font-semibold text-slate-900">{equinelineStats.foals ?? 0}</span> foals</span>
-                        <span className="text-slate-300">|</span>
-                        <span className="text-slate-600"><span className="font-semibold text-slate-900">{equinelineStats.foals_racing_age ?? 0}</span> racing age</span>
-                      </div>
-                      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm mt-3">
-                        <span className="text-slate-600"><span className="font-semibold text-slate-900">{equinelineStats.champions ?? 0}</span> champions</span>
-                        <span className="text-slate-300">|</span>
-                        <span className="text-slate-600"><span className="font-semibold text-slate-900">{equinelineStats.graded_stakes_winners ?? 0}</span> GSW</span>
-                        <span className="text-slate-300">|</span>
-                        <span className="text-slate-600"><span className="font-semibold text-slate-900">{equinelineStats.blacktype_winners ?? 0}</span> BTW</span>
-                        <span className="text-slate-300">|</span>
-                        <span className="text-slate-600"><span className="font-semibold text-slate-900">{equinelineStats.blacktype_placers ?? 0}</span> BTP</span>
-                      </div>
-                    </div>
-
-                    {/* Performance Table */}
-                    <h2 className="section-header">Performance</h2>
-                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden mb-1">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="text-xs text-slate-500 uppercase tracking-wide border-b border-slate-100 bg-slate-50">
-                            <th className="py-2 px-3 text-left font-medium"></th>
-                            <th className="py-2 px-3 text-center font-medium">Lifetime</th>
-                            <th className="py-2 px-3 text-center font-medium">{currentYear}</th>
-                            <th className="py-2 px-3 text-center font-medium">2YOs</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-b border-slate-100">
-                            <td className="py-2 px-3 text-sm font-medium text-slate-700">Starters</td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.lifetime_starters ?? 0} <span className="text-slate-400">({equinelineStats.lifetime_starters_pct ?? 0}%)</span>
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.current_starters ?? 0} <span className="text-slate-400">({equinelineStats.current_starters_pct ?? 0}%)</span>
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.current_2yo_starters ?? 0} <span className="text-slate-400">({equinelineStats.current_2yo_starters_pct ?? 0}%)</span>
-                            </td>
-                          </tr>
-                          <tr className="border-b border-slate-100">
-                            <td className="py-2 px-3 text-sm font-medium text-slate-700">Winners</td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.lifetime_winners ?? 0} <span className="text-slate-400">({equinelineStats.lifetime_winners_pct ?? 0}%)</span>
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.current_winners ?? 0} <span className="text-slate-400">({equinelineStats.current_winners_pct ?? 0}%)</span>
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.current_2yo_winners ?? 0} <span className="text-slate-400">({equinelineStats.current_2yo_winners_pct ?? 0}%)</span>
-                            </td>
-                          </tr>
-                          <tr className="border-b border-slate-100">
-                            <td className="py-2 px-3 text-sm font-medium text-slate-700">BTW</td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.lifetime_btw ?? 0} <span className="text-slate-400">({equinelineStats.lifetime_btw_pct ?? 0}%)</span>
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.current_btw ?? 0} <span className="text-slate-400">({equinelineStats.current_btw_pct ?? 0}%)</span>
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.current_2yo_btw ?? 0} <span className="text-slate-400">({equinelineStats.current_2yo_btw_pct ?? 0}%)</span>
-                            </td>
-                          </tr>
-                          <tr className="border-b border-slate-100">
-                            <td className="py-2 px-3 text-sm font-medium text-slate-700">Wins</td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.lifetime_wins ?? 0} <span className="text-slate-400">({equinelineStats.lifetime_wins_pct ?? 0}%)</span>
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.current_wins ?? 0} <span className="text-slate-400">({equinelineStats.current_wins_pct ?? 0}%)</span>
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              {equinelineStats.current_2yo_wins ?? 0} <span className="text-slate-400">({equinelineStats.current_2yo_wins_pct ?? 0}%)</span>
-                            </td>
-                          </tr>
-                          <tr className="border-b border-slate-100">
-                            <td className="py-2 px-3 text-sm font-medium text-slate-700">Earnings</td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              ${(equinelineStats.lifetime_earnings ?? 0).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              ${(equinelineStats.current_earnings ?? 0).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              ${(equinelineStats.current_2yo_earnings ?? 0).toLocaleString()}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="py-2 px-3 text-sm font-medium text-slate-700">Avg/Starter</td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              ${(equinelineStats.lifetime_avg_earnings ?? 0).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              ${(equinelineStats.current_avg_earnings ?? 0).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                              ${(equinelineStats.current_2yo_avg_earnings ?? 0).toLocaleString()}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    <p className="text-xs text-slate-400 text-center mb-6">Percentages are from foals of racing age</p>
-
-                    {/* Top Earners */}
-                    {(equinelineStats.chief_earner_name || equinelineStats.current_top_earner_name) && (
-                      <>
-                        <h2 className="section-header">Top Earners</h2>
-                        <div className="bg-white rounded-lg border border-slate-200 p-4">
-                          <div className="space-y-2">
-                            {equinelineStats.chief_earner_name && (
-                              <div className="flex justify-between text-sm">
-                                <span className="font-medium text-slate-700">{equinelineStats.chief_earner_name}</span>
-                                <span className="text-slate-600">${(equinelineStats.chief_earner_amount ?? 0).toLocaleString()} <span className="text-slate-400">(Lifetime)</span></span>
-                              </div>
-                            )}
-                            {equinelineStats.current_top_earner_name && (
-                              <div className="flex justify-between text-sm">
-                                <span className="font-medium text-slate-700">{equinelineStats.current_top_earner_name}</span>
-                                <span className="text-slate-600">${(equinelineStats.current_top_earner_amount ?? 0).toLocaleString()} <span className="text-slate-400">({currentYear})</span></span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </>
+                  <EquinelineSection stats={equinelineStats} currentYear={currentYear} />
                 )}
               </section>
             )}
