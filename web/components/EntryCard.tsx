@@ -117,9 +117,9 @@ export function EntryCard({ entry }: EntryCardProps) {
         <div className="flex items-baseline gap-2 min-w-0">
           {entry.stakes_grade && (
             <span className={cn(
-              'text-xs px-1.5 py-0.5 rounded font-medium relative top-[-1px]',
+              'text-xs rounded font-medium inline-flex items-center justify-center',
               entry.scratched ? 'bg-slate-300 text-slate-500' : 'bg-accent text-white'
-            )}>
+            )} style={{ minWidth: '1.75rem', height: '1.25rem', lineHeight: 1, paddingLeft: '0.375rem', paddingRight: '0.375rem' }}>
               {entry.stakes_grade}
             </span>
           )}

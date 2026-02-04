@@ -33,6 +33,7 @@ export async function exportDashboardToPDF(
     background: #ffffff;
     padding: 20px 24px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #0f172a;
   `
 
   // Clone the content
@@ -41,7 +42,7 @@ export async function exportDashboardToPDF(
   // Remove buttons, nav, and workouts section from clone
   clone.querySelectorAll('nav, button').forEach(el => el.remove())
 
-  // Remove the workouts section (identified by "Recent Workouts" header)
+  // Remove the workouts section (identified by "Workouts" header)
   clone.querySelectorAll('section').forEach(section => {
     const header = section.querySelector('h2')
     if (header && header.textContent?.includes('Workouts')) {
@@ -49,54 +50,126 @@ export async function exportDashboardToPDF(
     }
   })
 
-  // Reduce spacing in sections
-  clone.querySelectorAll('section').forEach(section => {
-    (section as HTMLElement).style.marginBottom = '16px'
+  // Remove silks images (don't render well in PDF)
+  clone.querySelectorAll('img[alt="Silks"]').forEach(el => el.remove())
+
+  // ── Global fixes for html2canvas ──
+
+  // Prevent all overflow clipping
+  clone.querySelectorAll('*').forEach(node => {
+    const el = node as HTMLElement
+    if (el.style) {
+      el.style.overflow = 'visible'
+    }
   })
 
-  // Reduce spacing in card stacks
-  clone.querySelectorAll('.card-stack').forEach(stack => {
-    (stack as HTMLElement).style.gap = '6px'
-  })
-
-  // Reduce section header margins
-  clone.querySelectorAll('.section-header').forEach(header => {
-    (header as HTMLElement).style.marginBottom = '8px'
-  })
-
-  // Ensure badges don't get clipped - check all badge color classes
+  // ── Fix all badge spans (WIN, 2nd, G1, G2, G3, etc.) ──
   clone.querySelectorAll('span').forEach(span => {
     const el = span as HTMLElement
-    if (
-      el.classList.contains('bg-accent') ||
-      el.classList.contains('bg-green-700') ||
+    const isBadge =
       el.classList.contains('bg-gold') ||
-      el.classList.contains('bg-silver')
-    ) {
-      el.style.overflow = 'visible'
+      el.classList.contains('bg-silver') ||
+      el.classList.contains('bg-accent')
+    if (isBadge) {
+      // Reset flex and use simple inline-block with explicit sizing
       el.style.display = 'inline-block'
-      el.style.position = 'static'
-      el.style.marginRight = '4px'
       el.style.verticalAlign = 'middle'
+      el.style.lineHeight = '20px'
+      el.style.height = '20px'
+      el.style.minWidth = ''
+      el.style.padding = '0 6px'
+      el.style.fontSize = '11px'
+      el.style.fontWeight = '600'
+      el.style.borderRadius = '3px'
+      el.style.textAlign = 'center'
+      el.style.position = 'static'
+      el.style.marginRight = '2px'
     }
   })
 
-  // Ensure parent containers don't clip badges and fix flex alignment
-  clone.querySelectorAll('div').forEach(div => {
-    const el = div as HTMLElement
-    el.style.overflow = 'visible'
-    // Fix flex containers that use items-baseline - change to items-center
-    if (el.classList.contains('items-baseline')) {
-      el.style.alignItems = 'center'
-      el.style.paddingTop = '2px'
+  // ── Fix flex row alignment in all cards ──
+  clone.querySelectorAll('.rounded-lg.border').forEach(card => {
+    const cardEl = card as HTMLElement
+    cardEl.style.padding = '8px 12px'
+    cardEl.style.marginBottom = '4px'
+
+    // Fix all flex containers inside cards
+    cardEl.querySelectorAll('.flex').forEach(flexContainer => {
+      const row = flexContainer as HTMLElement
+
+      // Change baseline alignment to center for consistent rendering
+      if (row.classList.contains('items-baseline')) {
+        row.style.alignItems = 'center'
+      }
+
+      // For justify-between rows, keep flex but fix gaps
+      if (row.classList.contains('justify-between')) {
+        row.style.display = 'flex'
+        row.style.alignItems = 'center'
+        row.style.gap = '8px'
+      }
+
+      // Make all direct children vertically aligned
+      row.querySelectorAll(':scope > *').forEach(child => {
+        const childEl = child as HTMLElement
+        childEl.style.verticalAlign = 'middle'
+      })
+    })
+  })
+
+  // ── Remove trailing pipe separators ──
+  // Find pipe separators that are the last visible element before a closing container
+  clone.querySelectorAll('span').forEach(span => {
+    const el = span as HTMLElement
+    if (el.textContent?.trim() === '|' && el.classList.contains('text-slate-300')) {
+      // Check if next sibling exists and is visible
+      const next = el.nextElementSibling
+      if (!next || (next as HTMLElement).offsetParent === null) {
+        el.style.display = 'none'
+      }
     }
   })
 
-  // Add header
+  // ── Tighten section spacing ──
+  clone.querySelectorAll('section').forEach(section => {
+    (section as HTMLElement).style.marginBottom = '12px'
+  })
+
+  clone.querySelectorAll('.card-stack').forEach(stack => {
+    const el = stack as HTMLElement
+    el.style.gap = '4px'
+    // Also handle margin-based spacing
+    el.querySelectorAll(':scope > *').forEach((child, i) => {
+      if (i > 0) (child as HTMLElement).style.marginTop = '4px'
+    })
+  })
+
+  clone.querySelectorAll('.section-header').forEach(header => {
+    (header as HTMLElement).style.marginBottom = '6px'
+  })
+
+  // ── Fix StatsBar alignment ──
+  clone.querySelectorAll('.bg-slate-50').forEach(bar => {
+    const el = bar as HTMLElement
+    el.style.padding = '6px 12px'
+  })
+
+  // ── Ensure consistent font sizes for text elements ──
+  clone.querySelectorAll('.text-sm').forEach(el => {
+    (el as HTMLElement).style.fontSize = '13px'
+  })
+  clone.querySelectorAll('.text-xs').forEach(el => {
+    (el as HTMLElement).style.fontSize = '11px'
+  })
+  clone.querySelectorAll('.font-medium').forEach(el => {
+    (el as HTMLElement).style.fontWeight = '500'
+  })
+
+  // Add PDF header
   const header = document.createElement('div')
   header.innerHTML = `
     <div style="border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 16px;">
-      <h1 style="font-size: 22px; font-weight: 600; color: #0f172a; margin: 0;">
+      <h1 style="font-size: 22px; font-weight: 600; color: #0f172a; margin: 0; line-height: 1.3;">
         ${stallionName.toUpperCase()} PROGENY REPORT
       </h1>
       <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">${date}</p>
