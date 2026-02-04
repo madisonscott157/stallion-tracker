@@ -76,11 +76,11 @@ export function ResultCard({ result }: ResultCardProps) {
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
           {isWinner ? (
-            <span className="bg-gold text-white text-xs px-1.5 py-0.5 rounded font-medium shrink-0 relative top-[-1px]">
+            <span className="bg-gold text-white text-xs rounded font-medium shrink-0 inline-flex items-center justify-center" style={{ minWidth: '2rem', height: '1.25rem', lineHeight: 1, paddingLeft: '0.375rem', paddingRight: '0.375rem' }}>
               WIN
             </span>
           ) : isSecond ? (
-            <span className="bg-silver text-white text-xs px-1.5 py-0.5 rounded font-medium shrink-0 relative top-[-1px]">
+            <span className="bg-silver text-white text-xs rounded font-medium shrink-0 inline-flex items-center justify-center" style={{ minWidth: '2rem', height: '1.25rem', lineHeight: 1, paddingLeft: '0.375rem', paddingRight: '0.375rem' }}>
               2nd
             </span>
           ) : (
@@ -168,9 +168,9 @@ export function ResultCard({ result }: ResultCardProps) {
         <div className="flex items-baseline gap-2 mt-1 text-sm">
           {result.stakes_grade && (
             <span className={cn(
-              "text-white text-xs px-1.5 py-0.5 rounded font-medium relative top-[-1px]",
+              "text-white text-xs rounded font-medium inline-flex items-center justify-center",
               isG1 ? "bg-gold" : isG2 ? "bg-silver" : "bg-accent"
-            )}>
+            )} style={{ minWidth: '1.75rem', height: '1.25rem', lineHeight: 1, paddingLeft: '0.375rem', paddingRight: '0.375rem' }}>
               {result.stakes_grade}
             </span>
           )}
