@@ -460,17 +460,13 @@ export default function Home() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className="flex flex-col items-center relative pb-1"
-              style={{
-                color: activeTab === tab ? 'var(--org-primary)' : '#94a3b8',
-                fontWeight: activeTab === tab ? 600 : 400,
-              }}
+              className={`flex flex-col items-center relative pb-2 ${activeTab === tab ? 'text-slate-900 font-semibold' : 'text-slate-400 font-normal'}`}
             >
               <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
               {activeTab === tab && (
                 <span
-                  className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                  style={{ backgroundColor: 'var(--org-secondary)' }}
+                  className="absolute bottom-0 left-0 right-0 rounded-full"
+                  style={{ backgroundColor: 'var(--org-secondary)', height: '3px' }}
                 />
               )}
             </button>

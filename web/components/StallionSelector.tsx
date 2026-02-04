@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { createClientComponentClient } from '@/lib/supabase'
 
 interface Stallion {
   id: string
@@ -18,7 +17,6 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
   const [stallions, setStallions] = useState<Stallion[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { profile } = useAuth()
-  const supabase = createClientComponentClient()
 
   const isAdmin = profile?.role === 'admin'
 
@@ -29,41 +27,17 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
         return
       }
 
-      let stallionList: Stallion[] = []
-
-      if (isAdmin) {
-        // Admin sees all stallions in the system
-        const { data, error } = await supabase
-          .from('stallions')
-          .select('id, name')
-          .order('name')
-
-        if (!error && data) {
-          stallionList = data
+      try {
+        const res = await fetch('/api/stallions')
+        if (res.ok) {
+          const data = await res.json()
+          setStallions(data)
+          if (!value && data.length > 0) {
+            onChange(data[0].id, data[0].name)
+          }
         }
-      } else {
-        if (!profile.organization?.id) {
-          setIsLoading(false)
-          return
-        }
-        // Non-admin sees only org-linked stallions
-        const { data, error } = await supabase
-          .from('organization_stallions')
-          .select('stallion_id, stallions(id, name)')
-          .eq('organization_id', profile.organization.id)
-          .order('stallions(name)')
-
-        if (!error && data) {
-          stallionList = data
-            .map(os => os.stallions as unknown as Stallion)
-            .filter(Boolean)
-        }
-      }
-
-      setStallions(stallionList)
-      // Auto-select first stallion if none selected
-      if (!value && stallionList.length > 0) {
-        onChange(stallionList[0].id, stallionList[0].name)
+      } catch (err) {
+        console.error('Failed to fetch stallions:', err)
       }
       setIsLoading(false)
     }
@@ -71,7 +45,7 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
     if (profile) {
       fetchStallions()
     }
-  }, [profile, isAdmin, value, onChange, supabase])
+  }, [profile])
 
   if (isLoading) return null
   if (stallions.length <= 1 && !isAdmin) return null
