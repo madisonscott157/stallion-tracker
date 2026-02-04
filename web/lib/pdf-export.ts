@@ -5,7 +5,7 @@
  */
 
 import type { Result, Entry, StallionStats, SalesStats, SireRanking, EquinelineStats } from './supabase'
-import { formatDate, formatDistance, formatOrdinal, cleanRaceName, formatMoney } from './utils'
+import { formatDate, formatDistance, formatOrdinal, cleanRaceName } from './utils'
 
 export interface ExportData {
   stallionName: string
@@ -28,7 +28,7 @@ function formatHorseDesc(sex: string | null, yob: number | null): string {
 }
 
 function badge(text: string, color: string): string {
-  return `<span style="display:inline-block;background:${color};color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:2px;vertical-align:baseline;margin-right:4px;">${text}</span>`
+  return `<span style="color:${color};font-size:12px;font-weight:700;margin-right:4px;">${text}</span>`
 }
 
 function pipe(): string {
@@ -181,30 +181,6 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
   if (data.results.length > 0) {
     html += sectionHeader('Recent Results')
     data.results.forEach(r => { html += buildResultRow(r) })
-  }
-
-  // Stats summary
-  if (data.stats) {
-    html += sectionHeader(`${data.stats.year} Statistics`)
-    html += `
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;font-size:13px;color:#334155;margin-bottom:4px;">
-        ${data.stats.starters} starters ${pipe()} ${data.stats.winners} winners ${pipe()} <b>${formatMoney(data.stats.total_earnings)} earnings</b>
-      </div>`
-  }
-
-  // Rankings
-  if (data.rankings.length > 0) {
-    html += sectionHeader('Sire List Rankings')
-    data.rankings.forEach(r => {
-      const label = r.list_type === 'ytd' ? 'General' : r.list_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-      html += `
-        <div style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;margin-bottom:3px;font-size:13px;line-height:1.6;">
-          <b>${label}</b> — #${r.rank || '—'}
-          ${r.starters ? `${pipe()}${r.starters} starters` : ''}
-          ${r.winners ? `${pipe()}${r.winners} winners` : ''}
-          ${r.total_earnings ? `${pipe()}${formatMoney(r.total_earnings)}` : ''}
-        </div>`
-    })
   }
 
   const wrapper = document.createElement('div')
