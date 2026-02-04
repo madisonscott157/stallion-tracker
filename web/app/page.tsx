@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Header } from '@/components/Header'
 import { StatsBar } from '@/components/StatsBar'
 import { EntryCard } from '@/components/EntryCard'
@@ -23,7 +23,6 @@ export default function Home() {
   const [stallionId, setStallionId] = useState<string | null>(null)
   const [stallion, setStallion] = useState<string>('Loading...')
   const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats' | 'sales'>('overview')
-  const mainRef = useRef<HTMLElement>(null)
   const { profile, isLoading: authLoading } = useAuth()
 
   const handleStallionChange = useCallback((id: string, name: string) => {
@@ -97,11 +96,19 @@ export default function Home() {
   const currentYear = new Date().getFullYear()
 
   const handleExportPDF = async () => {
-    if (!mainRef.current || isExporting) return
+    if (isExporting) return
     setIsExporting(true)
     try {
       const { exportDashboardToPDF } = await import('@/lib/pdf-export')
-      await exportDashboardToPDF(mainRef.current, { stallionName: stallion })
+      await exportDashboardToPDF({
+        stallionName: stallion,
+        results,
+        entries,
+        stats,
+        rankings,
+        equinelineStats,
+        sales,
+      })
     } catch (error) {
       console.error('Error exporting PDF:', error)
     } finally {
@@ -132,7 +139,7 @@ export default function Home() {
         )
       })()}
 
-      <main ref={mainRef} className="flex-1 px-6 py-6 max-w-5xl mx-auto w-full">
+      <main className="flex-1 px-6 py-6 max-w-5xl mx-auto w-full">
         {(authLoading || loading || !stallionId) ? (
           <div className="text-center py-12 text-slate-500">
             Loading...

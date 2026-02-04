@@ -1,198 +1,236 @@
 /**
- * PDF Export utility for the Stallion Tracker dashboard
- * Uses dynamic imports to avoid SSR issues with browser-only libraries
+ * PDF Export — builds clean HTML from data (no DOM cloning).
+ * html2canvas can't reliably render flex layouts, so we build
+ * simple table-based HTML that renders pixel-perfect.
  */
 
-interface ExportOptions {
+import type { Result, Entry, StallionStats, SalesStats, SireRanking, EquinelineStats } from './supabase'
+import { formatDate, formatDistance, formatOrdinal, cleanRaceName, formatMoney } from './utils'
+
+export interface ExportData {
   stallionName: string
+  results: Result[]
+  entries: Entry[]
+  stats: StallionStats | null
+  rankings: SireRanking[]
+  equinelineStats: EquinelineStats | null
+  sales: SalesStats[]
   filename?: string
 }
 
-export async function exportDashboardToPDF(
-  contentElement: HTMLElement,
-  options: ExportOptions
-): Promise<void> {
+function formatTrack(track: string): string {
+  return track.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+
+function formatHorseDesc(sex: string | null, yob: number | null): string {
+  const age = yob ? new Date().getFullYear() - yob : null
+  return [sex?.toLowerCase(), age].filter(Boolean).join(', ')
+}
+
+function badge(text: string, color: string): string {
+  return `<span style="display:inline-block;background:${color};color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:2px;vertical-align:baseline;margin-right:4px;">${text}</span>`
+}
+
+function pipe(): string {
+  return `<span style="color:#cbd5e1;margin:0 4px;">|</span>`
+}
+
+function buildResultRow(r: Result): string {
+  const isWin = r.finish_position === 1
+  const is2nd = r.finish_position === 2
+  const isG1 = r.stakes_grade === 'G1'
+  const isG2 = r.stakes_grade === 'G2'
+  const isStakes = r.is_stakes
+
+  // Border color
+  let borderColor = 'transparent'
+  if (isWin || isG1) borderColor = '#b8860b'
+  else if (is2nd || isG2) borderColor = '#94a3b8'
+  else if (r.stakes_grade) borderColor = '#b45309'
+  else if (isStakes) borderColor = '#0f172a'
+
+  // Position badge
+  let pos = ''
+  if (isWin) pos = badge('WIN', '#b8860b')
+  else if (is2nd) pos = badge('2nd', '#94a3b8')
+  else pos = `<span style="color:#64748b;font-size:13px;">${formatOrdinal(r.finish_position)}</span> `
+
+  const name = r.horse_name || 'Unknown'
+  const desc = formatHorseDesc(r.horse_sex || null, r.horse_yob || null)
+  const raceInfo = [r.race_type, r.purse ? `$${r.purse.toLocaleString()}` : null, formatDistance(r.distance || null) || null].filter(Boolean).join(' | ')
+
+  const track = formatTrack(r.track)
+  const dateStr = formatDate(r.race_date)
+
+  // Right side items
+  const rightParts = [`<b>${dateStr}</b>`, `${track} R${r.race_number}`]
+  if (r.chart_url) rightParts.push(`<a href="${r.chart_url}" style="color:#0f172a;">Chart</a>`)
+  if (r.replay_url) rightParts.push(`<a href="${r.replay_url}" style="color:#0f172a;">Replay</a>`)
+
+  // Stakes row
+  let stakesRow = ''
+  const stakesName = isStakes && r.race_name ? cleanRaceName(r.race_name.replace(/^STAKES\s*/i, '').trim()) : null
+  if (r.stakes_grade || stakesName) {
+    let gradeBadge = ''
+    if (r.stakes_grade) {
+      const gc = isG1 ? '#b8860b' : isG2 ? '#94a3b8' : '#b45309'
+      gradeBadge = badge(r.stakes_grade, gc)
+    }
+    const nameColor = isG1 ? '#b8860b' : isG2 ? '#94a3b8' : r.stakes_grade ? '#b45309' : '#0f172a'
+    const nameWeight = isWin && isStakes ? 'font-weight:700;' : 'font-weight:500;'
+    const sn = stakesName ? `<span style="color:${nameColor};${nameWeight}">${stakesName}</span>` : ''
+    const margin = isWin && r.win_margin ? `${pipe()}<span style="color:#15803d;font-weight:500;">Won by ${r.win_margin}</span>` : ''
+    stakesRow = `<div style="margin-top:2px;font-size:13px;">${gradeBadge}${sn}${margin}</div>`
+  }
+
+  // Win margin for non-stakes
+  let winRow = ''
+  if (isWin && r.win_margin && !isStakes) {
+    winRow = `<div style="margin-top:2px;font-size:13px;color:#15803d;font-weight:500;">Won by ${r.win_margin}</div>`
+  }
+
+  const raceInfoStyle = isWin && isStakes ? 'font-weight:600;color:#334155;' : 'color:#64748b;'
+
+  return `
+    <div style="border:1px solid #e2e8f0;border-left:4px solid ${borderColor};border-radius:6px;padding:6px 10px;margin-bottom:4px;font-size:13px;line-height:1.6;">
+      <table style="width:100%;border-collapse:collapse;"><tr>
+        <td style="vertical-align:baseline;">
+          ${pos}<span style="font-size:14px;font-weight:600;color:#0f172a;">${name}</span>
+          ${desc ? `<span style="color:#94a3b8;margin-left:4px;">${desc}</span>` : ''}
+          ${raceInfo ? `${pipe()}<span style="${raceInfoStyle}font-size:13px;">${raceInfo}</span>` : ''}
+        </td>
+        <td style="vertical-align:baseline;text-align:right;white-space:nowrap;color:#475569;font-size:13px;">
+          ${rightParts.join(`${pipe()}`)}
+        </td>
+      </tr></table>
+      ${stakesRow}${winRow}
+    </div>`
+}
+
+function buildEntryRow(e: Entry): string {
+  if (e.scratched) return '' // skip scratched
+
+  let borderColor = 'transparent'
+  if (e.stakes_grade) borderColor = '#b45309'
+  else if (e.is_stakes) borderColor = '#0f172a'
+
+  const name = e.horse_name || `${e.horse_yob || ''} ${e.horse_dam || 'Unknown'}`.trim()
+  const desc = formatHorseDesc(e.horse_sex || null, e.horse_yob || null)
+  const track = formatTrack(e.track)
+  const dateStr = formatDate(e.race_date)
+  const distDisplay = formatDistance(e.distance || null)
+
+  const raceDetails = [e.race_type, e.purse ? `$${e.purse.toLocaleString()}` : null, distDisplay || null, e.surface].filter(Boolean).join(' | ')
+
+  const rightParts = [`<b>${dateStr}</b>`, `${track} R${e.race_number}`]
+  if (e.post_time) rightParts.push(`${e.post_time} ${e.timezone}`)
+
+  const stakesName = e.is_stakes && e.race_name ? cleanRaceName(e.race_name.replace(/^STAKES\s*/i, '').trim()) : null
+  let stakesRow = ''
+  if (e.stakes_grade || stakesName) {
+    let gradeBadge = ''
+    if (e.stakes_grade) gradeBadge = badge(e.stakes_grade, '#b45309')
+    const sn = stakesName ? `<span style="font-weight:500;">${stakesName}</span>` : ''
+    stakesRow = `<div style="margin-top:1px;font-size:13px;">${gradeBadge}${sn}${raceDetails ? `${pipe()}${raceDetails}` : ''}</div>`
+  }
+
+  const row2 = !stakesRow && raceDetails ? `<div style="margin-top:1px;font-size:13px;color:#64748b;">${raceDetails}</div>` : ''
+
+  return `
+    <div style="border:1px solid #e2e8f0;border-left:4px solid ${borderColor};border-radius:6px;padding:6px 10px;margin-bottom:4px;font-size:13px;line-height:1.6;">
+      <table style="width:100%;border-collapse:collapse;"><tr>
+        <td style="vertical-align:baseline;">
+          <span style="font-size:14px;font-weight:600;color:#0f172a;">${name}</span>
+          ${desc ? `<span style="color:#94a3b8;margin-left:4px;">${desc}</span>` : ''}
+        </td>
+        <td style="vertical-align:baseline;text-align:right;white-space:nowrap;color:#475569;font-size:13px;">
+          ${rightParts.join(`${pipe()}`)}
+        </td>
+      </tr></table>
+      ${stakesRow}${row2}
+    </div>`
+}
+
+function sectionHeader(text: string): string {
+  return `<div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin:12px 0 4px 0;">${text}</div>`
+}
+
+export async function exportDashboardToPDF(data: ExportData): Promise<void> {
   const html2canvas = (await import('html2canvas')).default
   const { jsPDF } = await import('jspdf')
 
-  const { stallionName, filename } = options
-  const date = new Date().toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+
+  let html = ''
+
+  // Header
+  html += `
+    <div style="border-bottom:2px solid #0f172a;padding-bottom:8px;margin-bottom:14px;">
+      <div style="font-size:20px;font-weight:600;color:#0f172a;line-height:1.3;">${data.stallionName.toUpperCase()} PROGENY REPORT</div>
+      <div style="font-size:11px;color:#64748b;margin-top:3px;">${date}</div>
+    </div>`
+
+  // Entries (only non-scratched, and only if there are any)
+  const activeEntries = data.entries.filter(e => !e.scratched)
+  if (activeEntries.length > 0) {
+    html += sectionHeader('Upcoming Entries')
+    activeEntries.forEach(e => { html += buildEntryRow(e) })
+  }
+
+  // Results
+  if (data.results.length > 0) {
+    html += sectionHeader('Recent Results')
+    data.results.forEach(r => { html += buildResultRow(r) })
+  }
+
+  // Stats summary
+  if (data.stats) {
+    html += sectionHeader(`${data.stats.year} Statistics`)
+    html += `
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;font-size:13px;color:#334155;margin-bottom:4px;">
+        ${data.stats.starters} starters ${pipe()} ${data.stats.winners} winners ${pipe()} <b>${formatMoney(data.stats.total_earnings)} earnings</b>
+      </div>`
+  }
+
+  // Rankings
+  if (data.rankings.length > 0) {
+    html += sectionHeader('Sire List Rankings')
+    data.rankings.forEach(r => {
+      const label = r.list_type === 'ytd' ? 'General' : r.list_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      html += `
+        <div style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;margin-bottom:3px;font-size:13px;line-height:1.6;">
+          <b>${label}</b> — #${r.rank || '—'}
+          ${r.starters ? `${pipe()}${r.starters} starters` : ''}
+          ${r.winners ? `${pipe()}${r.winners} winners` : ''}
+          ${r.total_earnings ? `${pipe()}${formatMoney(r.total_earnings)}` : ''}
+        </div>`
+    })
+  }
 
   const wrapper = document.createElement('div')
   wrapper.style.cssText = `
-    position: absolute;
-    left: -9999px;
-    top: 0;
-    width: 800px;
-    background: #ffffff;
-    padding: 20px 24px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: #0f172a;
+    position:absolute;left:-9999px;top:0;width:800px;background:#fff;
+    padding:20px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;
   `
-
-  const clone = contentElement.cloneNode(true) as HTMLElement
-
-  // ── Remove elements not needed in PDF ──
-  clone.querySelectorAll('nav, button').forEach(el => el.remove())
-  clone.querySelectorAll('img[alt="Silks"]').forEach(el => el.remove())
-
-  // Remove workouts section
-  clone.querySelectorAll('section').forEach(section => {
-    const h = section.querySelector('h2')
-    if (h && h.textContent?.includes('Workouts')) section.remove()
-  })
-
-  // Remove empty state sections ("No upcoming entries", etc.)
-  clone.querySelectorAll('.empty-state').forEach(el => {
-    const section = el.closest('section')
-    if (section) section.remove()
-    else el.remove()
-  })
-
-  // ── Uniform row height: 24px line-height for everything in cards ──
-  const ROW_H = '24px'
-  const FONT_SM = '13px'
-  const FONT_BASE = '14px'
-  const BADGE_H = '18px'
-
-  // Prevent all overflow clipping
-  clone.querySelectorAll('*').forEach(node => {
-    const el = node as HTMLElement
-    if (el.style) el.style.overflow = 'visible'
-  })
-
-  // ── Process each card ──
-  clone.querySelectorAll('.rounded-lg.border').forEach(card => {
-    const cardEl = card as HTMLElement
-    cardEl.style.padding = '6px 10px'
-    cardEl.style.marginBottom = '3px'
-
-    // Force every flex row to use consistent alignment
-    cardEl.querySelectorAll('.flex').forEach(flexContainer => {
-      const row = flexContainer as HTMLElement
-      row.style.display = 'flex'
-      row.style.alignItems = 'center'
-      row.style.lineHeight = ROW_H
-      row.style.gap = '6px'
-      row.style.flexWrap = 'nowrap'
-
-      // Normalize ALL text inside the row to the same size
-      row.querySelectorAll('*').forEach(child => {
-        const el = child as HTMLElement
-        el.style.lineHeight = ROW_H
-        el.style.verticalAlign = 'middle'
-
-        // Check if it's a badge
-        const isBadge =
-          el.classList.contains('bg-gold') ||
-          el.classList.contains('bg-silver') ||
-          el.classList.contains('bg-accent')
-
-        if (isBadge) {
-          el.style.display = 'inline-block'
-          el.style.height = BADGE_H
-          el.style.lineHeight = BADGE_H
-          el.style.padding = '0 5px'
-          el.style.fontSize = '10px'
-          el.style.fontWeight = '600'
-          el.style.borderRadius = '3px'
-          el.style.textAlign = 'center'
-          el.style.position = 'static'
-          el.style.minWidth = ''
-          el.style.marginRight = '0'
-        } else {
-          // Normalize text size - horse name gets slightly larger
-          const isFontMedium = el.classList.contains('font-medium') && !el.classList.contains('text-sm')
-          el.style.fontSize = isFontMedium ? FONT_BASE : FONT_SM
-        }
-      })
-    })
-  })
-
-  // ── Remove trailing pipe separators ──
-  clone.querySelectorAll('span').forEach(span => {
-    const el = span as HTMLElement
-    if (el.textContent?.trim() === '|' && el.classList.contains('text-slate-300')) {
-      const next = el.nextElementSibling
-      if (!next) el.style.display = 'none'
-    }
-  })
-
-  // ── Tighten section spacing ──
-  clone.querySelectorAll('section').forEach(section => {
-    (section as HTMLElement).style.marginBottom = '10px'
-  })
-
-  clone.querySelectorAll('.card-stack').forEach(stack => {
-    const el = stack as HTMLElement
-    el.style.gap = '3px'
-    el.querySelectorAll(':scope > *').forEach((child, i) => {
-      if (i > 0) (child as HTMLElement).style.marginTop = '3px'
-    })
-  })
-
-  clone.querySelectorAll('.section-header').forEach(header => {
-    (header as HTMLElement).style.marginBottom = '4px'
-    ;(header as HTMLElement).style.marginTop = '0'
-  })
-
-  // Fix StatsBar
-  clone.querySelectorAll('.bg-slate-50').forEach(bar => {
-    (bar as HTMLElement).style.padding = '4px 10px'
-  })
-
-  // Add PDF header
-  const header = document.createElement('div')
-  header.innerHTML = `
-    <div style="border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px;">
-      <h1 style="font-size: 20px; font-weight: 600; color: #0f172a; margin: 0; line-height: 1.3;">
-        ${stallionName.toUpperCase()} PROGENY REPORT
-      </h1>
-      <p style="font-size: 11px; color: #64748b; margin: 3px 0 0 0;">${date}</p>
-    </div>
-  `
-  wrapper.appendChild(header)
-  wrapper.appendChild(clone)
+  wrapper.innerHTML = html
   document.body.appendChild(wrapper)
 
   try {
-    // Collect link positions before rendering
-    interface LinkInfo {
-      url: string
-      x: number
-      y: number
-      width: number
-      height: number
-    }
+    // Collect link positions
+    interface LinkInfo { url: string; x: number; y: number; width: number; height: number }
     const links: LinkInfo[] = []
     const wrapperRect = wrapper.getBoundingClientRect()
-
     wrapper.querySelectorAll('a[href]').forEach(anchor => {
       const a = anchor as HTMLAnchorElement
       const href = a.getAttribute('href')
-      if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+      if (href?.startsWith('http')) {
         const rect = a.getBoundingClientRect()
-        links.push({
-          url: href,
-          x: rect.left - wrapperRect.left,
-          y: rect.top - wrapperRect.top,
-          width: rect.width,
-          height: rect.height,
-        })
+        links.push({ url: href, x: rect.left - wrapperRect.left, y: rect.top - wrapperRect.top, width: rect.width, height: rect.height })
       }
     })
 
     const canvas = await html2canvas(wrapper, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      width: 800,
-      windowWidth: 800,
+      scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', width: 800, windowWidth: 800,
     })
 
     const imgWidth = 210
@@ -205,7 +243,6 @@ export async function exportDashboardToPDF(
 
     let heightLeft = imgHeight
     let position = 0
-
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
     heightLeft -= pageHeight
 
@@ -216,28 +253,20 @@ export async function exportDashboardToPDF(
       heightLeft -= pageHeight
     }
 
-    // Add clickable link annotations
     const totalPages = pdf.getNumberOfPages()
     links.forEach(link => {
       const linkYInPdf = link.y * scaleFactor
       const linkPage = Math.floor(linkYInPdf / pageHeight) + 1
       const linkYOnPage = linkYInPdf - (linkPage - 1) * pageHeight
-
       if (linkPage >= 1 && linkPage <= totalPages) {
         pdf.setPage(linkPage)
-        pdf.link(
-          link.x * scaleFactor,
-          linkYOnPage,
-          link.width * scaleFactor,
-          link.height * scaleFactor,
-          { url: link.url }
-        )
+        pdf.link(link.x * scaleFactor, linkYOnPage, link.width * scaleFactor, link.height * scaleFactor, { url: link.url })
       }
     })
 
-    const safeStallionName = stallionName.toLowerCase().replace(/\s+/g, '-')
+    const safeStallionName = data.stallionName.toLowerCase().replace(/\s+/g, '-')
     const dateStr = new Date().toISOString().split('T')[0]
-    pdf.save(filename || `${safeStallionName}-report-${dateStr}.pdf`)
+    pdf.save(data.filename || `${safeStallionName}-report-${dateStr}.pdf`)
   } finally {
     document.body.removeChild(wrapper)
   }
