@@ -10,17 +10,16 @@ interface ResultsSectionProps {
   stallionName: string
 }
 
-type RaceTypeFilter = 'all' | 'msw_aoc_alw' | 'stakes'
+type RaceTypeFilter = 'all' | 'msw' | 'alw' | 'stakes'
 type PositionFilter = 'all' | 'win' | 'top3'
-
-const MSW_AOC_ALW_TYPES = ['MSW', 'AOC', 'ALW']
 
 function matchesRaceType(result: Result, filter: RaceTypeFilter): boolean {
   if (filter === 'all') return true
   if (filter === 'stakes') return result.is_stakes
-  // msw_aoc_alw
   const rt = result.race_type?.toUpperCase() || ''
-  return MSW_AOC_ALW_TYPES.some(t => rt.includes(t))
+  if (filter === 'msw') return rt.includes('MSW') || rt.includes('AOC')
+  // alw
+  return rt.includes('ALW')
 }
 
 function matchesPosition(result: Result, filter: PositionFilter): boolean {
@@ -121,7 +120,8 @@ export function ResultsSection({ results, stallionName }: ResultsSectionProps) {
           className="px-3 py-1.5 text-sm border border-slate-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-slate-300"
         >
           <option value="all">All Race Types</option>
-          <option value="msw_aoc_alw">MSW / AOC / ALW</option>
+          <option value="msw">MSW / AOC</option>
+          <option value="alw">ALW</option>
           <option value="stakes">Stakes</option>
         </select>
         <select
