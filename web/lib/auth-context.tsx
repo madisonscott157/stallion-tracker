@@ -10,6 +10,7 @@ export interface UserProfile {
   name: string | null
   organization_id: string
   role: 'user' | 'admin'
+  default_stallion_id: string | null
   organization?: {
     id: string
     name: string
