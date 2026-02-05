@@ -212,6 +212,21 @@ class Database:
         # Try to link to existing entry
         entry_id = self._find_entry(horse_id, result_data.race_date, result_data.track, result_data.race_number)
 
+        # Copy jockey/trainer from linked entry if not already set on the result
+        jockey = result_data.jockey
+        trainer = result_data.trainer
+        if entry_id and (not jockey or not trainer):
+            entry = self.client.table("entries") \
+                .select("jockey, trainer") \
+                .eq("id", entry_id) \
+                .single() \
+                .execute()
+            if entry.data:
+                if not jockey:
+                    jockey = entry.data.get("jockey")
+                if not trainer:
+                    trainer = entry.data.get("trainer")
+
         insert_data = {
             "horse_id": horse_id,
             "entry_id": entry_id,
@@ -230,8 +245,8 @@ class Database:
             "beaten_lengths": result_data.beaten_lengths,
             "win_margin": result_data.win_margin,
             "odds": result_data.odds,
-            "jockey": result_data.jockey,
-            "trainer": result_data.trainer,
+            "jockey": jockey,
+            "trainer": trainer,
             "owner": result_data.owner,
             "post_position": result_data.post_position,
             "chart_url": result_data.chart_url,
@@ -542,3 +557,42 @@ class Database:
             .execute()
 
         return result.data if result.data else None
+
+    def backfill_result_jockey_trainer(self) -> int:
+        """Backfill jockey/trainer on results from linked entries where missing."""
+        # Get results that have an entry_id but are missing jockey or trainer
+        results = self.client.table("results") \
+            .select("id, entry_id, jockey, trainer") \
+            .not_.is_("entry_id", "null") \
+            .execute()
+
+        updated = 0
+        for row in results.data or []:
+            if row["jockey"] and row["trainer"]:
+                continue  # Both already set
+
+            # Fetch from linked entry
+            entry = self.client.table("entries") \
+                .select("jockey, trainer") \
+                .eq("id", row["entry_id"]) \
+                .single() \
+                .execute()
+
+            if not entry.data:
+                continue
+
+            update_data = {}
+            if not row["jockey"] and entry.data.get("jockey"):
+                update_data["jockey"] = entry.data["jockey"]
+            if not row["trainer"] and entry.data.get("trainer"):
+                update_data["trainer"] = entry.data["trainer"]
+
+            if update_data:
+                self.client.table("results") \
+                    .update(update_data) \
+                    .eq("id", row["id"]) \
+                    .execute()
+                updated += 1
+                print(f"  Updated result {row['id']}: {update_data}")
+
+        return updated
