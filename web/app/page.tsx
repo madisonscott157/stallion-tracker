@@ -7,6 +7,7 @@ import { EntryCard } from '@/components/EntryCard'
 import { ResultCard } from '@/components/ResultCard'
 import { WorkoutCard } from '@/components/WorkoutCard'
 import { SalesTable } from '@/components/SalesCard'
+import { ResultsSection } from '@/components/ResultsSection'
 import { SireRankingsTable } from '@/components/SireRankingsTable'
 import { EquinelineSection } from '@/components/EquinelineSection'
 import { useAuth } from '@/lib/auth-context'
@@ -193,18 +194,7 @@ export default function Home() {
 
             {/* Results Tab */}
             {activeTab === 'results' && (
-              <section>
-                <h2 className="section-header">All Results</h2>
-                {results.length > 0 ? (
-                  <div className="card-stack">
-                    {results.map(result => (
-                      <ResultCard key={result.id} result={result} />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="empty-state">No results yet</p>
-                )}
-              </section>
+              <ResultsSection results={results} stallionName={stallion} />
             )}
 
             {/* Stats Tab */}
