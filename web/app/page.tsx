@@ -212,17 +212,20 @@ export default function Home() {
               <section className="max-w-3xl mx-auto">
                 <h2 className="section-header">Sales Statistics</h2>
                 {sales.length > 0 ? (
-                  <div className="space-y-4">
-                    {Array.from(new Set(sales.map(s => s.sale_year)))
-                      .sort((a, b) => b - a)
-                      .map(year => (
-                        <SalesTable
-                          key={year}
-                          salesByYear={sales.filter(s => s.sale_year === year)}
-                          year={year}
-                        />
-                      ))}
-                  </div>
+                  <>
+                    <div className="space-y-4">
+                      {Array.from(new Set(sales.map(s => s.sale_year)))
+                        .sort((a, b) => b - a)
+                        .map(year => (
+                          <SalesTable
+                            key={year}
+                            salesByYear={sales.filter(s => s.sale_year === year)}
+                            year={year}
+                          />
+                        ))}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-4">Source: TDN Insta-tistics</p>
+                  </>
                 ) : (
                   <p className="empty-state">No sales data available</p>
                 )}

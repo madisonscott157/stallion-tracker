@@ -87,6 +87,7 @@ export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
           </tbody>
         </table>
       </div>
+      <p className="text-xs text-slate-400 mt-1 mb-6">Source: TDN Sire Lists</p>
     </>
   )
 }
