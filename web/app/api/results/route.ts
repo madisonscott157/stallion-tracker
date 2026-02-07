@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, isAuthError } from '@/lib/api-auth'
+import { requireAuth, isAuthError, getUserPreferences } from '@/lib/api-auth'
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth()
   if (isAuthError(auth)) return auth
-  const { supabase } = auth
+  const { supabase, userId } = auth
+
+  const prefs = await getUserPreferences(supabase, userId)
 
   const { searchParams } = new URL(request.url)
   const stallion = searchParams.get('stallion')
@@ -37,6 +39,11 @@ export async function GET(request: NextRequest) {
   // Filter to winners only if requested
   if (winnersOnly) {
     query = query.eq('finish_position', 1)
+  }
+
+  // Filter out claiming races if user preference is set
+  if (!prefs.show_claiming_races) {
+    query = query.not('race_type', 'in', '(MCL,CLM)')
   }
 
   const { data, error } = await query

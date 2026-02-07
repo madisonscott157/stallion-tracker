@@ -11,6 +11,7 @@ export interface UserProfile {
   organization_id: string
   role: 'user' | 'admin'
   default_stallion_id: string | null
+  show_claiming_races: boolean
   organization?: {
     id: string
     name: string

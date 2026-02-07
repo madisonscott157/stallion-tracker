@@ -7,6 +7,10 @@ interface AuthResult {
   userId: string
 }
 
+interface UserPreferences {
+  show_claiming_races: boolean
+}
+
 export async function requireAuth(): Promise<AuthResult | NextResponse> {
   const supabase = createServerComponentClient()
   const { data: { session } } = await supabase.auth.getSession()
@@ -18,4 +22,19 @@ export async function requireAuth(): Promise<AuthResult | NextResponse> {
 
 export function isAuthError(result: AuthResult | NextResponse): result is NextResponse {
   return result instanceof NextResponse
+}
+
+export async function getUserPreferences(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<UserPreferences> {
+  const { data } = await supabase
+    .from('users')
+    .select('show_claiming_races')
+    .eq('auth_id', userId)
+    .single()
+
+  return {
+    show_claiming_races: data?.show_claiming_races ?? true,
+  }
 }

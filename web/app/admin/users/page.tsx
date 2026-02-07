@@ -11,6 +11,7 @@ interface User {
   role: string
   organization_id: string | null
   organization?: { id: string; name: string } | null
+  show_claiming_races: boolean
 }
 
 interface Organization {
@@ -23,7 +24,7 @@ export default function AdminUsersPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [newUser, setNewUser] = useState({ email: '', name: '', password: '', organization_id: '', role: 'user' })
+  const [newUser, setNewUser] = useState({ email: '', name: '', password: '', organization_id: '', role: 'user', show_claiming_races: true })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const supabase = createClientComponentClient()
@@ -62,7 +63,7 @@ export default function AdminUsersPage() {
       }
 
       setShowAddForm(false)
-      setNewUser({ email: '', name: '', password: '', organization_id: '', role: 'user' })
+      setNewUser({ email: '', name: '', password: '', organization_id: '', role: 'user', show_claiming_races: true })
       fetchData()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create user')
@@ -169,6 +170,17 @@ export default function AdminUsersPage() {
                   <option value="admin">Admin</option>
                 </select>
               </div>
+              <div className="flex items-center">
+                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newUser.show_claiming_races}
+                    onChange={e => setNewUser({ ...newUser, show_claiming_races: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300"
+                  />
+                  Show claiming races
+                </label>
+              </div>
             </div>
             <div className="flex gap-2">
               <button
@@ -198,6 +210,7 @@ export default function AdminUsersPage() {
               <th className="py-3 px-4 text-left font-medium">Name</th>
               <th className="py-3 px-4 text-left font-medium">Organization</th>
               <th className="py-3 px-4 text-left font-medium">Role</th>
+              <th className="py-3 px-4 text-center font-medium">Claiming</th>
               <th className="py-3 px-4 text-right font-medium">Actions</th>
             </tr>
           </thead>
@@ -228,6 +241,14 @@ export default function AdminUsersPage() {
                     <option value="admin">Admin</option>
                   </select>
                 </td>
+                <td className="py-3 px-4 text-center">
+                  <input
+                    type="checkbox"
+                    checked={user.show_claiming_races}
+                    onChange={e => handleUpdateUser(user.id, { show_claiming_races: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                  />
+                </td>
                 <td className="py-3 px-4 text-right">
                   <button
                     onClick={() => handleDeleteUser(user.id)}
@@ -240,7 +261,7 @@ export default function AdminUsersPage() {
             ))}
             {users.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-500">
+                <td colSpan={6} className="py-8 text-center text-slate-500">
                   No users yet. Add your first user above.
                 </td>
               </tr>

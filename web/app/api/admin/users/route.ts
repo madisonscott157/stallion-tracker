@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden - admin only' }, { status: 403 })
   }
 
-  const { email, name, password, organization_id, role = 'user' } = await request.json()
+  const { email, name, password, organization_id, role = 'user', show_claiming_races = true } = await request.json()
 
   if (!email || !password || !organization_id) {
     return NextResponse.json({ error: 'Email, password, and organization_id are required' }, { status: 400 })
@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
     name: name || null,
     organization_id,
     role,
+    show_claiming_races,
   })
 
   if (profileError) {
