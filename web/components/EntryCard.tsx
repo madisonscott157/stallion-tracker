@@ -9,11 +9,11 @@ interface EntryCardProps {
 }
 
 export function EntryCard({ entry }: EntryCardProps) {
-  const { profile } = useAuth()
+  const { profile, allOrgsWithSilks } = useAuth()
   const horseName = entry.horse_name || `${entry.horse_yob || ''} ${entry.horse_dam || 'Unknown'}`.trim()
   const horseDesc = formatHorseDescription(entry.horse_sex || null, entry.horse_yob || null)
 
-  const { show: showSilks, silksUrl } = shouldShowSilks(profile?.organization, entry.owner)
+  const { show: showSilks, silksUrl } = shouldShowSilks(profile?.organization, entry.owner, allOrgsWithSilks)
 
   const dateLabel = isToday(entry.race_date)
     ? 'Today'

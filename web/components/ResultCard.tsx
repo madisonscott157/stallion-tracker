@@ -9,13 +9,13 @@ interface ResultCardProps {
 }
 
 export function ResultCard({ result }: ResultCardProps) {
-  const { profile } = useAuth()
+  const { profile, allOrgsWithSilks } = useAuth()
   const horseName = result.horse_name || 'Unknown'
   const horseDesc = formatHorseDescription(result.horse_sex || null, result.horse_yob || null)
   const isWinner = result.finish_position === 1
   const isTopThree = result.finish_position <= 3
 
-  const { show: showSilks, silksUrl } = shouldShowSilks(profile?.organization, result.owner)
+  const { show: showSilks, silksUrl } = shouldShowSilks(profile?.organization, result.owner, allOrgsWithSilks)
 
   const dateLabel = isToday(result.race_date)
     ? 'Today'

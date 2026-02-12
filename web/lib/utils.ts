@@ -211,11 +211,24 @@ export function formatTrack(track: string): string {
 
 export function shouldShowSilks(
   organization: { name?: string; silks_url?: string | null } | undefined,
-  owner: string | null | undefined
+  owner: string | null | undefined,
+  allOrgsWithSilks?: { name: string; silks_url: string | null }[]
 ): { show: boolean; silksUrl: string } {
+  if (!owner) return { show: false, silksUrl: '' }
+
+  // If allOrgsWithSilks is provided (for admins), check against all orgs
+  if (allOrgsWithSilks && allOrgsWithSilks.length > 0) {
+    for (const org of allOrgsWithSilks) {
+      if (org.name && org.silks_url && owner.includes(org.name)) {
+        return { show: true, silksUrl: org.silks_url }
+      }
+    }
+  }
+
+  // Fall back to checking user's own organization
   const orgName = organization?.name
   const silksUrl = organization?.silks_url
-  if (orgName && silksUrl && owner?.includes(orgName)) {
+  if (orgName && silksUrl && owner.includes(orgName)) {
     return { show: true, silksUrl }
   }
   return { show: false, silksUrl: '' }

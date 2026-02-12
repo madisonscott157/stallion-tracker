@@ -4,6 +4,16 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js'
 import { createClientComponentClient } from './supabase'
 
+export interface Organization {
+  id: string
+  name: string
+  slug: string
+  primary_color: string
+  secondary_color: string
+  logo_url: string | null
+  silks_url: string | null
+}
+
 export interface UserProfile {
   id: string
   email: string
@@ -12,15 +22,7 @@ export interface UserProfile {
   role: 'user' | 'admin'
   default_stallion_id: string | null
   show_claiming_races: boolean
-  organization?: {
-    id: string
-    name: string
-    slug: string
-    primary_color: string
-    secondary_color: string
-    logo_url: string | null
-    silks_url: string | null
-  }
+  organization?: Organization
 }
 
 interface AuthContextType {
@@ -29,6 +31,7 @@ interface AuthContextType {
   session: Session | null
   isLoading: boolean
   isAdmin: boolean
+  allOrgsWithSilks: Organization[]
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
@@ -42,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMounted, setIsMounted] = useState(false)
+  const [allOrgsWithSilks, setAllOrgsWithSilks] = useState<Organization[]>([])
 
   const supabase = createClientComponentClient()
 
@@ -60,6 +64,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null
     }
     return data as UserProfile
+  }
+
+  const fetchAllOrgsWithSilks = async (): Promise<Organization[]> => {
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('*')
+      .not('silks_url', 'is', null)
+
+    if (error) {
+      console.error('Error fetching orgs with silks:', error)
+      return []
+    }
+    return data as Organization[]
   }
 
   useEffect(() => {
@@ -87,6 +104,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         const profile = await fetchProfile(session.user.id)
         setProfile(profile)
+        // Fetch all orgs with silks for admins
+        if (profile?.role === 'admin') {
+          const orgs = await fetchAllOrgsWithSilks()
+          setAllOrgsWithSilks(orgs)
+        }
       }
       setIsLoading(false)
     })
@@ -100,8 +122,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           const profile = await fetchProfile(session.user.id)
           setProfile(profile)
+          // Fetch all orgs with silks for admins
+          if (profile?.role === 'admin') {
+            const orgs = await fetchAllOrgsWithSilks()
+            setAllOrgsWithSilks(orgs)
+          } else {
+            setAllOrgsWithSilks([])
+          }
         } else {
           setProfile(null)
+          setAllOrgsWithSilks([])
         }
         setIsLoading(false)
       }
@@ -141,6 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       isLoading,
       isAdmin: profile?.role === 'admin',
+      allOrgsWithSilks,
       signIn,
       signOut,
       refreshProfile,
