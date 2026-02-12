@@ -101,7 +101,7 @@ export function ResultCard({ result }: ResultCardProps) {
       </div>
 
       {/* Row 2: Date, Track, Race info */}
-      <div className="text-sm text-slate-500 leading-snug sm:leading-normal">
+      <div className="text-sm text-slate-500 leading-none sm:leading-normal">
         <span className="font-medium text-slate-600">{dateLabel}</span>
         <span className="text-slate-300 mx-1">|</span>
         <span>{trackDisplay} R{result.race_number}</span>
@@ -155,7 +155,7 @@ export function ResultCard({ result }: ResultCardProps) {
 
       {/* Row 3: Stakes info (only shown for stakes races) */}
       {(result.stakes_grade || stakesRaceName) && (
-        <div className="text-sm leading-snug sm:leading-normal">
+        <div className="text-sm leading-none sm:leading-normal">
           {result.stakes_grade && (
             <span className={cn(
               "text-white text-xs rounded font-medium inline-flex items-center justify-center align-middle mr-1",
