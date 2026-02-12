@@ -80,8 +80,8 @@ def scrape_all_stallions(db: Database):
         try:
             print(f"\n  Scraping sire rankings (current year)...")
             current_year = datetime.now().year
-            # Only scrape third_crop for current year - most relevant for established sires
-            ranking_data = scrape_stallion_rankings(sire_name, current_year, ['third_crop'])
+            # Check multiple list types to find the stallion on whichever list they're on
+            ranking_data = scrape_stallion_rankings(sire_name, current_year, ['ytd', 'third_crop', 'second_crop', 'freshman'])
 
             for data in ranking_data:
                 result_id = db.upsert_sire_ranking(stallion_id, data)

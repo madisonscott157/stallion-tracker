@@ -356,8 +356,12 @@ STALLION_REFS = {
 
 
 def get_stallion_ref(name: str) -> Optional[str]:
-    """Get the Equineline StallionRef for a stallion name."""
-    return STALLION_REFS.get(name)
+    """Get the Equineline StallionRef for a stallion name (case-insensitive)."""
+    name_lower = name.lower()
+    for key, value in STALLION_REFS.items():
+        if key.lower() == name_lower:
+            return value
+    return None
 
 
 if __name__ == "__main__":
