@@ -101,31 +101,31 @@ export function ResultCard({ result }: ResultCardProps) {
       </div>
 
       {/* Row 2: Date, Track, Race info */}
-      <div className="flex flex-wrap items-baseline gap-x-2 text-sm text-slate-500 [line-height:1] sm:[line-height:1.5]">
+      <div className="text-sm text-slate-500 leading-snug sm:leading-normal">
         <span className="font-medium text-slate-600">{dateLabel}</span>
-        <span className="text-slate-300">|</span>
+        <span className="text-slate-300 mx-1">|</span>
         <span>{trackDisplay} R{result.race_number}</span>
         {result.race_type && (
           <>
-            <span className="text-slate-300">|</span>
+            <span className="text-slate-300 mx-1">|</span>
             <span className={cn(isStakesWinner && "font-semibold text-slate-700")}>{result.race_type}</span>
           </>
         )}
         {result.purse && (
           <>
-            <span className="text-slate-300">|</span>
+            <span className="text-slate-300 mx-1">|</span>
             <span>${result.purse.toLocaleString()}</span>
           </>
         )}
         {result.distance && (
           <>
-            <span className="text-slate-300">|</span>
+            <span className="text-slate-300 mx-1">|</span>
             <span>{formatDistance(result.distance)}</span>
           </>
         )}
         {result.chart_url && (
           <>
-            <span className="text-slate-300">|</span>
+            <span className="text-slate-300 mx-1">|</span>
             <a
               href={result.chart_url}
               target="_blank"
@@ -139,7 +139,7 @@ export function ResultCard({ result }: ResultCardProps) {
         )}
         {result.replay_url && (
           <>
-            <span className="text-slate-300">|</span>
+            <span className="text-slate-300 mx-1">|</span>
             <a
               href={result.replay_url}
               target="_blank"
@@ -155,10 +155,10 @@ export function ResultCard({ result }: ResultCardProps) {
 
       {/* Row 3: Stakes info (only shown for stakes races) */}
       {(result.stakes_grade || stakesRaceName) && (
-        <div className="flex flex-wrap items-center gap-x-1 sm:gap-2 -mt-0.5 sm:mt-1 text-sm [line-height:1] sm:[line-height:1.5]">
+        <div className="text-sm leading-snug sm:leading-normal">
           {result.stakes_grade && (
             <span className={cn(
-              "text-white text-xs rounded font-medium inline-flex items-center justify-center",
+              "text-white text-xs rounded font-medium inline-flex items-center justify-center align-middle mr-1",
               isG1 ? "bg-gold" : isG2 ? "bg-silver" : "bg-accent"
             )} style={{ minWidth: '1.75rem', height: '1.25rem', lineHeight: 1, paddingLeft: '0.375rem', paddingRight: '0.375rem' }}>
               {result.stakes_grade}
@@ -175,7 +175,7 @@ export function ResultCard({ result }: ResultCardProps) {
           )}
           {isWinner && result.win_margin && (
             <>
-              <span className="text-slate-300">|</span>
+              <span className="text-slate-300 mx-1">|</span>
               <span className={cn(
                 "text-green-700 font-medium",
                 isStakesWinner && "font-bold"
