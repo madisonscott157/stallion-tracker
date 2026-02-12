@@ -101,7 +101,7 @@ export function ResultCard({ result }: ResultCardProps) {
       </div>
 
       {/* Row 2: Date, Track, Race info */}
-      <div className="flex flex-wrap items-baseline gap-x-2 text-sm text-slate-500 [line-height:1.1] sm:[line-height:1.5]">
+      <div className="flex flex-wrap items-baseline gap-x-2 text-sm text-slate-500 [line-height:1] sm:[line-height:1.5]">
         <span className="font-medium text-slate-600">{dateLabel}</span>
         <span className="text-slate-300">|</span>
         <span>{trackDisplay} R{result.race_number}</span>
@@ -155,7 +155,7 @@ export function ResultCard({ result }: ResultCardProps) {
 
       {/* Row 3: Stakes info (only shown for stakes races) */}
       {(result.stakes_grade || stakesRaceName) && (
-        <div className="flex flex-wrap items-center gap-x-1 sm:gap-2 text-sm [line-height:1.1] sm:[line-height:1.5]">
+        <div className="flex flex-wrap items-center gap-x-1 sm:gap-2 -mt-0.5 sm:mt-1 text-sm [line-height:1] sm:[line-height:1.5]">
           {result.stakes_grade && (
             <span className={cn(
               "text-white text-xs rounded font-medium inline-flex items-center justify-center",
