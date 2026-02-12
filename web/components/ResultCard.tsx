@@ -100,7 +100,7 @@ export function ResultCard({ result }: ResultCardProps) {
         )}
       </div>
 
-      {/* Row 2: Date, Track, Race info */}
+      {/* Row 2: Date, Track, Race info + Stakes info - all in one block for tight mobile layout */}
       <div className="text-sm text-slate-500 leading-none sm:leading-normal">
         <span className="font-medium text-slate-600">{dateLabel}</span>
         <span className="text-slate-300 mx-1">|</span>
@@ -151,46 +151,46 @@ export function ResultCard({ result }: ResultCardProps) {
             </a>
           </>
         )}
-      </div>
-
-      {/* Row 3: Stakes info (only shown for stakes races) */}
-      {(result.stakes_grade || stakesRaceName) && (
-        <div className="text-sm leading-none sm:leading-normal">
-          {result.stakes_grade && (
-            <span className={cn(
-              "text-white text-xs rounded font-medium inline-flex items-center justify-center align-middle mr-1",
-              isG1 ? "bg-gold" : isG2 ? "bg-silver" : "bg-accent"
-            )} style={{ minWidth: '1.75rem', height: '1.25rem', lineHeight: 1, paddingLeft: '0.375rem', paddingRight: '0.375rem' }}>
-              {result.stakes_grade}
-            </span>
-          )}
-          {stakesRaceName && (
-            <span className={cn(
-              "font-medium",
-              isStakesWinner && "font-bold",
-              isG1 ? "text-gold-border" : isG2 ? "text-silver-border" : result.stakes_grade ? "text-accent" : ""
-            )}
-              style={!result.stakes_grade ? { color: 'var(--org-primary)' } : undefined}
-            >{stakesRaceName}</span>
-          )}
-          {isWinner && result.win_margin && (
-            <>
-              <span className="text-slate-300 mx-1">|</span>
+        {/* Stakes info inline */}
+        {(result.stakes_grade || stakesRaceName) && (
+          <>
+            <span className="text-slate-300 mx-1">|</span>
+            {result.stakes_grade && (
               <span className={cn(
-                "text-green-700 font-medium",
-                isStakesWinner && "font-bold"
-              )}>Won by {result.win_margin}</span>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Win margin for non-stakes winners */}
-      {isWinner && result.win_margin && !result.is_stakes && (
-        <div className="mt-0 sm:mt-1 text-sm leading-tight sm:leading-normal">
-          <span className="text-green-700 font-medium">Won by {result.win_margin}</span>
-        </div>
-      )}
+                "text-white text-xs rounded font-medium inline-flex items-center justify-center align-middle mr-1",
+                isG1 ? "bg-gold" : isG2 ? "bg-silver" : "bg-accent"
+              )} style={{ minWidth: '1.75rem', height: '1.25rem', lineHeight: 1, paddingLeft: '0.375rem', paddingRight: '0.375rem' }}>
+                {result.stakes_grade}
+              </span>
+            )}
+            {stakesRaceName && (
+              <span className={cn(
+                "font-medium",
+                isStakesWinner && "font-bold",
+                isG1 ? "text-gold-border" : isG2 ? "text-silver-border" : result.stakes_grade ? "text-accent" : ""
+              )}
+                style={!result.stakes_grade ? { color: 'var(--org-primary)' } : undefined}
+              >{stakesRaceName}</span>
+            )}
+            {isWinner && result.win_margin && (
+              <>
+                <span className="text-slate-300 mx-1">|</span>
+                <span className={cn(
+                  "text-green-700 font-medium",
+                  isStakesWinner && "font-bold"
+                )}>Won by {result.win_margin}</span>
+              </>
+            )}
+          </>
+        )}
+        {/* Win margin for non-stakes winners - inline */}
+        {isWinner && result.win_margin && !result.is_stakes && (
+          <>
+            <span className="text-slate-300 mx-1">|</span>
+            <span className="text-green-700 font-medium">Won by {result.win_margin}</span>
+          </>
+        )}
+      </div>
     </div>
   )
 }
