@@ -1,0 +1,21 @@
+# Fly.io configuration for Stallion Tracker Email Parser
+# This runs 24/7 polling for Equibase Virtual Stable emails
+
+app = 'stallion-tracker-parser'
+primary_region = 'ord'
+
+[build]
+
+[env]
+  # Non-sensitive env vars can go here
+  # Sensitive ones (GMAIL_APP_PASSWORD, SUPABASE_SERVICE_KEY) set via: fly secrets set
+
+[processes]
+  parser = "python3 main.py"
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
+
+# No HTTP service needed - this is a background worker

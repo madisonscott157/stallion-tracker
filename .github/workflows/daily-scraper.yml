@@ -1,0 +1,41 @@
+# Daily Scraper - Runs at 12:30 AM UTC
+# Scrapes TDN sales, sire rankings, and Equineline stats
+
+name: Daily Scraper
+
+on:
+  schedule:
+    # Run at 12:30 AM UTC daily (7:30 PM EST / 4:30 PM PST)
+    - cron: '30 0 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Install dependencies
+        working-directory: ./parser
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run scraper
+        working-directory: ./parser
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python3 sales_scraper_main.py --once
