@@ -6,13 +6,89 @@ interface SireRankingsTableProps {
   rankings: SireRanking[]
 }
 
+function getListLabel(listType: string): string {
+  return listType === 'ytd' ? 'YTD' :
+    listType === 'freshman' ? '1st Crop' :
+    listType === 'second_crop' ? '2nd Crop' :
+    listType === 'third_crop' ? '3rd Crop' :
+    listType
+}
+
 export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
   if (rankings.length === 0) return null
+
+  const sortedRankings = [...rankings].sort((a, b) => b.year - a.year)
 
   return (
     <>
       <h2 className="section-header">Sire List Rankings</h2>
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+
+      {/* Mobile: Card layout */}
+      <div className="sm:hidden space-y-3">
+        {sortedRankings.map(ranking => {
+          const listLabel = getListLabel(ranking.list_type)
+          return (
+            <div key={ranking.id} className="bg-white rounded-lg border border-slate-200 p-3">
+              <div className="flex items-baseline justify-between mb-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm font-medium text-slate-600">{ranking.year}</span>
+                  {ranking.source_url ? (
+                    <a
+                      href={ranking.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium hover:underline"
+                      style={{ color: 'var(--org-primary)' }}
+                    >
+                      {listLabel}
+                    </a>
+                  ) : (
+                    <span className="text-sm text-slate-700">{listLabel}</span>
+                  )}
+                </div>
+                <span className="text-lg font-bold text-slate-900">#{ranking.rank}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="text-center">
+                  <div className="text-slate-400 text-xs">Starters</div>
+                  <div className="font-medium text-slate-700">{ranking.starters ?? '-'}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-slate-400 text-xs">Winners</div>
+                  <div className="font-medium text-slate-700">{ranking.winners ?? '-'}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-slate-400 text-xs">Earnings</div>
+                  <div className="font-medium text-slate-700">{ranking.total_earnings ? `$${(ranking.total_earnings / 1000).toFixed(0)}K` : '-'}</div>
+                </div>
+              </div>
+              {(ranking.black_type_winners || ranking.graded_stakes_winners) && (
+                <div className="grid grid-cols-4 gap-2 text-sm mt-2 pt-2 border-t border-slate-100">
+                  <div className="text-center">
+                    <div className="text-slate-400 text-xs">BTW</div>
+                    <div className="text-slate-600">{ranking.black_type_winners ?? '-'}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-slate-400 text-xs">BTH</div>
+                    <div className="text-slate-600">{ranking.black_type_horses ?? '-'}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-slate-400 text-xs">GSW</div>
+                    <div className="text-slate-600">{ranking.graded_stakes_winners ?? '-'}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-slate-400 text-xs">GSH</div>
+                    <div className="text-slate-600">{ranking.graded_stakes_horses ?? '-'}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Desktop: Table layout */}
+      <div className="hidden sm:block bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="text-xs text-slate-500 uppercase tracking-wide border-b border-slate-100 bg-slate-50">
@@ -29,61 +105,55 @@ export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
             </tr>
           </thead>
           <tbody>
-            {[...rankings]
-              .sort((a, b) => b.year - a.year)
-              .map(ranking => {
-                const listLabel = ranking.list_type === 'ytd' ? 'YTD' :
-                  ranking.list_type === 'freshman' ? '1st Crop' :
-                  ranking.list_type === 'second_crop' ? '2nd Crop' :
-                  ranking.list_type === 'third_crop' ? '3rd Crop' :
-                  ranking.list_type
-                return (
-                  <tr key={ranking.id} className="border-b border-slate-100 last:border-0">
-                    <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                      {ranking.year}
-                    </td>
-                    <td className="py-2 px-2 text-sm font-medium text-center">
-                      {ranking.source_url ? (
-                        <a
-                          href={ranking.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:underline"
-                          style={{ color: 'var(--org-primary)' }}
-                        >
-                          {listLabel}
-                        </a>
-                      ) : (
-                        <span className="text-slate-700">{listLabel}</span>
-                      )}
-                    </td>
-                    <td className="py-2 px-2 text-sm text-slate-900 text-center font-semibold">
-                      #{ranking.rank}
-                    </td>
-                    <td className="py-2 px-2 text-sm text-slate-600 text-center tabular-nums">
-                      {ranking.starters ?? '-'}
-                    </td>
-                    <td className="py-2 px-2 text-sm text-slate-600 text-center tabular-nums">
-                      {ranking.winners ?? '-'}
-                    </td>
-                    <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
-                      {ranking.black_type_winners ?? '-'}
-                    </td>
-                    <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
-                      {ranking.black_type_horses ?? '-'}
-                    </td>
-                    <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
-                      {ranking.graded_stakes_winners ?? '-'}
-                    </td>
-                    <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
-                      {ranking.graded_stakes_horses ?? '-'}
-                    </td>
-                    <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                      {ranking.total_earnings ? `$${ranking.total_earnings.toLocaleString()}` : '-'}
-                    </td>
-                  </tr>
-                )
-              })}
+            {sortedRankings.map(ranking => {
+              const listLabel = getListLabel(ranking.list_type)
+              return (
+                <tr key={ranking.id} className="border-b border-slate-100 last:border-0">
+                  <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
+                    {ranking.year}
+                  </td>
+                  <td className="py-2 px-2 text-sm font-medium text-center">
+                    {ranking.source_url ? (
+                      <a
+                        href={ranking.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                        style={{ color: 'var(--org-primary)' }}
+                      >
+                        {listLabel}
+                      </a>
+                    ) : (
+                      <span className="text-slate-700">{listLabel}</span>
+                    )}
+                  </td>
+                  <td className="py-2 px-2 text-sm text-slate-900 text-center font-semibold">
+                    #{ranking.rank}
+                  </td>
+                  <td className="py-2 px-2 text-sm text-slate-600 text-center tabular-nums">
+                    {ranking.starters ?? '-'}
+                  </td>
+                  <td className="py-2 px-2 text-sm text-slate-600 text-center tabular-nums">
+                    {ranking.winners ?? '-'}
+                  </td>
+                  <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
+                    {ranking.black_type_winners ?? '-'}
+                  </td>
+                  <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
+                    {ranking.black_type_horses ?? '-'}
+                  </td>
+                  <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
+                    {ranking.graded_stakes_winners ?? '-'}
+                  </td>
+                  <td className="py-2 px-1 text-sm text-slate-600 text-center tabular-nums">
+                    {ranking.graded_stakes_horses ?? '-'}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
+                    {ranking.total_earnings ? `$${ranking.total_earnings.toLocaleString()}` : '-'}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

@@ -50,6 +50,46 @@ export function SalesCard({ sales }: SalesCardProps) {
   )
 }
 
+function MobileSalesCard({ sales }: SalesCardProps) {
+  const saleTypeLabel = SALE_TYPE_LABELS[sales.sale_type] || sales.sale_type
+
+  const sellThrough = sales.through_ring && sales.number_sold
+    ? Math.round((sales.number_sold / sales.through_ring) * 100)
+    : null
+
+  return (
+    <div className="border-b border-slate-100 last:border-0 py-3 px-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-medium text-slate-700">{saleTypeLabel}</span>
+        <span className="text-sm text-slate-500">
+          {sales.number_sold ?? '-'}/{sales.through_ring ?? '-'} sold
+          {sellThrough && <span className="text-slate-400 ml-1">({sellThrough}%)</span>}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-sm">
+        <div className="text-center">
+          <div className="text-slate-400 text-xs">Avg</div>
+          <div className="font-medium text-slate-900">
+            {sales.average_price ? formatMoney(sales.average_price) : '-'}
+            {sales.average_rank && <span className="text-slate-400 text-xs block">#{sales.average_rank}</span>}
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-slate-400 text-xs">Median</div>
+          <div className="text-slate-600">{sales.median_price ? formatMoney(sales.median_price) : '-'}</div>
+        </div>
+        <div className="text-center">
+          <div className="text-slate-400 text-xs">Top</div>
+          <div className="text-slate-600">
+            {sales.top_colt_price ? formatMoney(sales.top_colt_price) :
+             sales.top_filly_price ? formatMoney(sales.top_filly_price) : '-'}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function SalesTable({ salesByYear, year }: SalesTableProps) {
   // Sort by sale type order
   const sorted = [...salesByYear].sort((a, b) => {
@@ -61,7 +101,16 @@ export function SalesTable({ salesByYear, year }: SalesTableProps) {
       <div className="bg-slate-50 px-4 py-2 border-b border-slate-200">
         <span className="font-semibold text-slate-900">{year}</span>
       </div>
-      <table className="w-full">
+
+      {/* Mobile: Stacked layout */}
+      <div className="sm:hidden">
+        {sorted.map(stat => (
+          <MobileSalesCard key={stat.id} sales={stat} />
+        ))}
+      </div>
+
+      {/* Desktop: Table layout */}
+      <table className="hidden sm:table w-full">
         <thead>
           <tr className="text-xs text-slate-500 uppercase tracking-wide border-b border-slate-100">
             <th className="py-2 px-4 text-center font-medium">Type</th>

@@ -28,8 +28,9 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
     : null
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5">
-      <div className="flex items-baseline justify-between gap-4">
+    <div className="bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5">
+      {/* Row 1: Horse name */}
+      <div className="flex items-center gap-2">
         {workout.horse_profile_url ? (
           <a
             href={workout.horse_profile_url}
@@ -41,37 +42,38 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
             {displayName}
           </a>
         ) : (
-          <h3 className="font-medium text-slate-900">{displayName}</h3>
+          <span className="font-medium text-slate-900">{displayName}</span>
         )}
-        <div className="flex items-center gap-3 text-sm text-slate-600 whitespace-nowrap shrink-0">
-          <span>{formatDate(workout.workout_date)}</span>
-          <span className="text-slate-300">|</span>
-          <span>{track}</span>
-          {distance && (
-            <>
-              <span className="text-slate-300">|</span>
-              <span>{distance}</span>
-            </>
-          )}
-          {workout.time && (
-            <>
-              <span className="text-slate-300">|</span>
-              <span>{workout.time}</span>
-            </>
-          )}
-          {surface && (
-            <>
-              <span className="text-slate-300">|</span>
-              <span>{surface}</span>
-            </>
-          )}
-          {rank && (
-            <>
-              <span className="text-slate-300">|</span>
-              <span>{rank}</span>
-            </>
-          )}
-        </div>
+      </div>
+      {/* Row 2: Workout details */}
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 -mt-0.5 sm:mt-1 text-sm text-slate-500">
+        <span className="font-medium text-slate-600">{formatDate(workout.workout_date)}</span>
+        <span className="text-slate-300">|</span>
+        <span>{track}</span>
+        {distance && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>{distance}</span>
+          </>
+        )}
+        {workout.time && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>{workout.time}</span>
+          </>
+        )}
+        {surface && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>{surface}</span>
+          </>
+        )}
+        {rank && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>{rank}</span>
+          </>
+        )}
       </div>
     </div>
   )

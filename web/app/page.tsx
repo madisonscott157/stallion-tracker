@@ -5,18 +5,17 @@ import { Header } from '@/components/Header'
 import { StatsBar } from '@/components/StatsBar'
 import { EntryCard } from '@/components/EntryCard'
 import { ResultCard } from '@/components/ResultCard'
-import { WorkoutCard } from '@/components/WorkoutCard'
 import { SalesTable } from '@/components/SalesCard'
 import { ResultsSection } from '@/components/ResultsSection'
+import { WorkoutsSection } from '@/components/WorkoutsSection'
 import { SireRankingsTable } from '@/components/SireRankingsTable'
 import { EquinelineSection } from '@/components/EquinelineSection'
 import { useAuth } from '@/lib/auth-context'
-import type { Entry, Result, Workout, StallionStats, SalesStats, SireRanking, EquinelineStats } from '@/lib/supabase'
+import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineStats } from '@/lib/supabase'
 
 export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([])
   const [results, setResults] = useState<Result[]>([])
-  const [workouts, setWorkouts] = useState<Workout[]>([])
   const [stats, setStats] = useState<StallionStats | null>(null)
   const [sales, setSales] = useState<SalesStats[]>([])
   const [rankings, setRankings] = useState<SireRanking[]>([])
@@ -40,10 +39,9 @@ export default function Home() {
       setLoading(true)
 
       try {
-        const [entriesRes, resultsRes, workoutsRes, statsRes, salesRes, rankingsRes, equinelineRes] = await Promise.all([
+        const [entriesRes, resultsRes, statsRes, salesRes, rankingsRes, equinelineRes] = await Promise.all([
           fetch(`/api/entries?stallion=${stallion}`),
           fetch(`/api/results?stallion=${stallion}&limit=1000`),
-          fetch(`/api/workouts?stallion=${stallion}&limit=25`),
           fetch(`/api/stats?stallion=${stallion}`),
           fetch(`/api/sales?stallion=${stallion}`),
           fetch(`/api/rankings?stallion=${stallion}`),
@@ -58,11 +56,6 @@ export default function Home() {
         if (resultsRes.ok) {
           const data = await resultsRes.json()
           setResults(data)
-        }
-
-        if (workoutsRes.ok) {
-          const data = await workoutsRes.json()
-          setWorkouts(data)
         }
 
         if (statsRes.ok) {
@@ -177,18 +170,7 @@ export default function Home() {
                 </section>
 
                 {/* Workouts */}
-                <section className="mb-8 border-t border-slate-200 pt-8">
-                  <h2 className="section-header">Recent Workouts</h2>
-                  {workouts.length > 0 ? (
-                    <div className="card-stack">
-                      {workouts.map(workout => (
-                        <WorkoutCard key={workout.id} workout={workout} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="empty-state">No recent workouts</p>
-                  )}
-                </section>
+                <WorkoutsSection stallion={stallion} />
               </>
             )}
 

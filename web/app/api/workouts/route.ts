@@ -8,7 +8,8 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const stallion = searchParams.get('stallion')
-  const limit = parseInt(searchParams.get('limit') || '10')
+  const limit = parseInt(searchParams.get('limit') || '50')
+  const track = searchParams.get('track')
 
   // Query workouts table directly with joins
   // RLS policies automatically filter to user's organization's stallions
@@ -32,6 +33,11 @@ export async function GET(request: NextRequest) {
   // Filter by stallion if specified
   if (stallion) {
     query = query.ilike('horses.stallions.name', stallion)
+  }
+
+  // Filter by track if specified
+  if (track) {
+    query = query.ilike('track', `%${track}%`)
   }
 
   const { data, error } = await query

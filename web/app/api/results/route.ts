@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
   // Filter out claiming races if user preference is set
   if (!prefs.show_claiming_races) {
-    query = query.not('race_type', 'in', '(MCL,CLM)')
+    query = query.not('race_type', 'is', null).not('race_type', 'in', '("MCL","CLM")')
   }
 
   const { data, error } = await query

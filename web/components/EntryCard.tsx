@@ -39,70 +39,94 @@ export function EntryCard({ entry }: EntryCardProps) {
   return (
     <div
       className={cn(
-        'bg-white rounded-lg border border-slate-200 px-4 py-2.5',
+        'bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5',
         !entry.scratched && borderClass
       )}
     >
-      {/* Row 1: Horse name + sex/age | Date, Track, Time */}
-      <div className="flex items-baseline justify-between gap-4">
-        <div className="flex items-baseline gap-2 min-w-0">
-          {entry.horse_profile_url && !entry.scratched ? (
-            <a
-              href={entry.horse_profile_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-slate-900 hover:underline"
-              style={{ color: 'var(--org-primary)' }}
-            >
-              {horseName}
-            </a>
-          ) : (
-            <span className={cn(
-              'font-medium',
-              entry.scratched ? 'text-slate-400' : 'text-slate-900'
-            )}>
-              {horseName}
-            </span>
-          )}
-          {entry.scratched && (
-            <span className="text-xs font-semibold text-slate-400 shrink-0">SCR</span>
-          )}
-          {horseDesc && (
-            <span className={cn(
-              'text-sm',
-              entry.scratched ? 'text-slate-300' : 'text-slate-400'
-            )}>{horseDesc}</span>
-          )}
-          {showSilks && (
-            <img
-              src={silksUrl}
-              alt="Silks"
-              className="w-6 h-6 object-contain shrink-0 translate-y-[3px]"
-            />
-          )}
-        </div>
-        <div className={cn(
-          'flex items-center gap-3 text-sm whitespace-nowrap shrink-0',
-          entry.scratched ? 'text-slate-400' : 'text-slate-600'
-        )}>
-          <span className="font-medium">{dateLabel}</span>
-          <span className={entry.scratched ? 'text-slate-300' : 'text-slate-300'}>|</span>
-          <span>{trackDisplay} R{entry.race_number}</span>
-          {entry.post_time && (
-            <>
-              <span className="text-slate-300">|</span>
-              <span>{entry.post_time} {entry.timezone}</span>
-            </>
-          )}
-        </div>
+      {/* Row 1: Horse name + sex/age - baseline aligned */}
+      <div className="flex items-baseline gap-2">
+        {entry.horse_profile_url && !entry.scratched ? (
+          <a
+            href={entry.horse_profile_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-slate-900 hover:underline"
+            style={{ color: 'var(--org-primary)' }}
+          >
+            {horseName}
+          </a>
+        ) : (
+          <span className={cn(
+            'font-medium',
+            entry.scratched ? 'text-slate-400' : 'text-slate-900'
+          )}>
+            {horseName}
+          </span>
+        )}
+        {entry.scratched && (
+          <span className="text-xs font-semibold text-slate-400 shrink-0">SCR</span>
+        )}
+        {horseDesc && (
+          <span className={cn(
+            'text-sm',
+            entry.scratched ? 'text-slate-300' : 'text-slate-400'
+          )}>{horseDesc}</span>
+        )}
+        {showSilks && (
+          <img
+            src={silksUrl}
+            alt="Silks"
+            className="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 self-center"
+          />
+        )}
       </div>
 
-      {/* Row 2: Grade badge + Race name + details | Trainer, Jockey */}
+      {/* Row 2: Date, Track, Time, Race details */}
       <div className={cn(
-        'flex items-baseline justify-between gap-4 mt-1 text-sm',
+        'flex flex-wrap items-baseline gap-x-2 gap-y-0.5 -mt-0.5 sm:mt-1 text-sm',
         entry.scratched ? 'text-slate-400' : 'text-slate-500'
       )}>
-        <div className="flex items-baseline gap-2 min-w-0">
+        <span className={cn('font-medium', entry.scratched ? 'text-slate-400' : 'text-slate-600')}>{dateLabel}</span>
+        <span className="text-slate-300">|</span>
+        <span>{trackDisplay} R{entry.race_number}</span>
+        {entry.post_time && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>{entry.post_time} {entry.timezone}</span>
+          </>
+        )}
+        {entry.race_type && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>{entry.race_type}</span>
+          </>
+        )}
+        {entry.purse && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>${entry.purse.toLocaleString()}</span>
+          </>
+        )}
+        {distanceDisplay && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>{distanceDisplay}</span>
+          </>
+        )}
+        {entry.surface && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>{entry.surface}</span>
+          </>
+        )}
+      </div>
+
+      {/* Row 3: Stakes info (only shown for stakes races) */}
+      {(entry.stakes_grade || stakesRaceName) && (
+        <div className={cn(
+          'flex flex-wrap items-center gap-1 sm:gap-2 -mt-0.5 sm:mt-1 text-sm',
+          entry.scratched ? 'text-slate-400' : 'text-slate-500'
+        )}>
           {entry.stakes_grade && (
             <span className={cn(
               'text-xs rounded font-medium inline-flex items-center justify-center',
@@ -137,39 +161,21 @@ export function EntryCard({ entry }: EntryCardProps) {
               )}>{stakesRaceName}</span>
             )
           )}
-          {stakesRaceName && <span className="text-slate-300">|</span>}
-          {entry.race_type && <span>{entry.race_type}</span>}
-          {entry.purse && (
+        </div>
+      )}
+
+      {/* Row 4: Trainer, Jockey (hidden on small mobile) */}
+      {(entry.trainer || entry.jockey) && (
+        <div className="hidden sm:flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-sm text-slate-500">
+          {entry.trainer && <span>T: {entry.trainer}</span>}
+          {entry.jockey && (
             <>
-              <span className="text-slate-300">|</span>
-              <span>${entry.purse.toLocaleString()}</span>
-            </>
-          )}
-          {distanceDisplay && (
-            <>
-              <span className="text-slate-300">|</span>
-              <span>{distanceDisplay}</span>
-            </>
-          )}
-          {entry.surface && (
-            <>
-              <span className="text-slate-300">|</span>
-              <span>{entry.surface}</span>
+              {entry.trainer && <span className="text-slate-300">|</span>}
+              <span>J: {entry.jockey}</span>
             </>
           )}
         </div>
-        {(entry.trainer || entry.jockey) && (
-          <div className="flex items-center gap-3 whitespace-nowrap shrink-0 text-slate-500">
-            {entry.trainer && <span>T: {entry.trainer}</span>}
-            {entry.jockey && (
-              <>
-                {entry.trainer && <span className="text-slate-300">|</span>}
-                <span>J: {entry.jockey}</span>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }
