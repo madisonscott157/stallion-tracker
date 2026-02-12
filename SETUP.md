@@ -69,22 +69,47 @@ The parser connects to Gmail via IMAP, fetches emails from Equibase, and stores 
 
 ### Equibase Virtual Stable
 
-This is the data source. You need to add horses to your Virtual Stable on [equibase.com](https://www.equibase.com):
+This is the data source for all race entries, results, workouts, and scratches. Equibase sends email notifications when horses in your Virtual Stable have activity.
 
-1. Create an Equibase account
-2. Go to Virtual Stable
-3. Search for and add progeny of your tracked stallions
-4. In the comments field for each horse, enter pedigree info in this format:
+**Account:** `stalliontracker108@gmail.com`
+
+#### Adding Horses to Virtual Stable
+
+1. Log in to [equibase.com](https://www.equibase.com) with the Virtual Stable account
+2. Go to My Account > Virtual Stable
+3. Search for horses by name and add progeny of your tracked stallions
+4. **Important:** In the comments field for each horse, enter pedigree info in this format:
    ```
    (23 Olympiad - Gale)
    ```
    - `23` = year of birth (2-digit or 4-digit)
-   - `Olympiad` = sire name (must match a stallion in your database)
+   - `Olympiad` = sire name (must match a stallion in your database exactly)
    - `Gale` = dam name
    - Optionally add dam sire: `(23 Olympiad - Gale, by Tonalist)`
-   - Optionally add owner after the parentheses: `(23 Olympiad - Gale) Stonestreet Stables`
 
-5. Enable email notifications for entries, results, workouts, and scratches
+#### Adding Owner for Silks Display
+
+You can optionally add the owner name after the pedigree parentheses:
+```
+(23 Olympiad - Gale) Stonestreet Stables
+```
+
+**How silks work:** When an entry or result is parsed, if the owner name in the comment matches an organization's name in the database, that organization's silks image will display on the card in the dashboard. This lets you visually highlight horses owned by specific clients/organizations.
+
+To set up silks:
+1. Go to Admin > Organizations
+2. Upload a silks image for the organization
+3. Ensure the owner name in Virtual Stable comments matches the organization name exactly
+
+Example: If you have an organization named "Stonestreet Stables" with silks uploaded, any horse with `(...) Stonestreet Stables` in its Virtual Stable comment will show those silks on entry/result cards.
+
+#### Notification Settings
+
+Make sure email notifications are enabled for the Virtual Stable account:
+- Entries (horse is entered to race)
+- Results (horse finishes a race)
+- Workouts (horse has a timed workout)
+- Scratches (horse is scratched from a race)
 
 ### Running the Parser
 
@@ -290,3 +315,67 @@ pip install -r requirements.txt
 ```
 
 Key packages: `supabase`, `beautifulsoup4`, `lxml`, `pdfplumber`, `requests`, `python-dotenv`, `schedule`, `pydantic`, `selenium` (for scrapers)
+
+---
+
+## 10. Frontend Styling Notes
+
+### Fixing Text Alignment Issues
+
+When aligning text of different sizes (e.g., a badge next to a horse name next to smaller metadata), use `items-baseline` NOT `items-center`:
+
+```jsx
+// WRONG - items-center causes vertical misalignment with mixed font sizes
+<div className="flex items-center gap-2">
+  <span className="text-xs">WIN</span>
+  <span className="font-medium">Horse Name</span>
+  <span className="text-sm text-slate-400">f, 3</span>
+</div>
+
+// CORRECT - items-baseline aligns by text baseline
+<div className="flex items-baseline gap-2">
+  <span className="text-xs">WIN</span>
+  <span className="font-medium">Horse Name</span>
+  <span className="text-sm text-slate-400">f, 3</span>
+</div>
+```
+
+For badges with background/padding (like WIN, G1), the padding throws off baseline alignment. Use `relative top-[-1px]` to nudge them:
+
+```jsx
+<span className="bg-gold text-white text-xs rounded px-1.5 py-0.5 relative top-[-1px]">
+  WIN
+</span>
+```
+
+### Mobile Responsive Tables
+
+Wide tables (like Sire Rankings, Sales) don't work well on mobile. Instead of horizontal scrolling, use:
+- `sm:hidden` to show card layout on mobile
+- `hidden sm:block` to show table on desktop
+
+Example pattern:
+```jsx
+{/* Mobile: Cards */}
+<div className="sm:hidden space-y-3">
+  {items.map(item => <MobileCard key={item.id} />)}
+</div>
+
+{/* Desktop: Table */}
+<table className="hidden sm:table w-full">
+  ...
+</table>
+```
+
+### Preventing Text Wrapping Issues
+
+Use `flex-wrap` with `gap-x-2 gap-y-1` for info rows that may wrap:
+
+```jsx
+<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+  <span>Jan 31</span>
+  <span className="text-slate-300">|</span>
+  <span>Gulfstream Park</span>
+  ...
+</div>
+```
