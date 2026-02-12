@@ -10,6 +10,18 @@ The Stallion Tracker has three main components:
 
 All data is stored in Supabase (PostgreSQL).
 
+### Data Refresh Frequency
+
+| Data | Source | Frequency | Platform |
+|------|--------|-----------|----------|
+| Entries | Equibase emails | Every 1 minute | Fly.io |
+| Results | Equibase emails | Every 1 minute | Fly.io |
+| Workouts | Equibase emails | Every 1 minute | Fly.io |
+| Scratches | Equibase emails | Every 1 minute | Fly.io |
+| Sales stats | TDN Insta-tistics | Daily at 12:30 AM UTC | GitHub Actions |
+| Sire rankings | TDN Sire Lists | Daily at 12:30 AM UTC | GitHub Actions |
+| Racing stats | Equineline | Daily at 12:30 AM UTC | GitHub Actions |
+
 ---
 
 ## 1. Supabase (Database)
