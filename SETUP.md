@@ -300,12 +300,62 @@ Accessible at `/admin` for admin users only.
 
 ## 9. Running in Production
 
-| Component | Where to Host | How |
-|-----------|--------------|-----|
+| Component | Platform | How |
+|-----------|----------|-----|
 | Web Dashboard | Vercel | Auto-deploys on git push |
-| Email Parser | Railway / any server | `python3 main.py` (runs 24/7, polls every minute) |
-| Scrapers | Railway / cron | `python3 sales_scraper_main.py` (runs daily at 12:30 AM) |
+| Email Parser | Fly.io | Runs 24/7, polls every minute |
+| Scrapers | GitHub Actions | Runs daily at 12:30 AM UTC |
 | Database | Supabase | Managed cloud, no maintenance needed |
+
+### Email Parser (Fly.io)
+
+The email parser runs 24/7 on Fly.io's free tier, polling Gmail every minute for new Equibase notifications.
+
+**App:** `stallion-tracker-parser`
+**Dashboard:** https://fly.io/apps/stallion-tracker-parser
+
+**Useful commands:**
+```bash
+# View logs
+~/.fly/bin/fly logs -a stallion-tracker-parser
+
+# Check status
+~/.fly/bin/fly status -a stallion-tracker-parser
+
+# Redeploy after code changes
+cd parser && ~/.fly/bin/fly deploy
+```
+
+**Environment variables** are set as Fly.io secrets:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_KEY`
+- `GMAIL_USER`
+- `GMAIL_APP_PASSWORD`
+- `TRACKED_STALLIONS`
+
+To update secrets:
+```bash
+~/.fly/bin/fly secrets set KEY=value -a stallion-tracker-parser
+```
+
+### Scrapers (GitHub Actions)
+
+The scrapers run daily at 12:30 AM UTC via GitHub Actions. This includes:
+- TDN sales data
+- TDN sire rankings
+- Equineline racing stats
+
+**Workflow:** `.github/workflows/daily-scraper.yml`
+**Actions tab:** https://github.com/madisonscott157/stallion-tracker/actions
+
+**To manually trigger:**
+1. Go to Actions tab
+2. Select "Daily Scraper"
+3. Click "Run workflow"
+
+**Required GitHub Secrets** (Settings → Secrets → Actions):
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_KEY`
 
 ### Python Dependencies (Parser)
 

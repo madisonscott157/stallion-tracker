@@ -115,9 +115,9 @@ The parser is flexible with Virtual Stable comments:
 Run parser and dashboard locally, use Supabase cloud for database.
 
 ### Production
-- **Frontend**: Deploy `web/` to Vercel
-- **Parser**: Deploy to Railway with cron schedule
-- **Digest**: Railway cron job at 6 AM ET
+- **Frontend**: Vercel (auto-deploys on push)
+- **Email Parser**: Fly.io (runs 24/7)
+- **Scrapers**: GitHub Actions (daily at 12:30 AM UTC)
 
 ## Tech Stack
 
@@ -125,7 +125,7 @@ Run parser and dashboard locally, use Supabase cloud for database.
 - **Parser**: Python 3.11+, BeautifulSoup, imaplib
 - **Dashboard**: Next.js 14, Tailwind CSS, TypeScript
 - **Email**: Resend
-- **Hosting**: Vercel (frontend), Railway (parser - optional)
+- **Hosting**: Vercel (frontend), Fly.io (parser), GitHub Actions (scrapers)
 
 ## Deployment to Production
 
@@ -166,13 +166,26 @@ Once connected, every push to GitHub automatically redeploys:
 - Push to `main` → Production deployment
 - Push to other branches → Preview deployments with unique URLs
 
-### Parser Deployment (Optional)
-The Python email parser can be deployed to Railway:
-1. Create a Railway account at [railway.app](https://railway.app)
-2. Connect your GitHub repo
-3. Set root directory to `parser`
-4. Add environment variables from `.env`
-5. Set as a worker (runs continuously) or cron job
+### Email Parser (Fly.io)
+The email parser runs 24/7 on Fly.io, polling Gmail every minute.
+
+**App name:** `stallion-tracker-parser`
+**Dashboard:** https://fly.io/apps/stallion-tracker-parser
+
+```bash
+# View logs
+~/.fly/bin/fly logs -a stallion-tracker-parser
+
+# Redeploy after changes
+cd parser && ~/.fly/bin/fly deploy
+```
+
+### Scrapers (GitHub Actions)
+Scrapers run daily at 12:30 AM UTC via GitHub Actions.
+
+**Workflow:** `.github/workflows/daily-scraper.yml`
+
+To trigger manually: Actions tab → Daily Scraper → Run workflow
 
 ## UI Guidelines
 
