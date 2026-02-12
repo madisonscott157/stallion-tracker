@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 
 function LoginForm() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -14,15 +14,24 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') || '/'
 
+  // Convert username to email format for Supabase Auth
+  const usernameToEmail = (input: string): string => {
+    // If already an email, use as-is
+    if (input.includes('@')) return input
+    // Convert: lowercase, spaces to dots, append domain
+    return input.toLowerCase().replace(/\s+/g, '.') + '@stalliontracker.local'
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
 
+    const email = usernameToEmail(username)
     const { error } = await signIn(email, password)
 
     if (error) {
-      setError('Invalid email or password')
+      setError('Invalid username or password')
       setIsLoading(false)
     } else {
       router.push(redirectTo)
@@ -46,18 +55,18 @@ function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
-                Email
+              <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-1.5">
+                Username
               </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
-                autoComplete="email"
+                autoComplete="username"
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="you@example.com"
+                placeholder="Enter your username"
               />
             </div>
 
