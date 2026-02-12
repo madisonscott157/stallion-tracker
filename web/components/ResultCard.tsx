@@ -56,104 +56,106 @@ export function ResultCard({ result }: ResultCardProps) {
   return (
     <div
       className={cn(
-        'bg-white rounded-lg border border-slate-200 px-4 py-2.5',
+        'bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1 sm:py-2.5',
         borderClass
       )}
     >
-      {/* Row 1: Position + Horse name + sex/age + race info | Date, Track, Chart */}
-      <div className="flex items-baseline justify-between gap-4">
-        <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
-          {isWinner ? (
-            <span className="bg-gold text-white text-xs rounded font-medium shrink-0 inline-flex items-center justify-center" style={{ minWidth: '2rem', height: '1.25rem', lineHeight: 1, paddingLeft: '0.375rem', paddingRight: '0.375rem' }}>
-              WIN
-            </span>
-          ) : isSecond ? (
-            <span className="bg-silver text-white text-xs rounded font-medium shrink-0 inline-flex items-center justify-center" style={{ minWidth: '2rem', height: '1.25rem', lineHeight: 1, paddingLeft: '0.375rem', paddingRight: '0.375rem' }}>
-              2nd
-            </span>
-          ) : (
-            <span className="text-slate-500 text-sm font-medium shrink-0">
-              {formatOrdinal(result.finish_position)}
-            </span>
-          )}
-          {result.horse_profile_url ? (
-            <a
-              href={result.horse_profile_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium hover:underline"
-              style={{ color: 'var(--org-primary)' }}
-            >
-              {horseName}
-            </a>
-          ) : (
-            <span className="font-medium text-slate-900">{horseName}</span>
-          )}
-          {horseDesc && (
-            <span className="text-sm text-slate-400">{horseDesc}</span>
-          )}
-          {showSilks && (
-            <img
-              src={silksUrl}
-              alt="Silks"
-              className="w-6 h-6 object-contain shrink-0 translate-y-[3px]"
-            />
-          )}
-          {/* Race info inline with horse name */}
-          {(result.race_type || result.purse || result.distance) && (
-            <>
-              <span className="text-slate-300">|</span>
-              <span className={cn(
-                "text-sm text-slate-500",
-                isStakesWinner && "font-semibold text-slate-700"
-              )}>
-                {[
-                  result.race_type,
-                  result.purse && `$${result.purse.toLocaleString()}`,
-                  result.distance && formatDistance(result.distance)
-                ].filter(Boolean).join(' | ')}
-              </span>
-            </>
-          )}
-        </div>
-        <div className="flex items-baseline gap-3 text-sm text-slate-600 whitespace-nowrap shrink-0">
-          <span className="font-medium">{dateLabel}</span>
-          <span className="text-slate-300">|</span>
-          <span>{trackDisplay} R{result.race_number}</span>
-          {result.chart_url && (
-            <>
-              <span className="text-slate-300">|</span>
-              <a
-                href={result.chart_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-                style={{ color: 'var(--org-primary)' }}
-              >
-                Chart
-              </a>
-            </>
-          )}
-          {result.replay_url && (
-            <>
-              <span className="text-slate-300">|</span>
-              <a
-                href={result.replay_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-                style={{ color: 'var(--org-primary)' }}
-              >
-                Replay
-              </a>
-            </>
-          )}
-        </div>
+      {/* Row 1: Position + Horse name + sex/age - baseline aligned */}
+      <div className="flex items-baseline gap-2 [line-height:1.2] sm:[line-height:1.5]">
+        {isWinner ? (
+          <span className="bg-gold text-white text-xs rounded font-medium shrink-0 px-1.5 py-0.5 relative top-[-1px]">
+            WIN
+          </span>
+        ) : isSecond ? (
+          <span className="bg-silver text-white text-xs rounded font-medium shrink-0 px-1.5 py-0.5 relative top-[-1px]">
+            2nd
+          </span>
+        ) : (
+          <span className="text-slate-500 text-sm font-medium shrink-0">
+            {formatOrdinal(result.finish_position)}
+          </span>
+        )}
+        {result.horse_profile_url ? (
+          <a
+            href={result.horse_profile_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium hover:underline"
+            style={{ color: 'var(--org-primary)' }}
+          >
+            {horseName}
+          </a>
+        ) : (
+          <span className="font-medium text-slate-900">{horseName}</span>
+        )}
+        {horseDesc && (
+          <span className="text-sm text-slate-400">{horseDesc}</span>
+        )}
+        {showSilks && (
+          <img
+            src={silksUrl}
+            alt="Silks"
+            className="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 self-center"
+          />
+        )}
       </div>
 
-      {/* Row 2: Stakes info (only shown for stakes races) */}
+      {/* Row 2: Date, Track, Race info */}
+      <div className="flex flex-wrap items-baseline gap-x-2 text-sm text-slate-500 [line-height:1.1] sm:[line-height:1.5]">
+        <span className="font-medium text-slate-600">{dateLabel}</span>
+        <span className="text-slate-300">|</span>
+        <span>{trackDisplay} R{result.race_number}</span>
+        {result.race_type && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span className={cn(isStakesWinner && "font-semibold text-slate-700")}>{result.race_type}</span>
+          </>
+        )}
+        {result.purse && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>${result.purse.toLocaleString()}</span>
+          </>
+        )}
+        {result.distance && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>{formatDistance(result.distance)}</span>
+          </>
+        )}
+        {result.chart_url && (
+          <>
+            <span className="text-slate-300">|</span>
+            <a
+              href={result.chart_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+              style={{ color: 'var(--org-primary)' }}
+            >
+              Chart
+            </a>
+          </>
+        )}
+        {result.replay_url && (
+          <>
+            <span className="text-slate-300">|</span>
+            <a
+              href={result.replay_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+              style={{ color: 'var(--org-primary)' }}
+            >
+              Replay
+            </a>
+          </>
+        )}
+      </div>
+
+      {/* Row 3: Stakes info (only shown for stakes races) */}
       {(result.stakes_grade || stakesRaceName) && (
-        <div className="flex items-baseline gap-2 mt-1 text-sm">
+        <div className="flex flex-wrap items-center gap-x-1 sm:gap-2 text-sm [line-height:1.1] sm:[line-height:1.5]">
           {result.stakes_grade && (
             <span className={cn(
               "text-white text-xs rounded font-medium inline-flex items-center justify-center",
@@ -185,7 +187,7 @@ export function ResultCard({ result }: ResultCardProps) {
 
       {/* Win margin for non-stakes winners */}
       {isWinner && result.win_margin && !result.is_stakes && (
-        <div className="mt-1 text-sm">
+        <div className="mt-0 sm:mt-1 text-sm leading-tight sm:leading-normal">
           <span className="text-green-700 font-medium">Won by {result.win_margin}</span>
         </div>
       )}
