@@ -117,6 +117,7 @@ export interface Workout {
   horse_is_unnamed?: boolean
   horse_profile_url?: string | null
   sire_name?: string
+  owner?: string | null
 }
 
 export interface StallionStats {

@@ -1,6 +1,7 @@
 'use client'
 
-import { formatDate, formatDistance, formatTrack } from '@/lib/utils'
+import { formatDate, formatDistance, formatTrack, shouldShowSilks } from '@/lib/utils'
+import { useAuth } from '@/lib/auth-context'
 import type { Workout } from '@/lib/supabase'
 
 interface WorkoutCardProps {
@@ -15,11 +16,14 @@ function cleanWorkoutTrack(track: string | null): string {
 }
 
 export function WorkoutCard({ workout }: WorkoutCardProps) {
+  const { profile, allOrgsWithSilks } = useAuth()
+
   // Show name, or "YOB Dam" if unnamed
   const displayName = workout.horse_name
     ? workout.horse_name
     : `${workout.horse_yob || ''} ${workout.horse_dam || 'Unknown'}`.trim()
 
+  const { show: showSilks, silksUrl } = shouldShowSilks(profile?.organization, workout.owner, allOrgsWithSilks)
   const track = cleanWorkoutTrack(workout.track)
   const distance = formatDistance(workout.distance)
   const surface = workout.surface?.split(/Rank:/i)[0]?.trim()
@@ -29,8 +33,8 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5">
-      {/* Row 1: Horse name */}
-      <div className="flex items-center gap-2">
+      {/* Row 1: Horse name + silks */}
+      <div className="flex items-baseline gap-2">
         {workout.horse_profile_url ? (
           <a
             href={workout.horse_profile_url}
@@ -43,6 +47,13 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
           </a>
         ) : (
           <span className="font-medium text-slate-900">{displayName}</span>
+        )}
+        {showSilks && (
+          <img
+            src={silksUrl}
+            alt="Silks"
+            className="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 relative -top-1"
+          />
         )}
       </div>
       {/* Row 2: Workout details */}
