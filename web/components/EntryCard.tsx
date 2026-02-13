@@ -43,32 +43,32 @@ export function EntryCard({ entry }: EntryCardProps) {
         !entry.scratched && borderClass
       )}
     >
-      {/* Row 1: Horse name + sex/age + silks */}
-      <div className="inline-flex items-center gap-2 leading-none">
+      {/* Row 1: Horse name + sex/age + silks - use items-baseline for text alignment */}
+      <div className="flex items-baseline gap-2">
         {entry.horse_profile_url && !entry.scratched ? (
           <a
             href={entry.horse_profile_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-slate-900 hover:underline leading-none"
+            className="font-medium text-slate-900 hover:underline"
             style={{ color: 'var(--org-primary)' }}
           >
             {horseName}
           </a>
         ) : (
           <span className={cn(
-            'font-medium leading-none',
+            'font-medium',
             entry.scratched ? 'text-slate-400' : 'text-slate-900'
           )}>
             {horseName}
           </span>
         )}
         {entry.scratched && (
-          <span className="text-xs font-semibold text-slate-400 leading-none">SCR</span>
+          <span className="text-xs font-semibold text-slate-400">SCR</span>
         )}
         {horseDesc && (
           <span className={cn(
-            'text-sm leading-none',
+            'text-sm',
             entry.scratched ? 'text-slate-300' : 'text-slate-400'
           )}>{horseDesc}</span>
         )}
@@ -76,7 +76,7 @@ export function EntryCard({ entry }: EntryCardProps) {
           <img
             src={silksUrl}
             alt="Silks"
-            className="h-5 sm:h-6 w-auto object-contain"
+            className="h-5 sm:h-6 w-auto object-contain relative top-[-2px]"
           />
         )}
       </div>
