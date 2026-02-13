@@ -56,7 +56,7 @@ export function ResultCard({ result }: ResultCardProps) {
   return (
     <div
       className={cn(
-        'bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1 sm:py-2.5',
+        'bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5',
         borderClass
       )}
     >
@@ -100,8 +100,8 @@ export function ResultCard({ result }: ResultCardProps) {
         )}
       </div>
 
-      {/* Row 2: Date, Track, Race info + Stakes info - all in one block for tight mobile layout */}
-      <div className="text-sm text-slate-500 leading-none sm:leading-normal">
+      {/* Row 2: Date, Track, Race info + Stakes info */}
+      <div className="text-sm text-slate-500 leading-relaxed sm:leading-normal mt-0.5 sm:mt-1">
         <span className="font-medium text-slate-600">{dateLabel}</span>
         <span className="text-slate-300 mx-1">|</span>
         <span>{trackDisplay} R{result.race_number}</span>
