@@ -33,26 +33,26 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5">
-      {/* Row 1: Horse name + silks */}
-      <div className="flex items-center gap-2">
+      {/* Row 1: Horse name + silks - using inline elements for proper vertical-align */}
+      <div>
         {workout.horse_profile_url ? (
           <a
             href={workout.horse_profile_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium hover:underline"
+            className="font-medium hover:underline align-middle"
             style={{ color: 'var(--org-primary)' }}
           >
             {displayName}
           </a>
         ) : (
-          <span className="font-medium text-slate-900">{displayName}</span>
+          <span className="font-medium text-slate-900 align-middle">{displayName}</span>
         )}
         {showSilks && (
           <img
             src={silksUrl}
             alt="Silks"
-            className="w-5 h-5 sm:w-6 sm:h-6 object-contain inline-block align-middle"
+            className="w-5 h-5 sm:w-6 sm:h-6 object-contain ml-2 align-middle"
           />
         )}
       </div>

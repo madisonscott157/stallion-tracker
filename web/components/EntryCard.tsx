@@ -43,32 +43,32 @@ export function EntryCard({ entry }: EntryCardProps) {
         !entry.scratched && borderClass
       )}
     >
-      {/* Row 1: Horse name + sex/age + silks */}
-      <div className="flex items-center gap-2">
+      {/* Row 1: Horse name + sex/age + silks - using inline elements for proper vertical-align */}
+      <div>
         {entry.horse_profile_url && !entry.scratched ? (
           <a
             href={entry.horse_profile_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-slate-900 hover:underline"
+            className="font-medium text-slate-900 hover:underline align-middle"
             style={{ color: 'var(--org-primary)' }}
           >
             {horseName}
           </a>
         ) : (
           <span className={cn(
-            'font-medium',
+            'font-medium align-middle',
             entry.scratched ? 'text-slate-400' : 'text-slate-900'
           )}>
             {horseName}
           </span>
         )}
         {entry.scratched && (
-          <span className="text-xs font-semibold text-slate-400 shrink-0">SCR</span>
+          <span className="text-xs font-semibold text-slate-400 ml-2 align-middle">SCR</span>
         )}
         {horseDesc && (
           <span className={cn(
-            'text-sm',
+            'text-sm ml-2 align-middle',
             entry.scratched ? 'text-slate-300' : 'text-slate-400'
           )}>{horseDesc}</span>
         )}
@@ -76,7 +76,7 @@ export function EntryCard({ entry }: EntryCardProps) {
           <img
             src={silksUrl}
             alt="Silks"
-            className="w-5 h-5 sm:w-6 sm:h-6 object-contain inline-block align-middle"
+            className="w-5 h-5 sm:w-6 sm:h-6 object-contain ml-2 align-middle"
           />
         )}
       </div>

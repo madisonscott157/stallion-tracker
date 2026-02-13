@@ -60,18 +60,18 @@ export function ResultCard({ result }: ResultCardProps) {
         borderClass
       )}
     >
-      {/* Row 1: Position + Horse name + sex/age + silks */}
-      <div className="flex items-center gap-2">
+      {/* Row 1: Position + Horse name + sex/age + silks - using inline elements for proper vertical-align */}
+      <div>
         {isWinner ? (
-          <span className="bg-gold text-white text-xs rounded font-medium shrink-0 px-1.5 py-0.5 relative top-[-1px]">
+          <span className="bg-gold text-white text-xs rounded font-medium px-1.5 py-0.5 align-middle">
             WIN
           </span>
         ) : isSecond ? (
-          <span className="bg-silver text-white text-xs rounded font-medium shrink-0 px-1.5 py-0.5 relative top-[-1px]">
+          <span className="bg-silver text-white text-xs rounded font-medium px-1.5 py-0.5 align-middle">
             2nd
           </span>
         ) : (
-          <span className="text-slate-500 text-sm font-medium shrink-0">
+          <span className="text-slate-500 text-sm font-medium align-middle">
             {formatOrdinal(result.finish_position)}
           </span>
         )}
@@ -80,22 +80,22 @@ export function ResultCard({ result }: ResultCardProps) {
             href={result.horse_profile_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium hover:underline"
+            className="font-medium hover:underline ml-2 align-middle"
             style={{ color: 'var(--org-primary)' }}
           >
             {horseName}
           </a>
         ) : (
-          <span className="font-medium text-slate-900">{horseName}</span>
+          <span className="font-medium text-slate-900 ml-2 align-middle">{horseName}</span>
         )}
         {horseDesc && (
-          <span className="text-sm text-slate-400">{horseDesc}</span>
+          <span className="text-sm text-slate-400 ml-2 align-middle">{horseDesc}</span>
         )}
         {showSilks && (
           <img
             src={silksUrl}
             alt="Silks"
-            className="w-5 h-5 sm:w-6 sm:h-6 object-contain inline-block align-middle"
+            className="w-5 h-5 sm:w-6 sm:h-6 object-contain ml-2 align-middle"
           />
         )}
       </div>
