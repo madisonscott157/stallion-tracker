@@ -44,31 +44,31 @@ export function EntryCard({ entry }: EntryCardProps) {
       )}
     >
       {/* Row 1: Horse name + sex/age + silks */}
-      <div className="inline-flex items-center gap-2">
+      <div className="inline-flex items-center gap-2 leading-none">
         {entry.horse_profile_url && !entry.scratched ? (
           <a
             href={entry.horse_profile_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-slate-900 hover:underline"
+            className="font-medium text-slate-900 hover:underline leading-none"
             style={{ color: 'var(--org-primary)' }}
           >
             {horseName}
           </a>
         ) : (
           <span className={cn(
-            'font-medium',
+            'font-medium leading-none',
             entry.scratched ? 'text-slate-400' : 'text-slate-900'
           )}>
             {horseName}
           </span>
         )}
         {entry.scratched && (
-          <span className="text-xs font-semibold text-slate-400">SCR</span>
+          <span className="text-xs font-semibold text-slate-400 leading-none">SCR</span>
         )}
         {horseDesc && (
           <span className={cn(
-            'text-sm',
+            'text-sm leading-none',
             entry.scratched ? 'text-slate-300' : 'text-slate-400'
           )}>{horseDesc}</span>
         )}

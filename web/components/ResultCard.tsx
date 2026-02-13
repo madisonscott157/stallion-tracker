@@ -61,17 +61,17 @@ export function ResultCard({ result }: ResultCardProps) {
       )}
     >
       {/* Row 1: Position + Horse name + sex/age + silks */}
-      <div className="inline-flex items-center gap-2">
+      <div className="inline-flex items-center gap-2 leading-none">
         {isWinner ? (
-          <span className="bg-gold text-white text-xs rounded font-medium px-1.5 py-0.5">
+          <span className="bg-gold text-white text-xs rounded font-medium px-1.5 py-0.5 leading-none">
             WIN
           </span>
         ) : isSecond ? (
-          <span className="bg-silver text-white text-xs rounded font-medium px-1.5 py-0.5">
+          <span className="bg-silver text-white text-xs rounded font-medium px-1.5 py-0.5 leading-none">
             2nd
           </span>
         ) : (
-          <span className="text-slate-500 text-sm font-medium">
+          <span className="text-slate-500 text-sm font-medium leading-none">
             {formatOrdinal(result.finish_position)}
           </span>
         )}
@@ -80,16 +80,16 @@ export function ResultCard({ result }: ResultCardProps) {
             href={result.horse_profile_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium hover:underline"
+            className="font-medium hover:underline leading-none"
             style={{ color: 'var(--org-primary)' }}
           >
             {horseName}
           </a>
         ) : (
-          <span className="font-medium text-slate-900">{horseName}</span>
+          <span className="font-medium text-slate-900 leading-none">{horseName}</span>
         )}
         {horseDesc && (
-          <span className="text-sm text-slate-400">{horseDesc}</span>
+          <span className="text-sm text-slate-400 leading-none">{horseDesc}</span>
         )}
         {showSilks && (
           <img
