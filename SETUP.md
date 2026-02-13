@@ -410,6 +410,27 @@ For badges with background/padding (like WIN, G1), the padding throws off baseli
 </span>
 ```
 
+### Aligning Images (Silks) with Text
+
+Images don't have a text baseline, so they need manual positioning when used with `items-baseline`. Use `relative top-[Xpx]` to adjust:
+
+- **Positive values** (e.g., `top-[4px]`) move the image **DOWN**
+- **Negative values** (e.g., `top-[-2px]`) move the image **UP**
+
+```jsx
+{/* Text aligns by baseline, silks image nudged down to center with text */}
+<div className="flex items-baseline gap-2">
+  <span className="font-medium">Horse Name</span>
+  <span className="text-sm text-slate-400">f, 4</span>
+  <img
+    src={silksUrl}
+    className="h-5 sm:h-6 w-auto object-contain relative top-[4px]"
+  />
+</div>
+```
+
+Current silks offset: `top-[4px]` (moves silks down 4px to center with text baseline)
+
 ### Mobile Responsive Tables
 
 Wide tables (like Sire Rankings, Sales) don't work well on mobile. Instead of horizontal scrolling, use:

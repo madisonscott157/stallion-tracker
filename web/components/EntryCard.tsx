@@ -76,7 +76,7 @@ export function EntryCard({ entry }: EntryCardProps) {
           <img
             src={silksUrl}
             alt="Silks"
-            className="h-5 sm:h-6 w-auto object-contain relative top-[2px]"
+            className="h-5 sm:h-6 w-auto object-contain relative top-[4px]"
           />
         )}
       </div>
