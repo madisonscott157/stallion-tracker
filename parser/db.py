@@ -133,8 +133,9 @@ class Database:
         return None
 
     def _find_horse(self, horse: HorseData, sire_id: str) -> Optional[str]:
-        """Find existing horse by name+sire or by sire+dam for unnamed."""
-        # First try by equibase_refno if available
+        """Find existing horse by equibase_refno, name+sire, or sire+dam for unnamed."""
+        # First try by equibase_refno - this is authoritative
+        # A horse can only exist once regardless of sire in comments
         if horse.equibase_refno:
             result = self.client.table("horses") \
                 .select("id") \

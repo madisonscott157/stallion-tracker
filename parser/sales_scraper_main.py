@@ -31,6 +31,30 @@ from parsers.equineline_stats_scraper import scrape_equineline_stats, get_stalli
 
 load_dotenv()
 
+# Stallion first crop year - used to calculate which sire list to scrape
+# crop_number = current_year - first_crop_year + 1
+STALLION_FIRST_CROP_YEAR = {
+    'mckinzie': 2024,      # 2024=freshman, 2025=2nd crop, 2026=3rd crop
+    'olympiad': 2026,      # 2026=freshman (first runners in 2026)
+    # Add other stallions as needed
+}
+
+CROP_LIST_TYPES = {
+    1: 'freshman',
+    2: 'second_crop',
+    3: 'third_crop',
+    4: 'fourth_crop',
+}
+
+
+def get_stallion_crop_list(sire_name: str, year: int) -> str | None:
+    """Get the appropriate crop list type for a stallion in a given year."""
+    first_crop = STALLION_FIRST_CROP_YEAR.get(sire_name.lower())
+    if not first_crop:
+        return None
+    crop_num = year - first_crop + 1
+    return CROP_LIST_TYPES.get(crop_num)
+
 
 def scrape_all_stallions(db: Database):
     """Scrape sales data, sire rankings, and racing stats for all tracked stallions."""
@@ -76,19 +100,23 @@ def scrape_all_stallions(db: Database):
             print(f"  Error scraping sales for {sire_name}: {e}")
             errors += 1
 
-        # Scrape sire rankings (current year only - historical data is static)
+        # Scrape sire rankings - only the correct crop list for current year
         try:
-            print(f"\n  Scraping sire rankings (current year)...")
             current_year = datetime.now().year
-            # Check multiple list types to find the stallion on whichever list they're on
-            ranking_data = scrape_stallion_rankings(sire_name, current_year, ['ytd', 'third_crop', 'second_crop', 'freshman'])
+            crop_list = get_stallion_crop_list(sire_name, current_year)
 
-            for data in ranking_data:
-                result_id = db.upsert_sire_ranking(stallion_id, data)
-                if result_id:
-                    ranking_records += 1
-                    type_label = LIST_TYPES.get(data.list_type, {}).get('label', data.list_type)
-                    print(f"    Stored: {data.year} {type_label} - Rank #{data.rank}")
+            if crop_list:
+                print(f"\n  Scraping sire rankings ({crop_list} for {current_year})...")
+                ranking_data = scrape_stallion_rankings(sire_name, current_year, [crop_list])
+
+                for data in ranking_data:
+                    result_id = db.upsert_sire_ranking(stallion_id, data)
+                    if result_id:
+                        ranking_records += 1
+                        type_label = LIST_TYPES.get(data.list_type, {}).get('label', data.list_type)
+                        print(f"    Stored: {data.year} {type_label} - Rank #{data.rank}")
+            else:
+                print(f"\n  No crop year configured for {sire_name} - skipping sire rankings")
 
         except Exception as e:
             print(f"  Error scraping rankings for {sire_name}: {e}")

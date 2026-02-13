@@ -72,6 +72,31 @@ The parser connects to Gmail via IMAP, fetches emails from Equibase, and stores 
 - **Workout** - "Horse Workout Notification" - stores time, distance, rank
 - **Scratch** - "was scratched from..." - marks the matching entry as scratched
 
+**Race type parsing:**
+
+The parser extracts race types from email text and normalizes them to abbreviations:
+
+| Email Text | Abbreviation | Display |
+|------------|--------------|---------|
+| ALLOWANCE OPTIONAL CLAIMING $X | AOC | AOC |
+| MAIDEN SPECIAL WEIGHT | MSW | MSW |
+| MAIDEN CLAIMING | MCL | MCL |
+| ALLOWANCE | ALW | ALW |
+| CLAIMING | CLM | CLM |
+| STAKES / GRADED STAKES | STK | STK |
+
+**Important:** "ALLOWANCE OPTIONAL CLAIMING" (with any claim price) should always display as AOC, not CLM. The parser checks for more specific patterns first to avoid misclassifying AOC races as claiming races.
+
+**Surface parsing:**
+
+| Surface Type | Abbreviation |
+|--------------|--------------|
+| Dirt | Dirt |
+| Turf | Turf |
+| All Weather Track / Tapeta / Polytrack / Synthetic | AWT |
+
+All-weather surfaces (Tapeta, Polytrack, synthetic) are normalized to "AWT" for consistency.
+
 ### Gmail Setup
 
 1. Use a dedicated Gmail account (e.g. `stalliontracker108@gmail.com`)

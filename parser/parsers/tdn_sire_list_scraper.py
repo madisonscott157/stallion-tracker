@@ -65,6 +65,10 @@ LIST_TYPES = {
         'label': 'Third-Crop Sires',
         'crops': '3',
     },
+    'fourth_crop': {
+        'label': 'Fourth-Crop Sires',
+        'crops': '4',
+    },
 }
 
 
@@ -80,16 +84,16 @@ def build_sire_list_url(stats_year: int, list_type: str, interface_year: Optiona
         interface_year = datetime.now().year
 
     crops = LIST_TYPES.get(list_type, {}).get('crops', '0')
+    # URL format matches TDN site - srt22=9 sorts by total earnings
     return (
         f"https://www.thoroughbreddailynews.com/sire-list/"
         f"?txbYear={interface_year}"
         f"&crops={crops}"
         f"&sbYear={stats_year}"
-        f"&d22=1&s22=1&srt22=8"
+        f"&d22=1&s22=1&srt22=9"
         f"&nOF=1&nOFC=0&nOS=1&nOSC=0&nao=1"
         f"&txbFR=NHB&fr=NHB"
         f"&ob=130&ob2=0&cy=0"
-        f"&nOFcy=1&nOFCcy=0&nOScy=1&nOSCcy=0&naocy=3&frcy=NHB&obcy=130&ob2cy=0"
     )
 
 

@@ -24,7 +24,6 @@ export async function GET(request: NextRequest) {
         dam,
         is_unnamed,
         equibase_profile_url,
-        owner,
         stallions!inner (
           name
         )
@@ -60,7 +59,6 @@ export async function GET(request: NextRequest) {
     horse_is_unnamed: workout.horses?.is_unnamed,
     horse_profile_url: workout.horses?.equibase_profile_url,
     sire_name: workout.horses?.stallions?.name,
-    owner: workout.horses?.owner,
   })) || []
 
   return NextResponse.json(workouts)

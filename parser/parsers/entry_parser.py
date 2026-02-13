@@ -167,17 +167,19 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
                 full_type = race_type_match.group(0).strip()
                 type_word = race_type_match.group(1).upper()
 
-                # Categorize
-                type_map = {
-                    'MAIDEN SPECIAL WEIGHT': 'MSW',
-                    'MAIDEN CLAIMING': 'MCL',
-                    'CLAIMING': 'CLM',
-                    'ALLOWANCE OPTIONAL CLAIMING': 'AOC',
-                    'ALLOWANCE': 'ALW',
-                    'STAKES': 'STK',
-                    'GRADED STAKES': 'STK',
-                }
-                for key, val in type_map.items():
+                # Categorize - order matters! More specific matches must come first
+                # since we use substring matching (e.g., "ALLOWANCE OPTIONAL CLAIMING"
+                # contains "CLAIMING" and "ALLOWANCE")
+                type_map = [
+                    ('ALLOWANCE OPTIONAL CLAIMING', 'AOC'),
+                    ('MAIDEN SPECIAL WEIGHT', 'MSW'),
+                    ('MAIDEN CLAIMING', 'MCL'),
+                    ('GRADED STAKES', 'STK'),
+                    ('STAKES', 'STK'),
+                    ('ALLOWANCE', 'ALW'),
+                    ('CLAIMING', 'CLM'),
+                ]
+                for key, val in type_map:
                     if key in type_word:
                         race_type = val
                         break
@@ -211,12 +213,13 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
 
     # 7. Extract surface
     surface = None
-    if re.search(r'\bTurf\b', text, re.IGNORECASE):
+    # Check for All Weather Track first (Tapeta, Polytrack, synthetic surfaces)
+    if re.search(r'\b(All[- ]?Weather|Tapeta|Polytrack|Synthetic)\b', text, re.IGNORECASE):
+        surface = 'AWT'
+    elif re.search(r'\bTurf\b', text, re.IGNORECASE):
         surface = 'Turf'
     elif re.search(r'\bDirt\b', text, re.IGNORECASE):
         surface = 'Dirt'
-    elif re.search(r'\bSynthetic\b', text, re.IGNORECASE):
-        surface = 'Synthetic'
 
     # 8. Extract horse profile URL and refno
     horse_link = soup.find('a', href=re.compile(r'equibase\.com/profiles/Results\.cfm'))

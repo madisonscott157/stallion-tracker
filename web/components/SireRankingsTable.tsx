@@ -11,6 +11,7 @@ function getListLabel(listType: string): string {
     listType === 'freshman' ? '1st Crop' :
     listType === 'second_crop' ? '2nd Crop' :
     listType === 'third_crop' ? '3rd Crop' :
+    listType === 'fourth_crop' ? '4th Crop' :
     listType
 }
 

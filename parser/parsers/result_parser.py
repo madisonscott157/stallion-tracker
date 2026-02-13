@@ -168,21 +168,22 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
             stakes_grade = grade_map.get(grade)
 
     # 7. Extract race type if visible
+    # Order matters in regex alternation - longer/more specific patterns first
     race_type = None
     type_match = re.search(
-        r"(MSW|MCL|CLM|AOC|ALW|STK|MAIDEN SPECIAL WEIGHT|MAIDEN CLAIMING|"
-        r"CLAIMING|ALLOWANCE OPTIONAL CLAIMING|ALLOWANCE|STAKES)",
+        r"(ALLOWANCE OPTIONAL CLAIMING|MAIDEN SPECIAL WEIGHT|MAIDEN CLAIMING|"
+        r"AOC|MSW|MCL|ALW|CLM|STK|ALLOWANCE|CLAIMING|STAKES)",
         text,
         re.IGNORECASE
     )
     if type_match:
         type_word = type_match.group(1).upper()
         type_map = {
+            'ALLOWANCE OPTIONAL CLAIMING': 'AOC', 'AOC': 'AOC',
             'MAIDEN SPECIAL WEIGHT': 'MSW', 'MSW': 'MSW',
             'MAIDEN CLAIMING': 'MCL', 'MCL': 'MCL',
-            'CLAIMING': 'CLM', 'CLM': 'CLM',
-            'ALLOWANCE OPTIONAL CLAIMING': 'AOC', 'AOC': 'AOC',
             'ALLOWANCE': 'ALW', 'ALW': 'ALW',
+            'CLAIMING': 'CLM', 'CLM': 'CLM',
             'STAKES': 'STK', 'STK': 'STK',
         }
         race_type = type_map.get(type_word, type_word)

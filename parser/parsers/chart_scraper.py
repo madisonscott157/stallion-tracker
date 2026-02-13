@@ -211,8 +211,8 @@ def extract_race_details(text: str) -> ChartData:
         )
         if surface_match:
             surface = surface_match.group(1)
-            if surface.lower() in ('all weather', 'all-weather', 'tapeta', 'polytrack'):
-                data.surface = 'Synthetic'
+            if surface.lower() in ('all weather', 'all-weather', 'tapeta', 'polytrack', 'synthetic'):
+                data.surface = 'AWT'
             else:
                 data.surface = surface.capitalize()
 

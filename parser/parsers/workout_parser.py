@@ -100,8 +100,9 @@ def parse_workout_email(html_content: str, email_id: str) -> Optional[WorkoutDat
         return None
 
     # 4. Extract track
+    # Stop at next field marker (Distance:) or newline
     track = None
-    track_match = re.search(r"Track:\s*(.+?)(?:\n|$)", text)
+    track_match = re.search(r"Track:\s*(.+?)(?=Distance:|Time:|\n|$)", text)
     if track_match:
         track = track_match.group(1).strip()
 
@@ -110,15 +111,16 @@ def parse_workout_email(html_content: str, email_id: str) -> Optional[WorkoutDat
         return None
 
     # 5. Extract distance
+    # Stop at next field marker (Time:) or newline
     distance = None
-    distance_match = re.search(r"Distance:\s*(.+?)(?:\n|$)", text)
+    distance_match = re.search(r"Distance:\s*(.+?)(?=Time:|Track Condition:|Surface:|Rank:|\n|$)", text)
     if distance_match:
         distance = distance_match.group(1).strip()
 
-    # 6. Extract time and note
+    # 6. Extract time and note (e.g., "49:60 Breezing")
     time = None
     time_note = None
-    time_match = re.search(r"Time:\s*([\d:\.]+)\s*(.+)?(?:\n|$)", text)
+    time_match = re.search(r"Time:\s*([\d:\.]+)\s*([A-Za-z]+)?(?=Track Condition:|Surface:|Rank:|\s*$|\n)", text)
     if time_match:
         time = time_match.group(1).strip()
         # Fix common typo: 49:60 should be 49.60
@@ -126,17 +128,22 @@ def parse_workout_email(html_content: str, email_id: str) -> Optional[WorkoutDat
         if time_match.group(2):
             time_note = time_match.group(2).strip()
 
-    # 7. Extract track condition
+    # 7. Extract track condition (Fast, Good, etc.)
     track_condition = None
-    condition_match = re.search(r"Track Condition:\s*(.+?)(?:\n|$)", text)
+    condition_match = re.search(r"Track Condition:\s*(Fast|Good|Slow|Sloppy|Muddy|Firm|Yielding|Soft|Heavy|Wet Fast)", text, re.IGNORECASE)
     if condition_match:
         track_condition = condition_match.group(1).strip()
 
-    # 8. Extract surface
+    # 8. Extract surface (Dirt, Turf, AWT)
     surface = None
-    surface_match = re.search(r"Surface:\s*(.+?)(?:\n|$)", text)
+    surface_match = re.search(r"Surface:\s*(Dirt|Turf|All[- ]?Weather|Tapeta|Polytrack|Synthetic)", text, re.IGNORECASE)
     if surface_match:
         surface = surface_match.group(1).strip()
+        # Normalize All Weather Track surfaces to AWT
+        if re.search(r'(All[- ]?Weather|Tapeta|Polytrack|Synthetic)', surface, re.IGNORECASE):
+            surface = 'AWT'
+        else:
+            surface = surface.title()  # Capitalize: dirt -> Dirt
 
     # 9. Extract rank
     rank_position = None
