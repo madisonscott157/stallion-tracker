@@ -52,7 +52,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
           <img
             src={silksUrl}
             alt="Silks"
-            className="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 relative -top-1"
+            className="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 relative -top-2"
           />
         )}
       </div>
