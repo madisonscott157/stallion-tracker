@@ -76,7 +76,8 @@ export function EntryCard({ entry }: EntryCardProps) {
           <img
             src={silksUrl}
             alt="Silks"
-            className="w-5 h-5 sm:w-6 sm:h-6 object-contain ml-2 align-middle"
+            className="w-5 h-5 sm:w-6 sm:h-6 object-contain ml-2"
+            style={{ verticalAlign: '-5px' }}
           />
         )}
       </div>
