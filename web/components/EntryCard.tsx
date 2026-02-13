@@ -43,8 +43,8 @@ export function EntryCard({ entry }: EntryCardProps) {
         !entry.scratched && borderClass
       )}
     >
-      {/* Row 1: Horse name + sex/age - baseline aligned */}
-      <div className="flex items-baseline gap-2">
+      {/* Row 1: Horse name + sex/age + silks */}
+      <div className="flex items-center gap-2">
         {entry.horse_profile_url && !entry.scratched ? (
           <a
             href={entry.horse_profile_url}

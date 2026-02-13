@@ -60,8 +60,8 @@ export function ResultCard({ result }: ResultCardProps) {
         borderClass
       )}
     >
-      {/* Row 1: Position + Horse name + sex/age - baseline aligned */}
-      <div className="flex items-baseline gap-2 [line-height:1.2] sm:[line-height:1.5]">
+      {/* Row 1: Position + Horse name + sex/age + silks */}
+      <div className="flex items-center gap-2">
         {isWinner ? (
           <span className="bg-gold text-white text-xs rounded font-medium shrink-0 px-1.5 py-0.5 relative top-[-1px]">
             WIN
