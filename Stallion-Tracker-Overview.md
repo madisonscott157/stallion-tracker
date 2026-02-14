@@ -62,6 +62,17 @@ Once horses are added to the Equibase Virtual Stable, their information flows au
 - Auction results organized by year and sale
 - Average prices, medians, and sale totals
 
+### PDF Export
+
+Generate professional PDF reports for sharing with clients or internal use:
+
+- **Export Options**: Export All, Entries Only, Results Only, or Stakes Only
+- **Date Range Filter**: Limit export to a specific date range (e.g., Feb 10 - Feb 13)
+- **Clickable Links**: Horse names link to Equibase profiles; Chart and Replay links remain active in the PDF
+- **Trainer/Jockey Info**: Upcoming entries include trainer and jockey assignments
+- **Silks Display**: Organization silks appear in the header and next to matching owners' horses
+- **Clean Formatting**: Professional layout with dates in a fixed left column for easy scanning
+
 ### Multi-Stallion Support
 
 - Track multiple stallions from a single account

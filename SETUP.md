@@ -260,6 +260,31 @@ vercel --prod --yes
 - **Stats** - Sire rankings table, Equineline lifetime/current stats
 - **Sales** - TDN sales data by year
 
+### PDF Export
+
+Click "Export PDF" in the header to generate a professional report. An options modal lets you customize the export:
+
+| Option | Description |
+|--------|-------------|
+| **Export All** | Include both entries and results (default) |
+| **Entries Only** | Upcoming race entries only |
+| **Results Only** | Past race results only |
+| **Stakes Only** | Stakes entries and results only |
+| **Date Range** | Optional filter to limit by date range |
+
+**PDF Features:**
+- Header shows stallion name and export date (plus date range if filtered)
+- Horse names are hyperlinked to their Equibase profile
+- Chart and Replay links remain clickable in the PDF
+- Entry cards include trainer and jockey assignments
+- Entries link to the Equibase entries page
+- Dates are in a fixed column on the left for easy scanning
+- Silks display next to horses whose owner matches an organization with silks
+
+**Silks in PDF:**
+- **Regular users**: Their organization's silks automatically appear in the header
+- **Admins**: Can select which organization's silks to display in the header via dropdown
+
 ---
 
 ## 6. User Accounts
