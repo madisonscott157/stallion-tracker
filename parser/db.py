@@ -4,6 +4,7 @@ import os
 import time
 from typing import Optional
 from datetime import date
+import httpx
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -12,8 +13,8 @@ from models import HorseData, EntryData, ResultData, WorkoutData
 load_dotenv()
 
 
-def retry_on_error(func, max_retries=3, delay=2):
-    """Retry a function on transient errors."""
+def retry_on_error(func, max_retries=5, delay=3):
+    """Retry a function on transient errors (HTTP/2 resets, timeouts, etc.)."""
     def wrapper(*args, **kwargs):
         last_error = None
         for attempt in range(max_retries):
@@ -22,8 +23,10 @@ def retry_on_error(func, max_retries=3, delay=2):
             except Exception as e:
                 last_error = e
                 if attempt < max_retries - 1:
+                    wait_time = delay * (attempt + 1)
                     print(f"  Retry {attempt + 1}/{max_retries} after error: {e}")
-                    time.sleep(delay * (attempt + 1))
+                    print(f"  Waiting {wait_time}s before retry...")
+                    time.sleep(wait_time)
         raise last_error
     return wrapper
 
@@ -38,7 +41,24 @@ class Database:
         if not url or not key:
             raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
 
-        self.client: Client = create_client(url, key)
+        # Use HTTP/1.1 to avoid HTTP/2 stream reset errors in GitHub Actions
+        # HTTP/2 connections can be unstable in CI environments
+        from supabase.lib.client_options import ClientOptions
+        options = ClientOptions(
+            postgrest_client_timeout=60,
+        )
+        self.client: Client = create_client(url, key, options=options)
+
+        # Patch the postgrest client to use HTTP/1.1
+        # This prevents "StreamReset" errors from HTTP/2 connection issues
+        if hasattr(self.client, 'postgrest') and hasattr(self.client.postgrest, 'session'):
+            self.client.postgrest.session = httpx.Client(
+                base_url=self.client.postgrest.session.base_url,
+                headers=dict(self.client.postgrest.session.headers),
+                timeout=httpx.Timeout(60.0),
+                http2=False,  # Force HTTP/1.1
+            )
+
         self._stallion_cache: dict[str, str] = {}  # name -> id
 
     def get_stallion_id(self, sire_name: str) -> Optional[str]:
