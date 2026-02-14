@@ -2,9 +2,10 @@
 
 import os
 import time
+import random
 from typing import Optional
 from datetime import date
-import httpx
+import requests
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -13,7 +14,7 @@ from models import HorseData, EntryData, ResultData, WorkoutData
 load_dotenv()
 
 
-def retry_on_error(func, max_retries=5, delay=3):
+def retry_on_error(func, max_retries=7, base_delay=2):
     """Retry a function on transient errors (HTTP/2 resets, timeouts, etc.)."""
     def wrapper(*args, **kwargs):
         last_error = None
@@ -23,9 +24,10 @@ def retry_on_error(func, max_retries=5, delay=3):
             except Exception as e:
                 last_error = e
                 if attempt < max_retries - 1:
-                    wait_time = delay * (attempt + 1)
+                    # Exponential backoff with jitter
+                    wait_time = base_delay * (2 ** attempt) + random.uniform(0, 1)
                     print(f"  Retry {attempt + 1}/{max_retries} after error: {e}")
-                    print(f"  Waiting {wait_time}s before retry...")
+                    print(f"  Waiting {wait_time:.1f}s before retry...")
                     time.sleep(wait_time)
         raise last_error
     return wrapper
@@ -41,32 +43,9 @@ class Database:
         if not url or not key:
             raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
 
+        # Create client with default settings
+        # HTTP/2 issues in CI are handled by retry logic in get_tracked_stallion_names
         self.client: Client = create_client(url, key)
-
-        # Patch the postgrest client to use HTTP/1.1
-        # This prevents "StreamReset" errors from HTTP/2 connection issues in CI
-        try:
-            if hasattr(self.client, 'postgrest'):
-                postgrest = self.client.postgrest
-                if hasattr(postgrest, 'session'):
-                    old_session = postgrest.session
-                    postgrest.session = httpx.Client(
-                        base_url=old_session.base_url,
-                        headers=dict(old_session.headers),
-                        timeout=httpx.Timeout(60.0),
-                        http2=False,  # Force HTTP/1.1
-                    )
-                elif hasattr(postgrest, '_session'):
-                    old_session = postgrest._session
-                    postgrest._session = httpx.Client(
-                        base_url=old_session.base_url,
-                        headers=dict(old_session.headers),
-                        timeout=httpx.Timeout(60.0),
-                        http2=False,  # Force HTTP/1.1
-                    )
-        except Exception as e:
-            print(f"Warning: Could not patch HTTP/1.1: {e}")
-
         self._stallion_cache: dict[str, str] = {}  # name -> id
 
     def get_stallion_id(self, sire_name: str) -> Optional[str]:
@@ -95,14 +74,48 @@ class Database:
 
     def get_tracked_stallion_names(self) -> list[str]:
         """Get list of all tracked stallion names (normalized)."""
-        @retry_on_error
-        def _fetch():
-            return self.client.table("stallions") \
-                .select("name_normalized") \
-                .execute()
+        # Try supabase client first, fall back to direct HTTP/1.1 requests
+        try:
+            @retry_on_error
+            def _fetch():
+                return self.client.table("stallions") \
+                    .select("name_normalized") \
+                    .execute()
 
-        result = _fetch()
-        return [row["name_normalized"] for row in result.data]
+            result = _fetch()
+            return [row["name_normalized"] for row in result.data]
+        except Exception as e:
+            print(f"  Supabase client failed, trying direct HTTP/1.1: {e}")
+            return self._get_stallion_names_via_requests()
+
+    def _get_stallion_names_via_requests(self) -> list[str]:
+        """Fallback: fetch stallion names using requests library (HTTP/1.1 only)."""
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_SERVICE_KEY")
+
+        headers = {
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+        }
+
+        for attempt in range(5):
+            try:
+                response = requests.get(
+                    f"{url}/rest/v1/stallions?select=name_normalized",
+                    headers=headers,
+                    timeout=30
+                )
+                response.raise_for_status()
+                data = response.json()
+                return [row["name_normalized"] for row in data]
+            except Exception as e:
+                if attempt < 4:
+                    wait = 2 * (attempt + 1)
+                    print(f"  HTTP/1.1 retry {attempt + 1}/5: {e}, waiting {wait}s...")
+                    time.sleep(wait)
+                else:
+                    raise
 
     def upsert_horse(self, horse: HorseData, sire_id: str) -> Optional[str]:
         """
