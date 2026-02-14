@@ -281,9 +281,14 @@ Click "Export PDF" in the header to generate a professional report. An options m
 - Dates are in a fixed column on the left for easy scanning
 - Silks display next to horses whose owner matches an organization with silks
 
+**Silks for Co-Owned Horses:**
+- **Regular users**: See only their organization's silks if they're one of the owners
+- **Admins**: See ALL matching silks for co-owned horses (displayed side by side)
+- Example: A horse owned by "Grandview Equine and LNJ Foxwoods" shows both silks for admins
+
 **Silks in PDF:**
-- **Regular users**: Their organization's silks automatically appear in the header
-- **Admins**: Can select which organization's silks to display in the header via dropdown
+- **Regular users**: Their organization's silks automatically appear in the header and next to their horses
+- **Admins**: Can select which organization's silks to display in the header via dropdown; all matching silks appear next to co-owned horses
 
 ---
 
@@ -418,6 +423,14 @@ The scrapers run daily at 12:30 AM UTC via GitHub Actions. This includes:
 **Required GitHub Secrets** (Settings → Secrets → Actions):
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_KEY`
+
+**Troubleshooting GitHub Secrets:**
+If you see errors like `Invalid header value` or authentication failures:
+1. Go to Settings → Secrets → Actions
+2. Click on the secret to update it
+3. Re-paste the value carefully - ensure **no leading/trailing whitespace or newlines**
+4. The service key should start with `eyJ...` with no spaces before it
+5. Don't press Enter after pasting
 
 ### Python Dependencies (Parser)
 
