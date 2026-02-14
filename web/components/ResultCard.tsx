@@ -9,13 +9,13 @@ interface ResultCardProps {
 }
 
 export function ResultCard({ result }: ResultCardProps) {
-  const { profile, allOrgsWithSilks } = useAuth()
+  const { profile, allOrgsWithSilks, isAdmin } = useAuth()
   const horseName = result.horse_name || 'Unknown'
   const horseDesc = formatHorseDescription(result.horse_sex || null, result.horse_yob || null)
   const isWinner = result.finish_position === 1
   const isTopThree = result.finish_position <= 3
 
-  const { show: showSilks, silksUrl } = shouldShowSilks(profile?.organization, result.owner, allOrgsWithSilks)
+  const { show: showSilks, silksUrls } = shouldShowSilks(profile?.organization, result.owner, allOrgsWithSilks, isAdmin)
 
   const dateLabel = isToday(result.race_date)
     ? 'Today'
@@ -91,13 +91,14 @@ export function ResultCard({ result }: ResultCardProps) {
         {horseDesc && (
           <span className="text-sm text-slate-400">{horseDesc}</span>
         )}
-        {showSilks && (
+        {showSilks && silksUrls.map((url, idx) => (
           <img
-            src={silksUrl}
+            key={idx}
+            src={url}
             alt="Silks"
             className="h-5 sm:h-6 w-auto object-contain relative top-[4px]"
           />
-        )}
+        ))}
       </div>
 
       {/* Row 2: Date, Track, Race info + Stakes info */}

@@ -9,11 +9,11 @@ interface EntryCardProps {
 }
 
 export function EntryCard({ entry }: EntryCardProps) {
-  const { profile, allOrgsWithSilks } = useAuth()
+  const { profile, allOrgsWithSilks, isAdmin } = useAuth()
   const horseName = entry.horse_name || `${entry.horse_yob || ''} ${entry.horse_dam || 'Unknown'}`.trim()
   const horseDesc = formatHorseDescription(entry.horse_sex || null, entry.horse_yob || null)
 
-  const { show: showSilks, silksUrl } = shouldShowSilks(profile?.organization, entry.owner, allOrgsWithSilks)
+  const { show: showSilks, silksUrls } = shouldShowSilks(profile?.organization, entry.owner, allOrgsWithSilks, isAdmin)
 
   const dateLabel = isToday(entry.race_date)
     ? 'Today'
@@ -72,13 +72,14 @@ export function EntryCard({ entry }: EntryCardProps) {
             entry.scratched ? 'text-slate-300' : 'text-slate-400'
           )}>{horseDesc}</span>
         )}
-        {showSilks && (
+        {showSilks && silksUrls.map((url, idx) => (
           <img
-            src={silksUrl}
+            key={idx}
+            src={url}
             alt="Silks"
             className="h-5 sm:h-6 w-auto object-contain relative top-[4px]"
           />
-        )}
+        ))}
       </div>
 
       {/* Row 2: Date, Track, Time, Race details */}

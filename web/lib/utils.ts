@@ -212,24 +212,29 @@ export function formatTrack(track: string): string {
 export function shouldShowSilks(
   organization: { name?: string; silks_url?: string | null } | undefined,
   owner: string | null | undefined,
-  allOrgsWithSilks?: { name: string; silks_url: string | null }[]
-): { show: boolean; silksUrl: string } {
-  if (!owner) return { show: false, silksUrl: '' }
+  allOrgsWithSilks?: { name: string; silks_url: string | null }[],
+  isAdmin?: boolean
+): { show: boolean; silksUrls: string[] } {
+  if (!owner) return { show: false, silksUrls: [] }
 
-  // If allOrgsWithSilks is provided (for admins), check against all orgs
-  if (allOrgsWithSilks && allOrgsWithSilks.length > 0) {
+  // For admins: show ALL matching org silks (multiple owners)
+  if (isAdmin && allOrgsWithSilks && allOrgsWithSilks.length > 0) {
+    const matchingSilks: string[] = []
     for (const org of allOrgsWithSilks) {
       if (org.name && org.silks_url && owner.includes(org.name)) {
-        return { show: true, silksUrl: org.silks_url }
+        matchingSilks.push(org.silks_url)
       }
+    }
+    if (matchingSilks.length > 0) {
+      return { show: true, silksUrls: matchingSilks }
     }
   }
 
-  // Fall back to checking user's own organization
+  // For regular users: only show their own org's silks if they're one of the owners
   const orgName = organization?.name
   const silksUrl = organization?.silks_url
   if (orgName && silksUrl && owner.includes(orgName)) {
-    return { show: true, silksUrl }
+    return { show: true, silksUrls: [silksUrl] }
   }
-  return { show: false, silksUrl: '' }
+  return { show: false, silksUrls: [] }
 }

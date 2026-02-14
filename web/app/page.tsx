@@ -10,8 +10,10 @@ import { ResultsSection } from '@/components/ResultsSection'
 import { WorkoutsSection } from '@/components/WorkoutsSection'
 import { SireRankingsTable } from '@/components/SireRankingsTable'
 import { EquinelineSection } from '@/components/EquinelineSection'
+import { ExportModal } from '@/components/ExportModal'
 import { useAuth } from '@/lib/auth-context'
 import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineStats } from '@/lib/supabase'
+import type { ExportOptions, OrgWithSilks } from '@/lib/pdf-export'
 
 export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([])
@@ -22,10 +24,11 @@ export default function Home() {
   const [equinelineStats, setEquinelineStats] = useState<EquinelineStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
   const [stallionId, setStallionId] = useState<string | null>(null)
   const [stallion, setStallion] = useState<string>('Loading...')
   const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats' | 'sales'>('overview')
-  const { profile, isLoading: authLoading } = useAuth()
+  const { profile, isLoading: authLoading, allOrgsWithSilks, isAdmin } = useAuth()
 
   const handleStallionChange = useCallback((id: string, name: string) => {
     setStallionId(id)
@@ -91,16 +94,35 @@ export default function Home() {
 
   const currentYear = new Date().getFullYear()
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = () => {
+    setShowExportModal(true)
+  }
+
+  const handleExportWithOptions = async (options: ExportOptions) => {
     if (isExporting) return
     setIsExporting(true)
     try {
       const { exportDashboardToPDF } = await import('@/lib/pdf-export')
+      // Build list of orgs with silks for matching owner names
+      const orgsWithSilks: OrgWithSilks[] = allOrgsWithSilks.map(o => ({ name: o.name, silks_url: o.silks_url }))
+      // Include user's org silks if not already included
+      if (profile?.organization?.silks_url && !orgsWithSilks.find(o => o.silks_url === profile.organization?.silks_url)) {
+        orgsWithSilks.push({
+          name: profile.organization.name,
+          silks_url: profile.organization.silks_url
+        })
+      }
       await exportDashboardToPDF({
         stallionName: stallion,
         results,
         entries,
+        options,
+        orgsWithSilks,
+        isAdmin,
+        userOrgName: profile?.organization?.name,
+        userOrgSilksUrl: profile?.organization?.silks_url,
       })
+      setShowExportModal(false)
     } catch (error) {
       console.error('Error exporting PDF:', error)
     } finally {
@@ -237,6 +259,14 @@ export default function Home() {
           ))}
         </div>
       </nav>
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExportWithOptions}
+        isExporting={isExporting}
+      />
     </div>
   )
 }

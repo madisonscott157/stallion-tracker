@@ -16,14 +16,14 @@ function cleanWorkoutTrack(track: string | null): string {
 }
 
 export function WorkoutCard({ workout }: WorkoutCardProps) {
-  const { profile, allOrgsWithSilks } = useAuth()
+  const { profile, allOrgsWithSilks, isAdmin } = useAuth()
 
   // Show name, or "YOB Dam" if unnamed
   const displayName = workout.horse_name
     ? workout.horse_name
     : `${workout.horse_yob || ''} ${workout.horse_dam || 'Unknown'}`.trim()
 
-  const { show: showSilks, silksUrl } = shouldShowSilks(profile?.organization, workout.owner, allOrgsWithSilks)
+  const { show: showSilks, silksUrls } = shouldShowSilks(profile?.organization, workout.owner, allOrgsWithSilks, isAdmin)
   const track = cleanWorkoutTrack(workout.track)
   const distance = formatDistance(workout.distance)
   const surface = workout.surface?.split(/Rank:/i)[0]?.trim()
@@ -48,13 +48,14 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
         ) : (
           <span className="font-medium text-slate-900">{displayName}</span>
         )}
-        {showSilks && (
+        {showSilks && silksUrls.map((url, idx) => (
           <img
-            src={silksUrl}
+            key={idx}
+            src={url}
             alt="Silks"
             className="h-5 sm:h-6 w-auto object-contain relative top-[4px]"
           />
-        )}
+        ))}
       </div>
       {/* Row 2: Workout details */}
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 -mt-0.5 sm:mt-1 text-sm text-slate-500">
