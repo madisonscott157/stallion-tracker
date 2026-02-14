@@ -41,23 +41,31 @@ class Database:
         if not url or not key:
             raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
 
-        # Use HTTP/1.1 to avoid HTTP/2 stream reset errors in GitHub Actions
-        # HTTP/2 connections can be unstable in CI environments
-        from supabase.lib.client_options import ClientOptions
-        options = ClientOptions(
-            postgrest_client_timeout=60,
-        )
-        self.client: Client = create_client(url, key, options=options)
+        self.client: Client = create_client(url, key)
 
         # Patch the postgrest client to use HTTP/1.1
-        # This prevents "StreamReset" errors from HTTP/2 connection issues
-        if hasattr(self.client, 'postgrest') and hasattr(self.client.postgrest, 'session'):
-            self.client.postgrest.session = httpx.Client(
-                base_url=self.client.postgrest.session.base_url,
-                headers=dict(self.client.postgrest.session.headers),
-                timeout=httpx.Timeout(60.0),
-                http2=False,  # Force HTTP/1.1
-            )
+        # This prevents "StreamReset" errors from HTTP/2 connection issues in CI
+        try:
+            if hasattr(self.client, 'postgrest'):
+                postgrest = self.client.postgrest
+                if hasattr(postgrest, 'session'):
+                    old_session = postgrest.session
+                    postgrest.session = httpx.Client(
+                        base_url=old_session.base_url,
+                        headers=dict(old_session.headers),
+                        timeout=httpx.Timeout(60.0),
+                        http2=False,  # Force HTTP/1.1
+                    )
+                elif hasattr(postgrest, '_session'):
+                    old_session = postgrest._session
+                    postgrest._session = httpx.Client(
+                        base_url=old_session.base_url,
+                        headers=dict(old_session.headers),
+                        timeout=httpx.Timeout(60.0),
+                        http2=False,  # Force HTTP/1.1
+                    )
+        except Exception as e:
+            print(f"Warning: Could not patch HTTP/1.1: {e}")
 
         self._stallion_cache: dict[str, str] = {}  # name -> id
 
