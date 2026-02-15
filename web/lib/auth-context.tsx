@@ -96,26 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [profile])
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id)
-        setProfile(profile)
-        // Fetch all orgs with silks for admins
-        if (profile?.role === 'admin') {
-          const orgs = await fetchAllOrgsWithSilks()
-          setAllOrgsWithSilks(orgs)
-        }
-      }
-      setIsLoading(false)
-    })
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    // Get initial session with timeout to prevent infinite loading
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
         setSession(session)
         setUser(session?.user ?? null)
 
@@ -126,14 +110,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (profile?.role === 'admin') {
             const orgs = await fetchAllOrgsWithSilks()
             setAllOrgsWithSilks(orgs)
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.warn('Auth initialization timed out')
+        setIsLoading(false)
+      }
+    }, 10000) // 10 second timeout
+
+    initAuth()
+
+    return () => clearTimeout(timeout)
+  }, [])
+
+  useEffect(() => {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        try {
+          setSession(session)
+          setUser(session?.user ?? null)
+
+          if (session?.user) {
+            const profile = await fetchProfile(session.user.id)
+            setProfile(profile)
+            // Fetch all orgs with silks for admins
+            if (profile?.role === 'admin') {
+              const orgs = await fetchAllOrgsWithSilks()
+              setAllOrgsWithSilks(orgs)
+            } else {
+              setAllOrgsWithSilks([])
+            }
           } else {
+            setProfile(null)
             setAllOrgsWithSilks([])
           }
-        } else {
-          setProfile(null)
-          setAllOrgsWithSilks([])
+        } catch (error) {
+          console.error('Error handling auth state change:', error)
+        } finally {
+          setIsLoading(false)
         }
-        setIsLoading(false)
       }
     )
 
