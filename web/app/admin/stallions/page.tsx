@@ -357,9 +357,9 @@ export default function AdminStallionsPage() {
                     </div>
                   )}
 
-                  {/* Organizations */}
+                  {/* Stables */}
                   <div className="mt-3">
-                    <span className="text-xs font-medium text-slate-500 uppercase">Organizations:</span>
+                    <span className="text-xs font-medium text-slate-500 uppercase">Stables:</span>
                     <div className="flex flex-wrap gap-2 mt-1">
                       {organizations.map(org => {
                         const isLinked = linkedOrgs.some(lo => lo.id === org.id)

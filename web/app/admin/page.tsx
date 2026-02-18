@@ -47,7 +47,7 @@ export default function AdminOverviewPage() {
           href="/admin/organizations"
           className="bg-white rounded-lg border border-slate-200 p-6 hover:border-slate-300 transition-colors"
         >
-          <p className="text-sm text-slate-500 mb-1">Organizations</p>
+          <p className="text-sm text-slate-500 mb-1">Stables</p>
           <p className="text-3xl font-semibold text-slate-900">{stats.organizations}</p>
         </Link>
 
@@ -81,7 +81,7 @@ export default function AdminOverviewPage() {
             href="/admin/organizations?action=new"
             className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors text-sm font-medium"
           >
-            Add Organization
+            Add Stable
           </Link>
           <Link
             href="/admin/stallions?action=new"
