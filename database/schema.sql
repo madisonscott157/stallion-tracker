@@ -376,8 +376,10 @@ JOIN stallions s ON h.sire_id = s.id
 WHERE w.workout_date >= CURRENT_DATE - INTERVAL '14 days'
 ORDER BY w.workout_date DESC;
 
--- YTD stats by stallion
-CREATE VIEW stallion_ytd_stats AS
+-- YTD stats by stallion (security_invoker respects RLS policies)
+CREATE VIEW stallion_ytd_stats
+WITH (security_invoker = true)
+AS
 SELECT
     s.id as stallion_id,
     s.name as stallion_name,
