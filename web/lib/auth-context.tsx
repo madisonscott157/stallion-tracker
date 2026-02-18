@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { createClientComponentClient } from './supabase'
 
@@ -96,56 +96,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [profile])
 
   useEffect(() => {
+    let isCancelled = false
+
     // Get initial session with timeout to prevent infinite loading
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
+        if (isCancelled) return
+
         setSession(session)
         setUser(session?.user ?? null)
 
         if (session?.user) {
           const profile = await fetchProfile(session.user.id)
+          if (isCancelled) return
           setProfile(profile)
           // Fetch all orgs with silks for admins
           if (profile?.role === 'admin') {
             const orgs = await fetchAllOrgsWithSilks()
+            if (isCancelled) return
             setAllOrgsWithSilks(orgs)
           }
         }
-      } catch (error) {
+      } catch (error: unknown) {
+        // Ignore AbortError - happens during component unmount/remount
+        if (error instanceof Error && error.name === 'AbortError') return
+        if (isCancelled) return
         console.error('Error initializing auth:', error)
       } finally {
-        setIsLoading(false)
+        if (!isCancelled) {
+          setIsLoading(false)
+        }
       }
     }
 
     // Add timeout to prevent infinite loading
     const timeout = setTimeout(() => {
-      if (isLoading) {
-        console.warn('Auth initialization timed out')
+      if (!isCancelled) {
         setIsLoading(false)
       }
     }, 10000) // 10 second timeout
 
     initAuth()
 
-    return () => clearTimeout(timeout)
+    return () => {
+      isCancelled = true
+      clearTimeout(timeout)
+    }
   }, [])
 
   useEffect(() => {
+    let isCancelled = false
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         try {
+          if (isCancelled) return
           setSession(session)
           setUser(session?.user ?? null)
 
           if (session?.user) {
             const profile = await fetchProfile(session.user.id)
+            if (isCancelled) return
             setProfile(profile)
             // Fetch all orgs with silks for admins
             if (profile?.role === 'admin') {
               const orgs = await fetchAllOrgsWithSilks()
+              if (isCancelled) return
               setAllOrgsWithSilks(orgs)
             } else {
               setAllOrgsWithSilks([])
@@ -154,15 +172,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setProfile(null)
             setAllOrgsWithSilks([])
           }
-        } catch (error) {
+        } catch (error: unknown) {
+          // Ignore AbortError - happens during component unmount/remount
+          if (error instanceof Error && error.name === 'AbortError') return
+          if (isCancelled) return
           console.error('Error handling auth state change:', error)
         } finally {
-          setIsLoading(false)
+          if (!isCancelled) {
+            setIsLoading(false)
+          }
         }
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isCancelled = true
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {
