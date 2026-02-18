@@ -152,7 +152,7 @@ export default function AdminStallionsPage() {
   }
 
   async function handleDeleteStallion(stallionId: string) {
-    if (!confirm('Are you sure you want to delete this stallion? This will also remove all organization links.')) return
+    if (!confirm('Are you sure you want to delete this stallion? This will also remove all stable links.')) return
 
     const { error: linkError } = await supabase.from('organization_stallions').delete().eq('stallion_id', stallionId)
     if (linkError) {
@@ -179,7 +179,7 @@ export default function AdminStallionsPage() {
         .eq('stallion_id', stallionId)
         .eq('organization_id', orgId)
       if (error) {
-        setError(`Failed to unlink org: ${error.message}`)
+        setError(`Failed to unlink stable: ${error.message}`)
         return
       }
     } else {
@@ -187,7 +187,7 @@ export default function AdminStallionsPage() {
         .from('organization_stallions')
         .insert({ stallion_id: stallionId, organization_id: orgId })
       if (error) {
-        setError(`Failed to link org: ${error.message}`)
+        setError(`Failed to link stable: ${error.message}`)
         return
       }
     }
