@@ -146,14 +146,14 @@ export default function AdminUsersPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Organization</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Stable</label>
                 <select
                   value={newUser.organization_id}
                   onChange={e => setNewUser({ ...newUser, organization_id: e.target.value })}
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-md"
                 >
-                  <option value="">Select organization...</option>
+                  <option value="">Select stable...</option>
                   {organizations.map(org => (
                     <option key={org.id} value={org.id}>{org.name}</option>
                   ))}
@@ -208,7 +208,7 @@ export default function AdminUsersPage() {
             <tr className="text-xs text-slate-500 uppercase tracking-wide border-b border-slate-100 bg-slate-50">
               <th className="py-3 px-4 text-left font-medium">Email</th>
               <th className="py-3 px-4 text-left font-medium">Name</th>
-              <th className="py-3 px-4 text-left font-medium">Organization</th>
+              <th className="py-3 px-4 text-left font-medium">Stable</th>
               <th className="py-3 px-4 text-left font-medium">Role</th>
               <th className="py-3 px-4 text-center font-medium">Claiming</th>
               <th className="py-3 px-4 text-right font-medium">Actions</th>
@@ -225,7 +225,7 @@ export default function AdminUsersPage() {
                     onChange={e => handleUpdateUser(user.id, { organization_id: e.target.value || null })}
                     className="text-sm border border-slate-200 rounded px-2 py-1"
                   >
-                    <option value="">No organization</option>
+                    <option value="">No stable</option>
                     {organizations.map(org => (
                       <option key={org.id} value={org.id}>{org.name}</option>
                     ))}

@@ -98,7 +98,7 @@ export default function AdminOrganizationsPage() {
   }
 
   async function handleDeleteOrg(orgId: string) {
-    if (!confirm('Are you sure you want to delete this organization? All associated users will lose access.')) return
+    if (!confirm('Are you sure you want to delete this stable? All associated users will lose access.')) return
 
     const { error } = await supabase.from('organizations').delete().eq('id', orgId)
     if (!error) {
@@ -113,18 +113,18 @@ export default function AdminOrganizationsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold text-slate-900">Organizations</h2>
+        <h2 className="text-2xl font-semibold text-slate-900">Stables</h2>
         <button
           onClick={() => setShowAddForm(true)}
           className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
         >
-          Add Organization
+          Add Stable
         </button>
       </div>
 
       {showAddForm && (
         <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
-          <h3 className="text-lg font-medium text-slate-900 mb-4">Add New Organization</h3>
+          <h3 className="text-lg font-medium text-slate-900 mb-4">Add New Stable</h3>
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
               {error}
@@ -194,7 +194,7 @@ export default function AdminOrganizationsPage() {
                 disabled={isSubmitting}
                 className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 text-sm font-medium"
               >
-                {isSubmitting ? 'Creating...' : 'Create Organization'}
+                {isSubmitting ? 'Creating...' : 'Create Stable'}
               </button>
               <button
                 type="button"
@@ -285,7 +285,7 @@ export default function AdminOrganizationsPage() {
             {organizations.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-slate-500">
-                  No organizations yet. Add your first organization above.
+                  No stables yet. Add your first stable above.
                 </td>
               </tr>
             )}

@@ -134,8 +134,8 @@ You can optionally add the owner name after the pedigree parentheses:
 **How silks work:** When an entry or result is parsed, if the owner name in the comment matches an organization's name in the database, that organization's silks image will display on the card in the dashboard. This lets you visually highlight horses owned by specific clients/organizations.
 
 To set up silks:
-1. Go to Admin > Organizations
-2. Upload a silks image for the organization
+1. Go to Admin > Stables
+2. Upload a silks image for the stable
 3. Ensure the owner name in Virtual Stable comments matches the organization name exactly
 
 Example: If you have an organization named "Stonestreet Stables" with silks uploaded, any horse with `(...) Stonestreet Stables` in its Virtual Stable comment will show those silks on entry/result cards.
@@ -343,9 +343,9 @@ Accessible at `/admin` for admin users only.
 - Set Equineline and TDN URLs for scrapers
 - Toggle which organizations track each stallion
 
-### Organizations (`/admin/organizations`)
-- Create orgs with name, slug, brand colors
-- Upload racing silks image (shown on entry/result cards when horse owner matches org name)
+### Stables (`/admin/organizations`)
+- Create stables with name, slug, brand colors
+- Upload racing silks image (shown on entry/result cards when horse owner matches stable name)
 
 ### Users (`/admin/users`)
 - Create users with email/password
