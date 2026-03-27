@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { createClientComponentClient } from '@/lib/supabase'
 
@@ -20,6 +21,8 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
   const [isSaving, setIsSaving] = useState(false)
   const { profile, refreshProfile } = useAuth()
   const supabase = createClientComponentClient()
+  const searchParams = useSearchParams()
+  const stallionParam = searchParams.get('stallion')
   const hasFetched = useRef(false)
 
   const isAdmin = profile?.role === 'admin'
@@ -64,13 +67,16 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
 
       setStallions(stallionList)
 
-      // Auto-select: prefer user's default, then fall back to first
+      // Auto-select: prefer URL param, then user's default, then first
       if (!value && stallionList.length > 0) {
+        const urlStallion = stallionParam
+          ? stallionList.find(s => s.id === stallionParam)
+          : null
         const defaultId = profile!.default_stallion_id
         const defaultStallion = defaultId
           ? stallionList.find(s => s.id === defaultId)
           : null
-        const pick = defaultStallion || stallionList[0]
+        const pick = urlStallion || defaultStallion || stallionList[0]
         onChange(pick.id, pick.name)
       }
 

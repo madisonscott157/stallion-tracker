@@ -28,6 +28,19 @@ export function Header({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3">
           {/* Row 1 on mobile / Left side on desktop */}
           <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
+            {/* Back to dashboard link */}
+            {profile?.show_dashboard && (
+              <a
+                href="/dashboard"
+                className="inline-flex items-center justify-center hover:text-white transition-colors"
+                style={{ color: 'var(--org-secondary)' }}
+                title="Back to Dashboard"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </a>
+            )}
             {/* Stallion selector (always visible) */}
             <StallionSelector
               value={stallionId}

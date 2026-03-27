@@ -6,9 +6,10 @@ import type { Result } from '@/lib/supabase'
 
 interface ResultCardProps {
   result: Result
+  showSireName?: boolean
 }
 
-export function ResultCard({ result }: ResultCardProps) {
+export function ResultCard({ result, showSireName }: ResultCardProps) {
   const { profile, allOrgsWithSilks, isAdmin } = useAuth()
   const horseName = result.horse_name || 'Unknown'
   const horseDesc = formatHorseDescription(result.horse_sex || null, result.horse_yob || null)
@@ -103,6 +104,12 @@ export function ResultCard({ result }: ResultCardProps) {
 
       {/* Row 2: Date, Track, Race info + Stakes info */}
       <div className="text-sm text-slate-500 leading-relaxed sm:leading-normal mt-0.5 sm:mt-1">
+        {showSireName && result.sire_name && (
+          <>
+            <span className="text-xs font-medium bg-slate-100 text-slate-600 rounded px-1.5 py-0.5">{result.sire_name}</span>
+            <span className="text-slate-300 mx-1">|</span>
+          </>
+        )}
         <span className="font-medium text-slate-600">{dateLabel}</span>
         <span className="text-slate-300 mx-1">|</span>
         <span>{trackDisplay} R{result.race_number}</span>

@@ -12,6 +12,7 @@ interface User {
   organization_id: string | null
   organization?: { id: string; name: string } | null
   show_claiming_races: boolean
+  show_dashboard: boolean
 }
 
 interface Organization {
@@ -24,7 +25,7 @@ export default function AdminUsersPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [newUser, setNewUser] = useState({ email: '', name: '', password: '', organization_id: '', role: 'user', show_claiming_races: true })
+  const [newUser, setNewUser] = useState({ email: '', name: '', password: '', organization_id: '', role: 'user', show_claiming_races: true, show_dashboard: false })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const supabase = createClientComponentClient()
@@ -63,7 +64,7 @@ export default function AdminUsersPage() {
       }
 
       setShowAddForm(false)
-      setNewUser({ email: '', name: '', password: '', organization_id: '', role: 'user', show_claiming_races: true })
+      setNewUser({ email: '', name: '', password: '', organization_id: '', role: 'user', show_claiming_races: true, show_dashboard: false })
       fetchData()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create user')
@@ -181,6 +182,17 @@ export default function AdminUsersPage() {
                   Show claiming races
                 </label>
               </div>
+              <div className="flex items-center">
+                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newUser.show_dashboard}
+                    onChange={e => setNewUser({ ...newUser, show_dashboard: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300"
+                  />
+                  Show dashboard
+                </label>
+              </div>
             </div>
             <div className="flex gap-2">
               <button
@@ -211,6 +223,7 @@ export default function AdminUsersPage() {
               <th className="py-3 px-4 text-left font-medium">Stable</th>
               <th className="py-3 px-4 text-left font-medium">Role</th>
               <th className="py-3 px-4 text-center font-medium">Claiming</th>
+              <th className="py-3 px-4 text-center font-medium">Dashboard</th>
               <th className="py-3 px-4 text-right font-medium">Actions</th>
             </tr>
           </thead>
@@ -249,6 +262,14 @@ export default function AdminUsersPage() {
                     className="w-4 h-4 rounded border-slate-300 cursor-pointer"
                   />
                 </td>
+                <td className="py-3 px-4 text-center">
+                  <input
+                    type="checkbox"
+                    checked={user.show_dashboard}
+                    onChange={e => handleUpdateUser(user.id, { show_dashboard: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                  />
+                </td>
                 <td className="py-3 px-4 text-right">
                   <button
                     onClick={() => handleDeleteUser(user.id)}
@@ -261,7 +282,7 @@ export default function AdminUsersPage() {
             ))}
             {users.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-500">
+                <td colSpan={7} className="py-8 text-center text-slate-500">
                   No users yet. Add your first user above.
                 </td>
               </tr>

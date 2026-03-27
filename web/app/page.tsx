@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { StatsBar } from '@/components/StatsBar'
 import { EntryCard } from '@/components/EntryCard'
@@ -29,6 +30,16 @@ export default function Home() {
   const [stallion, setStallion] = useState<string>('Loading...')
   const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats' | 'sales'>('overview')
   const { profile, isLoading: authLoading, allOrgsWithSilks, isAdmin } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const stallionParam = searchParams.get('stallion')
+
+  // Redirect to dashboard if user has show_dashboard and no stallion param
+  useEffect(() => {
+    if (!authLoading && profile?.show_dashboard && !stallionParam) {
+      router.replace('/dashboard')
+    }
+  }, [authLoading, profile, stallionParam, router])
 
   const handleStallionChange = useCallback((id: string, name: string) => {
     setStallionId(id)

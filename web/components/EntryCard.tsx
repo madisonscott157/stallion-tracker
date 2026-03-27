@@ -6,9 +6,10 @@ import type { Entry } from '@/lib/supabase'
 
 interface EntryCardProps {
   entry: Entry
+  showSireName?: boolean
 }
 
-export function EntryCard({ entry }: EntryCardProps) {
+export function EntryCard({ entry, showSireName }: EntryCardProps) {
   const { profile, allOrgsWithSilks, isAdmin } = useAuth()
   const horseName = entry.horse_name || `${entry.horse_yob || ''} ${entry.horse_dam || 'Unknown'}`.trim()
   const horseDesc = formatHorseDescription(entry.horse_sex || null, entry.horse_yob || null)
@@ -87,6 +88,12 @@ export function EntryCard({ entry }: EntryCardProps) {
         'flex flex-wrap items-baseline gap-x-2 gap-y-0.5 -mt-0.5 sm:mt-1 text-sm',
         entry.scratched ? 'text-slate-400' : 'text-slate-500'
       )}>
+        {showSireName && entry.sire_name && (
+          <>
+            <span className={cn('text-xs font-medium rounded px-1.5 py-0.5', entry.scratched ? 'bg-slate-50 text-slate-400' : 'bg-slate-100 text-slate-600')}>{entry.sire_name}</span>
+            <span className="text-slate-300">|</span>
+          </>
+        )}
         <span className={cn('font-medium', entry.scratched ? 'text-slate-400' : 'text-slate-600')}>{dateLabel}</span>
         <span className="text-slate-300">|</span>
         <span>{trackDisplay} R{entry.race_number}</span>
