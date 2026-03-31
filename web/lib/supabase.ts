@@ -19,7 +19,7 @@ export interface Stallion {
   sire: string | null
   dam: string | null
   stud_farm: string | null
-  stud_fee: number | null
+  stud_fee: string | null
 }
 
 export interface Horse {

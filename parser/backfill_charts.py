@@ -32,14 +32,14 @@ def main():
     print("Finding results missing race details...")
 
     result = client.table("results") \
-        .select("id, chart_url, distance, purse, surface, race_type, finish_position") \
+        .select("id, chart_url, distance, purse, surface, race_type, race_name, finish_position") \
         .not_.is_("chart_url", "null") \
         .execute()
 
     results_to_update = []
     for row in result.data:
         # Check if any key fields are missing
-        if not row.get("distance") or not row.get("purse") or not row.get("surface"):
+        if not row.get("distance") or not row.get("purse") or not row.get("surface") or not row.get("race_type"):
             results_to_update.append(row)
 
     print(f"Found {len(results_to_update)} results to backfill")
@@ -76,7 +76,7 @@ def main():
                 update_data["surface"] = chart_data.surface
             if chart_data.race_type and not row.get("race_type"):
                 update_data["race_type"] = chart_data.race_type
-            if chart_data.race_name:
+            if chart_data.race_name and not row.get("race_name"):
                 update_data["race_name"] = chart_data.race_name
 
             # Also convert static URLs to premium format for long-term access

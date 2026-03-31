@@ -73,6 +73,9 @@ export function EntryCard({ entry, showSireName }: EntryCardProps) {
             entry.scratched ? 'text-slate-300' : 'text-slate-400'
           )}>{horseDesc}</span>
         )}
+        {showSireName && entry.sire_name && (
+          <span className={cn('text-xs font-medium rounded px-1.5 py-0.5 relative top-[-1px]', entry.scratched ? 'bg-slate-50 text-slate-400' : 'bg-slate-100 text-slate-600')}>{entry.sire_name}</span>
+        )}
         {showSilks && silksUrls.map((url, idx) => (
           <img
             key={idx}
@@ -88,12 +91,6 @@ export function EntryCard({ entry, showSireName }: EntryCardProps) {
         'flex flex-wrap items-baseline gap-x-2 gap-y-0.5 -mt-0.5 sm:mt-1 text-sm',
         entry.scratched ? 'text-slate-400' : 'text-slate-500'
       )}>
-        {showSireName && entry.sire_name && (
-          <>
-            <span className={cn('text-xs font-medium rounded px-1.5 py-0.5', entry.scratched ? 'bg-slate-50 text-slate-400' : 'bg-slate-100 text-slate-600')}>{entry.sire_name}</span>
-            <span className="text-slate-300">|</span>
-          </>
-        )}
         <span className={cn('font-medium', entry.scratched ? 'text-slate-400' : 'text-slate-600')}>{dateLabel}</span>
         <span className="text-slate-300">|</span>
         <span>{trackDisplay} R{entry.race_number}</span>

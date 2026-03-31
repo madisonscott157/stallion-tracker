@@ -77,7 +77,7 @@ def process_result(db: Database, result: ResultData) -> bool:
         print(f"  Failed to upsert horse: {result.horse.name}")
         return False
 
-    # Insert result
+    # Insert result (chart scraping already handled in result_parser.py)
     result_id = db.insert_result(result, horse_id)
     if result_id:
         position_str = "WON" if result.finish_position == 1 else f"Finished {result.finish_position}"
@@ -251,12 +251,17 @@ def main():
             check_emails, db, tracked_stallions, limit=args.limit
         )
 
-        try:
-            while True:
+        while True:
+            try:
                 schedule.run_pending()
                 time.sleep(10)
-        except KeyboardInterrupt:
-            print("\nStopping...")
+            except KeyboardInterrupt:
+                print("\nStopping...")
+                break
+            except Exception as e:
+                print(f"Unexpected error in polling loop: {e}")
+                print("Recovering in 30 seconds...")
+                time.sleep(30)
 
 
 if __name__ == "__main__":

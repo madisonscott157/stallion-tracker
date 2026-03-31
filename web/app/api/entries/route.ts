@@ -47,8 +47,9 @@ export async function GET(request: NextRequest) {
   }
 
   // Filter out claiming races if user preference is set
+  // Allow null race_type through — only exclude explicitly tagged MCL/CLM
   if (!prefs.show_claiming_races) {
-    query = query.not('race_type', 'is', null).not('race_type', 'in', '("MCL","CLM")')
+    query = query.or('race_type.is.null,race_type.not.in.("MCL","CLM")')
   }
 
   const { data, error } = await query

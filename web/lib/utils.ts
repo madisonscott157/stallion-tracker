@@ -93,12 +93,18 @@ export function isTomorrow(dateStr: string): boolean {
 export function formatDistance(distance: string | null): string {
   if (!distance) return ''
 
-  // Clean any parsing garbage (from workout emails)
-  const cleaned = distance.split(/Time:|Track Condition:/i)[0]?.trim() || distance.trim()
+  // Clean any parsing garbage (from workout emails) and strip concatenated surface text
+  let cleaned = distance.split(/Time:|Track Condition:/i)[0]?.trim() || distance.trim()
+  // Strip surface info concatenated to distance: "FurlongsOnTheAllWeather" → "Furlongs"
+  cleaned = cleaned.replace(/On\s*The\s*(All\s*Weather(?:\s*Track)?|Turf|Dirt|Main\s*Track)\s*$/i, '').trim()
+  // Split concatenated number+unit: "SeventyYards" → "Seventy Yards"
+  cleaned = cleaned.replace(/([a-z])(Furlongs?|Miles?|Yards?)\s*$/i, '$1 $2').trim()
 
   const wordToNum: Record<string, number> = {
     'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-    'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
+    'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+    'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50,
+    'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
   }
 
   const fractionToDecimal: Record<string, number> = {
@@ -151,6 +157,16 @@ export function formatDistance(distance: string | null): string {
   const hasAbout = /^about\s+/i.test(cleaned)
   const withoutAbout = cleaned.replace(/^about\s+/i, '')
   const prefix = hasAbout ? '~' : ''
+
+  // Match miles/furlongs + yards: "One Mile And Seventy Yards" → "1 mile 70yds"
+  const yardsMatch = withoutAbout.match(/^(\w+)\s+(Miles?|Furlongs?)\s+And\s+(\w+)\s+Yards?$/i)
+  if (yardsMatch) {
+    const whole = wordToNum[yardsMatch[1].toLowerCase()] || parseInt(yardsMatch[1]) || yardsMatch[1]
+    const unit = /mile/i.test(yardsMatch[2]) ? (whole === 1 ? 'mile' : 'miles') : `f`
+    const yards = wordToNum[yardsMatch[3].toLowerCase()] || parseInt(yardsMatch[3]) || yardsMatch[3]
+    const unitStr = unit === 'f' ? `${whole}f` : `${whole} ${unit}`
+    return `${prefix}${unitStr} ${yards}yds`
+  }
 
   // Match furlongs with fraction: "Six And One Half Furlongs" → "6.5f"
   const furlongFractionMatch = withoutAbout.match(/^(\w+)\s+And\s+(\w+(?:\s+\w+)?)\s+Furlongs?$/i)
