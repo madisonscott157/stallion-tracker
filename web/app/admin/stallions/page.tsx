@@ -11,6 +11,7 @@ interface Stallion {
   dam: string | null
   dam_sire: string | null
   stud_farm: string | null
+  stud_fee: number | null
   equineline_url: string | null
   tdn_url: string | null
 }
@@ -32,7 +33,7 @@ export default function AdminStallionsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingUrls, setEditingUrls] = useState<{ equineline_url: string; tdn_url: string }>({ equineline_url: '', tdn_url: '' })
+  const [editingUrls, setEditingUrls] = useState<{ equineline_url: string; tdn_url: string; stud_fee: string }>({ equineline_url: '', tdn_url: '', stud_fee: '' })
   const [isSaving, setIsSaving] = useState(false)
   const [newStallion, setNewStallion] = useState({
     name: '',
@@ -41,6 +42,7 @@ export default function AdminStallionsPage() {
     dam: '',
     dam_sire: '',
     stud_farm: '',
+    stud_fee: '',
     equineline_url: '',
     tdn_url: '',
   })
@@ -87,6 +89,7 @@ export default function AdminStallionsPage() {
     if (newStallion.dam) stallionData.dam = newStallion.dam
     if (newStallion.dam_sire) stallionData.dam_sire = newStallion.dam_sire
     if (newStallion.stud_farm) stallionData.stud_farm = newStallion.stud_farm
+    if (newStallion.stud_fee) stallionData.stud_fee = parseInt(newStallion.stud_fee)
     if (newStallion.equineline_url) stallionData.equineline_url = newStallion.equineline_url
     if (newStallion.tdn_url) stallionData.tdn_url = newStallion.tdn_url
 
@@ -115,6 +118,7 @@ export default function AdminStallionsPage() {
     setEditingUrls({
       equineline_url: stallion.equineline_url || '',
       tdn_url: stallion.tdn_url || '',
+      stud_fee: stallion.stud_fee != null ? String(stallion.stud_fee) : '',
     })
   }
 
@@ -124,11 +128,12 @@ export default function AdminStallionsPage() {
     setError('')
 
     // Only include fields that have values
-    const updates: Record<string, string> = {}
+    const updates: Record<string, string | number> = {}
     if (editingUrls.equineline_url) updates.equineline_url = editingUrls.equineline_url
     if (editingUrls.tdn_url) updates.tdn_url = editingUrls.tdn_url
+    if (editingUrls.stud_fee) updates.stud_fee = parseInt(editingUrls.stud_fee)
 
-    // If no URLs provided, just close without updating
+    // If no fields provided, just close without updating
     if (Object.keys(updates).length === 0) {
       setIsSaving(false)
       setEditingId(null)
@@ -259,6 +264,16 @@ export default function AdminStallionsPage() {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Stud Fee (USD)</label>
+                <input
+                  type="number"
+                  value={newStallion.stud_fee}
+                  onChange={e => setNewStallion({ ...newStallion, stud_fee: e.target.value })}
+                  placeholder="25000"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Sire</label>
                 <input
                   type="text"
@@ -348,6 +363,9 @@ export default function AdminStallionsPage() {
                     {stallion.stud_farm && (
                       <span className="text-sm text-slate-400">@ {stallion.stud_farm}</span>
                     )}
+                    {stallion.stud_fee != null && (
+                      <span className="text-sm text-slate-400">${stallion.stud_fee.toLocaleString()}</span>
+                    )}
                   </div>
                   {(stallion.sire || stallion.dam) && (
                     <div className="text-sm text-slate-600 mt-1">
@@ -383,6 +401,17 @@ export default function AdminStallionsPage() {
                   {/* URLs */}
                   {isEditing ? (
                     <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-slate-500">Stud Fee (USD)</label>
+                        <input
+                          type="number"
+                          value={editingUrls.stud_fee}
+                          onChange={e => setEditingUrls({ ...editingUrls, stud_fee: e.target.value })}
+                          placeholder="25000"
+                          className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
+                        />
+                      </div>
+                      <div />
                       <div>
                         <label className="text-xs font-medium text-slate-500">Equineline URL</label>
                         <input
@@ -439,7 +468,7 @@ export default function AdminStallionsPage() {
                     disabled={isSaving}
                     className="text-sm text-primary hover:text-primary/80 disabled:opacity-50"
                   >
-                    {isEditing ? (isSaving ? 'Saving...' : 'Save') : 'Edit URLs'}
+                    {isEditing ? (isSaving ? 'Saving...' : 'Save') : 'Edit'}
                   </button>
                   <button
                     onClick={() => handleDeleteStallion(stallion.id)}

@@ -20,12 +20,12 @@ export async function GET() {
   }
 
   // 1. Fetch visible stallions (same logic as /api/stallions)
-  let stallionList: { id: string; name: string }[] = []
+  let stallionList: { id: string; name: string; stud_farm: string | null; stud_fee: number | null }[] = []
 
   if (profile.role === 'admin') {
     const { data } = await supabase
       .from('stallions')
-      .select('id, name')
+      .select('id, name, stud_farm, stud_fee')
       .order('name')
     stallionList = data || []
   } else {
@@ -34,11 +34,11 @@ export async function GET() {
     }
     const { data } = await supabase
       .from('organization_stallions')
-      .select('stallion_id, stallions(id, name)')
+      .select('stallion_id, stallions(id, name, stud_farm, stud_fee)')
       .eq('organization_id', profile.organization_id)
 
     stallionList = (data || [])
-      .map(os => os.stallions as unknown as { id: string; name: string })
+      .map(os => os.stallions as unknown as { id: string; name: string; stud_farm: string | null; stud_fee: number | null })
       .filter(Boolean)
       .sort((a, b) => a.name.localeCompare(b.name))
   }
@@ -50,12 +50,12 @@ export async function GET() {
   const stallionIds = stallionList.map(s => s.id)
   const today = new Date().toISOString().split('T')[0]
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   // Build claiming race filter helper
+  // Allow null race_type through — only exclude explicitly tagged MCL/CLM
   const applyClaimingFilter = (query: any) => {
     if (!prefs.show_claiming_races) {
-      query = query.not('race_type', 'is', null).not('race_type', 'in', '("MCL","CLM")')
+      query = query.or('race_type.is.null,race_type.not.in.("MCL","CLM")')
     }
     return query
   }
@@ -66,7 +66,7 @@ export async function GET() {
     applyClaimingFilter(
       supabase
         .from('entries')
-        .select('id, horse_id, horses!inner(stallion_id)')
+        .select('id, horse_id, horses!inner(sire_id)')
         .eq('scratched', false)
         .gte('race_date', today)
     ),
@@ -85,7 +85,6 @@ export async function GET() {
           *,
           horses!inner (
             name, sex, yob, dam, equibase_profile_url,
-            stallion_id,
             stallions!inner ( name )
           )
         `)
@@ -96,7 +95,7 @@ export async function GET() {
       .order('race_number', { ascending: false })
       .limit(15),
 
-    // Recent stakes (last 30 days, limit 15)
+    // Recent stakes (last 14 days, limit 15)
     applyClaimingFilter(
       supabase
         .from('results')
@@ -104,23 +103,28 @@ export async function GET() {
           *,
           horses!inner (
             name, sex, yob, dam, equibase_profile_url,
-            stallion_id,
             stallions!inner ( name )
           )
         `)
         .eq('is_stakes', true)
-        .gte('race_date', thirtyDaysAgo)
+        .gte('race_date', fourteenDaysAgo)
     )
       .order('race_date', { ascending: false })
       .order('race_number', { ascending: false })
       .limit(15),
   ])
 
+  // Log any query errors
+  if (entriesRes.error) console.error('Dashboard entries query error:', entriesRes.error)
+  if (ytdRes.error) console.error('Dashboard YTD query error:', ytdRes.error)
+  if (winnersRes.error) console.error('Dashboard winners query error:', winnersRes.error)
+  if (stakesRes.error) console.error('Dashboard stakes query error:', stakesRes.error)
+
   // Group entry counts by sire_id
   const entryCounts: Record<string, number> = {}
   if (entriesRes.data) {
     for (const entry of entriesRes.data) {
-      const sireId = (entry.horses as any)?.stallion_id
+      const sireId = (entry.horses as any)?.sire_id
       if (sireId && stallionIds.includes(sireId)) {
         entryCounts[sireId] = (entryCounts[sireId] || 0) + 1
       }
@@ -139,6 +143,8 @@ export async function GET() {
   const stallions = stallionList.map(s => ({
     id: s.id,
     name: s.name,
+    stud_farm: s.stud_farm,
+    stud_fee: s.stud_fee,
     upcoming_entries: entryCounts[s.id] || 0,
     ytd_starters: ytdMap[s.name]?.starters || 0,
     ytd_winners: ytdMap[s.name]?.winners || 0,

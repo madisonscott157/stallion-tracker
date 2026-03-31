@@ -6,6 +6,7 @@ import type { Workout } from '@/lib/supabase'
 
 interface WorkoutCardProps {
   workout: Workout
+  showSireName?: boolean
 }
 
 function cleanWorkoutTrack(track: string | null): string {
@@ -15,7 +16,7 @@ function cleanWorkoutTrack(track: string | null): string {
   return formatTrack(cleaned)
 }
 
-export function WorkoutCard({ workout }: WorkoutCardProps) {
+export function WorkoutCard({ workout, showSireName }: WorkoutCardProps) {
   const { profile, allOrgsWithSilks, isAdmin } = useAuth()
 
   // Show name, or "YOB Dam" if unnamed
@@ -47,6 +48,9 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
           </a>
         ) : (
           <span className="font-medium text-slate-900">{displayName}</span>
+        )}
+        {showSireName && workout.sire_name && (
+          <span className="text-xs font-medium bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 relative top-[-1px]">{workout.sire_name}</span>
         )}
         {showSilks && silksUrls.map((url, idx) => (
           <img

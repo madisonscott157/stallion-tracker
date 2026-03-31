@@ -10,6 +10,8 @@ import type { Result } from '@/lib/supabase'
 interface StallionSummary {
   id: string
   name: string
+  stud_farm: string | null
+  stud_fee: number | null
   upcoming_entries: number
   ytd_starters: number
   ytd_winners: number
@@ -78,7 +80,7 @@ export default function DashboardPage() {
 
             {/* Recent Winners */}
             <section className="mb-8">
-              <h2 className="section-header">Recent Winners</h2>
+              <h2 className="section-header">Recent Winners <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
               {data.recent_winners.length > 0 ? (
                 <div className="card-stack">
                   {data.recent_winners.map(result => (
@@ -92,7 +94,7 @@ export default function DashboardPage() {
 
             {/* Recent Stakes Results */}
             <section className="mb-8">
-              <h2 className="section-header">Recent Stakes Results</h2>
+              <h2 className="section-header">Recent Stakes Results <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
               {data.recent_stakes.length > 0 ? (
                 <div className="card-stack">
                   {data.recent_stakes.map(result => (

@@ -5,6 +5,8 @@ import Link from 'next/link'
 interface StallionSummary {
   id: string
   name: string
+  stud_farm?: string | null
+  stud_fee?: number | null
   upcoming_entries: number
   ytd_starters: number
   ytd_winners: number
@@ -21,7 +23,7 @@ export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
       href={`/?stallion=${stallion.id}`}
       className="block bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-300 hover:shadow-sm transition-all"
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-1">
         <h3 className="font-semibold text-lg" style={{ color: 'var(--org-primary)' }}>
           {stallion.name}
         </h3>
@@ -30,6 +32,14 @@ export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
         </svg>
       </div>
 
+      {(stallion.stud_farm || stallion.stud_fee) && (
+        <div className="flex flex-wrap items-baseline gap-x-2 text-sm text-slate-500 mb-3">
+          {stallion.stud_farm && <span>{stallion.stud_farm}</span>}
+          {stallion.stud_farm && stallion.stud_fee && <span className="text-slate-300">|</span>}
+          {stallion.stud_fee && <span>${stallion.stud_fee.toLocaleString()}</span>}
+        </div>
+      )}
+
       {stallion.upcoming_entries > 0 && (
         <div className="mb-3 text-sm">
           <span className="font-medium text-slate-900">{stallion.upcoming_entries}</span>
@@ -37,15 +47,12 @@ export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
         </div>
       )}
 
-      <div className="flex items-center gap-4 text-sm text-slate-500">
+      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
         <div>
-          <span className="font-medium text-slate-700">{stallion.ytd_starters}</span> starters
+          <span className="font-medium text-slate-700">{stallion.ytd_starters}</span> starters <span className="text-slate-400">YTD</span>
         </div>
         <div>
-          <span className="font-medium text-slate-700">{stallion.ytd_winners}</span> winners
-        </div>
-        <div>
-          <span className="font-medium text-slate-700">${stallion.ytd_earnings.toLocaleString()}</span>
+          <span className="font-medium text-slate-700">{stallion.ytd_winners}</span> winners <span className="text-slate-400">YTD</span>
         </div>
       </div>
     </Link>
