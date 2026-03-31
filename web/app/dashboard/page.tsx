@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { DashboardHeader } from '@/components/DashboardHeader'
 import { StallionSummaryCard } from '@/components/StallionSummaryCard'
+import { EntryCard } from '@/components/EntryCard'
 import { ResultCard } from '@/components/ResultCard'
 import { useAuth } from '@/lib/auth-context'
-import type { Result } from '@/lib/supabase'
+import type { Entry, Result } from '@/lib/supabase'
 
 interface StallionSummary {
   id: string
@@ -26,17 +27,23 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
+  const [entries, setEntries] = useState<Entry[]>([])
+  const [results, setResults] = useState<Result[]>([])
   const [loading, setLoading] = useState(true)
   const { isLoading: authLoading } = useAuth()
 
   useEffect(() => {
     async function fetchDashboard() {
       try {
-        const res = await fetch('/api/dashboard/summary')
-        if (res.ok) {
-          const json = await res.json()
-          setData(json)
-        }
+        const [dashRes, entriesRes, resultsRes] = await Promise.all([
+          fetch('/api/dashboard/summary'),
+          fetch('/api/entries'),
+          fetch('/api/results?limit=50&days=14'),
+        ])
+
+        if (dashRes.ok) setData(await dashRes.json())
+        if (entriesRes.ok) setEntries(await entriesRes.json())
+        if (resultsRes.ok) setResults(await resultsRes.json())
       } catch (error) {
         console.error('Error fetching dashboard:', error)
       } finally {
@@ -75,6 +82,34 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <p className="empty-state">No stallions found</p>
+              )}
+            </section>
+
+            {/* Upcoming Entries */}
+            <section className="mb-8">
+              <h2 className="section-header">Upcoming Entries</h2>
+              {entries.length > 0 ? (
+                <div className="card-stack">
+                  {entries.map(entry => (
+                    <EntryCard key={entry.id} entry={entry} showSireName />
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-state">No upcoming entries</p>
+              )}
+            </section>
+
+            {/* Recent Results */}
+            <section className="mb-8">
+              <h2 className="section-header">Recent Results <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
+              {results.length > 0 ? (
+                <div className="card-stack">
+                  {results.map(result => (
+                    <ResultCard key={result.id} result={result} showSireName />
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-state">No recent results</p>
               )}
             </section>
 
