@@ -35,16 +35,26 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function fetchDashboard() {
+      const fetchWithTimeout = (url: string, ms = 8000) => {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), ms)
+        return fetch(url, { signal: controller.signal })
+          .finally(() => clearTimeout(timer))
+      }
+
       try {
-        const [dashRes, entriesRes, resultsRes] = await Promise.all([
-          fetch('/api/dashboard/summary'),
-          fetch('/api/entries'),
-          fetch('/api/results?limit=50&days=14'),
+        const [dashRes, entriesRes, resultsRes] = await Promise.allSettled([
+          fetchWithTimeout('/api/dashboard/summary'),
+          fetchWithTimeout('/api/entries'),
+          fetchWithTimeout('/api/results?limit=50&days=14'),
         ])
 
-        if (dashRes.ok) setData(await dashRes.json())
-        if (entriesRes.ok) setEntries(await entriesRes.json())
-        if (resultsRes.ok) setResults(await resultsRes.json())
+        if (dashRes.status === 'fulfilled' && dashRes.value.ok)
+          setData(await dashRes.value.json())
+        if (entriesRes.status === 'fulfilled' && entriesRes.value.ok)
+          setEntries(await entriesRes.value.json())
+        if (resultsRes.status === 'fulfilled' && resultsRes.value.ok)
+          setResults(await resultsRes.value.json())
       } catch (error) {
         console.error('Error fetching dashboard:', error)
       } finally {

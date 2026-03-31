@@ -109,13 +109,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          const profile = await fetchProfile(session.user.id)
+          // Fetch profile and org silks in parallel
+          const [profile, orgs] = await Promise.all([
+            fetchProfile(session.user.id),
+            fetchAllOrgsWithSilks(),
+          ])
           if (isCancelled) return
           setProfile(profile)
-          // Fetch all orgs with silks for admins
           if (profile?.role === 'admin') {
-            const orgs = await fetchAllOrgsWithSilks()
-            if (isCancelled) return
             setAllOrgsWithSilks(orgs)
           }
         }
@@ -131,12 +132,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Add timeout to prevent infinite loading
+    // Timeout to prevent infinite loading
     const timeout = setTimeout(() => {
       if (!isCancelled) {
         setIsLoading(false)
       }
-    }, 10000) // 10 second timeout
+    }, 5000)
 
     initAuth()
 
@@ -158,13 +159,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(session?.user ?? null)
 
           if (session?.user) {
-            const profile = await fetchProfile(session.user.id)
+            const [profile, orgs] = await Promise.all([
+              fetchProfile(session.user.id),
+              fetchAllOrgsWithSilks(),
+            ])
             if (isCancelled) return
             setProfile(profile)
-            // Fetch all orgs with silks for admins
             if (profile?.role === 'admin') {
-              const orgs = await fetchAllOrgsWithSilks()
-              if (isCancelled) return
               setAllOrgsWithSilks(orgs)
             } else {
               setAllOrgsWithSilks([])

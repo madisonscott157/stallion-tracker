@@ -52,45 +52,36 @@ export default function Home() {
 
       setLoading(true)
 
+      // Fetch with per-request timeout so one slow endpoint doesn't block the page
+      const fetchWithTimeout = (url: string, ms = 8000) => {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), ms)
+        return fetch(url, { signal: controller.signal })
+          .finally(() => clearTimeout(timer))
+      }
+
       try {
-        const [entriesRes, resultsRes, statsRes, salesRes, rankingsRes, equinelineRes] = await Promise.all([
-          fetch(`/api/entries?stallion=${stallion}`),
-          fetch(`/api/results?stallion=${stallion}&limit=1000`),
-          fetch(`/api/stats?stallion=${stallion}`),
-          fetch(`/api/sales?stallion=${stallion}`),
-          fetch(`/api/rankings?stallion=${stallion}`),
-          fetch(`/api/equineline-stats?stallion=${stallion}`),
+        const [entriesRes, resultsRes, statsRes, salesRes, rankingsRes, equinelineRes] = await Promise.allSettled([
+          fetchWithTimeout(`/api/entries?stallion=${stallion}`),
+          fetchWithTimeout(`/api/results?stallion=${stallion}&limit=1000`),
+          fetchWithTimeout(`/api/stats?stallion=${stallion}`),
+          fetchWithTimeout(`/api/sales?stallion=${stallion}`),
+          fetchWithTimeout(`/api/rankings?stallion=${stallion}`),
+          fetchWithTimeout(`/api/equineline-stats?stallion=${stallion}`),
         ])
 
-        if (entriesRes.ok) {
-          const data = await entriesRes.json()
-          setEntries(data)
-        }
-
-        if (resultsRes.ok) {
-          const data = await resultsRes.json()
-          setResults(data)
-        }
-
-        if (statsRes.ok) {
-          const data = await statsRes.json()
-          setStats(data)
-        }
-
-        if (salesRes.ok) {
-          const data = await salesRes.json()
-          setSales(data)
-        }
-
-        if (rankingsRes.ok) {
-          const data = await rankingsRes.json()
-          setRankings(data)
-        }
-
-        if (equinelineRes.ok) {
-          const data = await equinelineRes.json()
-          setEquinelineStats(data)
-        }
+        if (entriesRes.status === 'fulfilled' && entriesRes.value.ok)
+          setEntries(await entriesRes.value.json())
+        if (resultsRes.status === 'fulfilled' && resultsRes.value.ok)
+          setResults(await resultsRes.value.json())
+        if (statsRes.status === 'fulfilled' && statsRes.value.ok)
+          setStats(await statsRes.value.json())
+        if (salesRes.status === 'fulfilled' && salesRes.value.ok)
+          setSales(await salesRes.value.json())
+        if (rankingsRes.status === 'fulfilled' && rankingsRes.value.ok)
+          setRankings(await rankingsRes.value.json())
+        if (equinelineRes.status === 'fulfilled' && equinelineRes.value.ok)
+          setEquinelineStats(await equinelineRes.value.json())
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {

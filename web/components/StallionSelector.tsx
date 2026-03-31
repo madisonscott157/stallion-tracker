@@ -35,8 +35,27 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
     async function fetchStallions() {
       let stallionList: Stallion[] = []
 
-      // Always start with org-linked stallions (works with RLS)
-      if (profile!.organization?.id) {
+      if (isAdmin) {
+        // Admin: fetch org stallions and all stallions in parallel, use whichever is larger
+        const [orgResult, apiResult] = await Promise.allSettled([
+          profile!.organization?.id
+            ? supabase
+                .from('organization_stallions')
+                .select('stallion_id, stallions(id, name)')
+                .eq('organization_id', profile!.organization.id)
+            : Promise.resolve({ data: null, error: null }),
+          fetch('/api/stallions').then(r => r.ok ? r.json() : []),
+        ])
+
+        const orgStallions = orgResult.status === 'fulfilled' && orgResult.value?.data
+          ? (orgResult.value.data as any[])
+              .map(os => os.stallions as unknown as Stallion)
+              .filter(Boolean)
+              .sort((a, b) => a.name.localeCompare(b.name))
+          : []
+        const apiStallions: Stallion[] = apiResult.status === 'fulfilled' ? apiResult.value : []
+        stallionList = apiStallions.length > orgStallions.length ? apiStallions : orgStallions
+      } else if (profile!.organization?.id) {
         const { data, error } = await supabase
           .from('organization_stallions')
           .select('stallion_id, stallions(id, name)')
@@ -47,21 +66,6 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
             .map(os => os.stallions as unknown as Stallion)
             .filter(Boolean)
             .sort((a, b) => a.name.localeCompare(b.name))
-        }
-      }
-
-      // For admin, also try to get all stallions via API
-      if (isAdmin) {
-        try {
-          const res = await fetch('/api/stallions')
-          if (res.ok) {
-            const allStallions: Stallion[] = await res.json()
-            if (allStallions.length > stallionList.length) {
-              stallionList = allStallions
-            }
-          }
-        } catch {
-          // API failed, stick with org stallions
         }
       }
 

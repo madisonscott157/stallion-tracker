@@ -3,13 +3,13 @@ import { createBrowserClient } from '@supabase/ssr'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Browser client for client components
-export function createClientComponentClient() {
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
-}
-
-// Legacy export for backward compatibility
+// Singleton browser client — reused across all components
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
+
+// Returns the singleton (kept for backward compat with existing imports)
+export function createClientComponentClient() {
+  return supabase
+}
 
 // Types for database tables
 export interface Stallion {

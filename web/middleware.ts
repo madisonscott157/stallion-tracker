@@ -34,28 +34,20 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
-
   // Define public routes that don't require auth
   const isLoginPage = request.nextUrl.pathname === '/login'
   const isAuthCallback = request.nextUrl.pathname.startsWith('/auth/callback')
 
+  // Skip session check entirely for auth callback
+  if (isAuthCallback) return response
+
+  const { data: { session } } = await supabase.auth.getSession()
+
   // Redirect unauthenticated users to login (except for public routes)
-  if (!session && !isLoginPage && !isAuthCallback) {
+  if (!session && !isLoginPage) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
     return NextResponse.redirect(loginUrl)
-  }
-
-  // Fetch user role once if needed for login redirect or admin protection
-  let userRole: string | null = null
-  if (session && (isLoginPage || request.nextUrl.pathname.startsWith('/admin'))) {
-    const { data: user } = await supabase
-      .from('users')
-      .select('role')
-      .eq('auth_id', session.user.id)
-      .single()
-    userRole = user?.role ?? null
   }
 
   // Redirect authenticated users away from login page
@@ -63,9 +55,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Protect admin routes - check user role
+  // Protect admin routes - only fetch user role when actually needed
   if (session && request.nextUrl.pathname.startsWith('/admin')) {
-    if (userRole !== 'admin') {
+    const { data: user } = await supabase
+      .from('users')
+      .select('role')
+      .eq('auth_id', session.user.id)
+      .single()
+    if (user?.role !== 'admin') {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }
