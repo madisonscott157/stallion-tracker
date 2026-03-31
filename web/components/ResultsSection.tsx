@@ -109,17 +109,17 @@ export function ResultsSection({ results, stallionName }: ResultsSectionProps) {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <input
           type="text"
-          placeholder="Search horse name..."
+          placeholder="Search horse..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-slate-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 w-48"
+          className="px-3 py-1.5 text-sm border border-slate-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 flex-1 min-w-[120px] max-w-[200px]"
         />
         <select
           value={raceType}
           onChange={e => setRaceType(e.target.value as RaceTypeFilter)}
-          className="px-3 py-1.5 text-sm border border-slate-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-slate-300"
+          className="px-2 sm:px-3 py-1.5 text-sm border border-slate-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-slate-300"
         >
-          <option value="all">All Race Types</option>
+          <option value="all">All Types</option>
           <option value="msw">MSW</option>
           <option value="alw">ALW</option>
           <option value="stakes">Stakes</option>
@@ -127,7 +127,7 @@ export function ResultsSection({ results, stallionName }: ResultsSectionProps) {
         <select
           value={position}
           onChange={e => setPosition(e.target.value as PositionFilter)}
-          className="px-3 py-1.5 text-sm border border-slate-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-slate-300"
+          className="px-2 sm:px-3 py-1.5 text-sm border border-slate-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-slate-300"
         >
           <option value="all">All Finishes</option>
           <option value="win">Winners</option>

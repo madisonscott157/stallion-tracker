@@ -33,8 +33,13 @@ input, select, textarea {
   font-size: 16px;
 }
 
-/* Touch-friendly tap targets */
-button, a {
+/* Touch-friendly tap targets — only standalone interactive elements, not inline links/badges */
+nav button,
+nav a,
+header button,
+header a,
+button[type="submit"],
+.tap-target {
   min-height: 44px;
   min-width: 44px;
 }
@@ -44,12 +49,12 @@ button, a {
   @apply text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4;
 }
 
-/* Card spacing */
+/* Card spacing — tighter on mobile */
 .card-stack > * + * {
-  @apply mt-4;
+  @apply mt-2 sm:mt-3;
 }
 
 /* Empty state */
 .empty-state {
-  @apply text-center py-12 text-slate-500;
+  @apply text-center py-8 sm:py-12 text-slate-500;
 }

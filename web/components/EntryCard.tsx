@@ -44,8 +44,8 @@ export function EntryCard({ entry, showSireName }: EntryCardProps) {
         !entry.scratched && borderClass
       )}
     >
-      {/* Row 1: Horse name + sex/age + silks - use items-baseline for text alignment */}
-      <div className="flex items-baseline gap-2">
+      {/* Row 1: Horse name + sex/age + silks */}
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         {entry.horse_profile_url && !entry.scratched ? (
           <a
             href={entry.horse_profile_url}
@@ -169,9 +169,9 @@ export function EntryCard({ entry, showSireName }: EntryCardProps) {
         </div>
       )}
 
-      {/* Row 4: Trainer, Jockey (hidden on small mobile) */}
+      {/* Row 4: Trainer, Jockey */}
       {(entry.trainer || entry.jockey) && (
-        <div className="hidden sm:flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-sm text-slate-500">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 -mt-0.5 sm:mt-1 text-xs sm:text-sm text-slate-400 sm:text-slate-500">
           {entry.trainer && <span>T: {entry.trainer}</span>}
           {entry.jockey && (
             <>

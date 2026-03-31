@@ -153,7 +153,7 @@ export default function Home() {
         )
       })()}
 
-      <main className="flex-1 px-6 py-6 max-w-5xl mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-6 py-4 sm:py-6 max-w-5xl mx-auto w-full">
         {(authLoading || loading || !stallionId) ? (
           <div className="space-y-6 animate-pulse">
             <div className="h-5 w-40 bg-slate-200 rounded" />
@@ -185,7 +185,7 @@ export default function Home() {
             {activeTab === 'overview' && (
               <>
                 {/* Upcoming Entries */}
-                <section className="mb-8">
+                <section className="mb-6 sm:mb-8">
                   <h2 className="section-header">Upcoming Entries</h2>
                   {entries.length > 0 ? (
                     <div className="card-stack">
@@ -199,7 +199,7 @@ export default function Home() {
                 </section>
 
                 {/* Recent Results (last 10) */}
-                <section className="mb-8">
+                <section className="mb-6 sm:mb-8">
                   <h2 className="section-header">Recent Results</h2>
                   {results.length > 0 ? (
                     <div className="card-stack">
@@ -261,7 +261,11 @@ export default function Home() {
       </main>
 
       {/* Bottom nav */}
-      <nav className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-3" aria-label="Main navigation">
+      <nav
+        className="sticky bottom-0 bg-white border-t border-slate-200 px-4 sm:px-6 pt-2 pb-2"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        aria-label="Main navigation"
+      >
         <div className="flex justify-around text-sm max-w-5xl mx-auto" role="tablist">
           {(['overview', 'results', 'stats', 'sales'] as const).map((tab) => (
             <button
@@ -269,7 +273,7 @@ export default function Home() {
               role="tab"
               aria-selected={activeTab === tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex flex-col items-center relative pb-2 ${activeTab === tab ? 'text-slate-900 font-semibold' : 'text-slate-400 font-normal'}`}
+              className={`flex flex-col items-center relative pb-2 px-3 ${activeTab === tab ? 'text-slate-900 font-semibold' : 'text-slate-400 font-normal'}`}
             >
               <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
               {activeTab === tab && (

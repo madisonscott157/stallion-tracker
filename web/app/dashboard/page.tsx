@@ -86,7 +86,7 @@ export default function DashboardPage() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <DashboardHeader />
 
-      <main className="flex-1 px-6 py-6 max-w-5xl mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-6 py-4 sm:py-6 max-w-5xl mx-auto w-full">
         {(authLoading || loading) ? (
           <div className="space-y-6 animate-pulse">
             <div className="h-5 w-32 bg-slate-200 rounded" />
@@ -125,7 +125,7 @@ export default function DashboardPage() {
             )}
 
             {/* Stallion Summary Cards */}
-            <section className="mb-8">
+            <section className="mb-6 sm:mb-8">
               <h2 className="section-header">Your Stallions</h2>
               {data.stallions.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -141,7 +141,7 @@ export default function DashboardPage() {
             </section>
 
             {/* Upcoming Entries */}
-            <section className="mb-8">
+            <section className="mb-6 sm:mb-8">
               <h2 className="section-header">Upcoming Entries</h2>
               {filteredEntries.length > 0 ? (
                 <div className="card-stack">
@@ -155,7 +155,7 @@ export default function DashboardPage() {
             </section>
 
             {/* Recent Results */}
-            <section className="mb-8">
+            <section className="mb-6 sm:mb-8">
               <h2 className="section-header">Recent Results <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
               {filteredResults.length > 0 ? (
                 <div className="card-stack">
@@ -169,7 +169,7 @@ export default function DashboardPage() {
             </section>
 
             {/* Recent Winners */}
-            <section className="mb-8">
+            <section className="mb-6 sm:mb-8">
               <h2 className="section-header">Recent Winners <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
               {filteredWinners.length > 0 ? (
                 <div className="card-stack">
@@ -183,7 +183,7 @@ export default function DashboardPage() {
             </section>
 
             {/* Recent Stakes Results */}
-            <section className="mb-8">
+            <section className="mb-6 sm:mb-8">
               <h2 className="section-header">Recent Stakes Results <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
               {filteredStakes.length > 0 ? (
                 <div className="card-stack">

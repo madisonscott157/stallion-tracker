@@ -34,8 +34,8 @@ export function WorkoutCard({ workout, showSireName }: WorkoutCardProps) {
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5">
-      {/* Row 1: Horse name + silks - use items-baseline for text alignment */}
-      <div className="flex items-baseline gap-2">
+      {/* Row 1: Horse name + silks */}
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         {workout.horse_profile_url ? (
           <a
             href={workout.horse_profile_url}

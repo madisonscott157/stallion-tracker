@@ -193,7 +193,7 @@ export default function AdminUsersAndStablesPage() {
           <div className="mb-3 p-2 bg-red-50 text-red-700 rounded text-sm">{userError}</div>
         )}
         <form onSubmit={handleAddUser} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
               <input
@@ -273,32 +273,34 @@ export default function AdminUsersAndStablesPage() {
 
   function renderUserRow(user: User) {
     return (
-      <div key={user.id} className="flex items-center gap-3 py-2 px-3 text-sm border-t border-slate-100 first:border-0">
-        <span className="text-slate-900 min-w-0 truncate flex-1">{user.email}</span>
-        <span className="text-slate-500 min-w-0 truncate w-32">{user.name || '-'}</span>
-        <select
-          value={user.role}
-          onChange={e => handleUpdateUser(user.id, { role: e.target.value })}
-          className="text-xs border border-slate-200 rounded px-1.5 py-1"
-        >
-          <option value="user">User</option>
-          <option value="admin">Admin</option>
-        </select>
-        <label className="flex items-center gap-1 text-xs text-slate-500 cursor-pointer" title="Show claiming races">
-          <input
-            type="checkbox"
-            checked={user.show_claiming_races}
-            onChange={e => handleUpdateUser(user.id, { show_claiming_races: e.target.checked })}
-            className="w-3.5 h-3.5 rounded border-slate-300"
-          />
-          Claiming
-        </label>
-        <button
-          onClick={() => handleDeleteUser(user.id)}
-          className="text-xs text-red-600 hover:text-red-800 ml-auto"
-        >
-          Delete
-        </button>
+      <div key={user.id} className="py-2 px-3 text-sm border-t border-slate-100 first:border-0">
+        <div className="flex items-center gap-2">
+          <span className="text-slate-900 min-w-0 truncate flex-1">{user.email}</span>
+          <span className="text-slate-500 min-w-0 truncate hidden sm:inline w-32">{user.name || '-'}</span>
+          <select
+            value={user.role}
+            onChange={e => handleUpdateUser(user.id, { role: e.target.value })}
+            className="text-xs border border-slate-200 rounded px-1.5 py-1"
+          >
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+          <label className="hidden sm:flex items-center gap-1 text-xs text-slate-500 cursor-pointer" title="Show claiming races">
+            <input
+              type="checkbox"
+              checked={user.show_claiming_races}
+              onChange={e => handleUpdateUser(user.id, { show_claiming_races: e.target.checked })}
+              className="w-3.5 h-3.5 rounded border-slate-300"
+            />
+            CLM
+          </label>
+          <button
+            onClick={() => handleDeleteUser(user.id)}
+            className="text-xs text-red-600 hover:text-red-800 shrink-0"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     )
   }
@@ -327,7 +329,7 @@ export default function AdminUsersAndStablesPage() {
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">{orgError}</div>
           )}
           <form onSubmit={handleAddOrg} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
                 <input
@@ -411,69 +413,69 @@ export default function AdminUsersAndStablesPage() {
           return (
             <div key={org.id} className="bg-white rounded-lg border border-slate-200 overflow-hidden">
               {/* Stable header */}
-              <div className="flex items-center gap-4 px-5 py-4 border-b border-slate-100">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-base font-semibold text-slate-900">{org.name}</h3>
-                    <span className="text-xs text-slate-400">{org.slug}</span>
+              <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-100">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-base font-semibold text-slate-900 truncate">{org.name}</h3>
+                      <span className="text-xs text-slate-400 hidden sm:inline">{org.slug}</span>
+                    </div>
                   </div>
-                </div>
-
-                {/* Colors */}
-                <div className="flex gap-1.5 items-center">
-                  <input
-                    type="color"
-                    value={org.primary_color}
-                    onChange={e => handleUpdateOrg(org.id, { primary_color: e.target.value })}
-                    className="w-7 h-7 rounded border border-slate-200 cursor-pointer"
-                    title={`Primary: ${org.primary_color}`}
-                  />
-                  <input
-                    type="color"
-                    value={org.secondary_color}
-                    onChange={e => handleUpdateOrg(org.id, { secondary_color: e.target.value })}
-                    className="w-7 h-7 rounded border border-slate-200 cursor-pointer"
-                    title={`Secondary: ${org.secondary_color}`}
-                  />
-                </div>
-
-                {/* Silks */}
-                <div className="flex items-center gap-2">
-                  {org.silks_url ? (
-                    <img
-                      src={org.silks_url}
-                      alt={`${org.name} silks`}
-                      className="w-8 h-8 object-contain rounded border border-slate-200"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded border border-dashed border-slate-300 bg-slate-50" />
-                  )}
-                  <input
-                    type="file"
-                    ref={el => { fileInputRefs.current[org.id] = el }}
-                    accept="image/*"
-                    className="hidden"
-                    onChange={e => {
-                      const file = e.target.files?.[0]
-                      if (file) handleSilksUpload(org.id, file)
-                    }}
-                  />
                   <button
-                    onClick={() => fileInputRefs.current[org.id]?.click()}
-                    disabled={uploadingOrgId === org.id}
-                    className="text-xs text-primary hover:text-primary/80 disabled:opacity-50"
+                    onClick={() => handleDeleteOrg(org.id)}
+                    className="text-xs text-red-600 hover:text-red-800 shrink-0"
                   >
-                    {uploadingOrgId === org.id ? 'Uploading...' : org.silks_url ? 'Change' : 'Upload'}
+                    Delete
                   </button>
                 </div>
-
-                {/* Stable actions */}
-                <button
-                  onClick={() => handleDeleteOrg(org.id)}
-                  className="text-xs text-red-600 hover:text-red-800"
-                >
-                  Delete Stable
-                </button>
+                <div className="flex flex-wrap items-center gap-3 mt-2">
+                  {/* Colors */}
+                  <div className="flex gap-1.5 items-center">
+                    <input
+                      type="color"
+                      value={org.primary_color}
+                      onChange={e => handleUpdateOrg(org.id, { primary_color: e.target.value })}
+                      className="w-7 h-7 rounded border border-slate-200 cursor-pointer"
+                      title={`Primary: ${org.primary_color}`}
+                    />
+                    <input
+                      type="color"
+                      value={org.secondary_color}
+                      onChange={e => handleUpdateOrg(org.id, { secondary_color: e.target.value })}
+                      className="w-7 h-7 rounded border border-slate-200 cursor-pointer"
+                      title={`Secondary: ${org.secondary_color}`}
+                    />
+                  </div>
+                  {/* Silks */}
+                  <div className="flex items-center gap-2">
+                    {org.silks_url ? (
+                      <img
+                        src={org.silks_url}
+                        alt={`${org.name} silks`}
+                        className="w-8 h-8 object-contain rounded border border-slate-200"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded border border-dashed border-slate-300 bg-slate-50" />
+                    )}
+                    <input
+                      type="file"
+                      ref={el => { fileInputRefs.current[org.id] = el }}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) handleSilksUpload(org.id, file)
+                      }}
+                    />
+                    <button
+                      onClick={() => fileInputRefs.current[org.id]?.click()}
+                      disabled={uploadingOrgId === org.id}
+                      className="text-xs text-primary hover:text-primary/80 disabled:opacity-50"
+                    >
+                      {uploadingOrgId === org.id ? 'Uploading...' : org.silks_url ? 'Change' : 'Upload'}
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Users within this stable */}
@@ -514,44 +516,36 @@ export default function AdminUsersAndStablesPage() {
           <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
             <div className="px-2 py-1">
               {unassignedUsers.map(user => (
-                <div key={user.id} className="flex items-center gap-3 py-2 px-3 text-sm border-t border-slate-100 first:border-0">
-                  <span className="text-slate-900 min-w-0 truncate flex-1">{user.email}</span>
-                  <span className="text-slate-500 min-w-0 truncate w-32">{user.name || '-'}</span>
-                  <select
-                    value=""
-                    onChange={e => {
-                      if (e.target.value) handleUpdateUser(user.id, { organization_id: e.target.value })
-                    }}
-                    className="text-xs border border-slate-200 rounded px-1.5 py-1"
-                  >
-                    <option value="">Assign to stable...</option>
-                    {organizations.map(org => (
-                      <option key={org.id} value={org.id}>{org.name}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={user.role}
-                    onChange={e => handleUpdateUser(user.id, { role: e.target.value })}
-                    className="text-xs border border-slate-200 rounded px-1.5 py-1"
-                  >
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                  <label className="flex items-center gap-1 text-xs text-slate-500 cursor-pointer" title="Show claiming races">
-                    <input
-                      type="checkbox"
-                      checked={user.show_claiming_races}
-                      onChange={e => handleUpdateUser(user.id, { show_claiming_races: e.target.checked })}
-                      className="w-3.5 h-3.5 rounded border-slate-300"
-                    />
-                    Claiming
-                  </label>
-                  <button
-                    onClick={() => handleDeleteUser(user.id)}
-                    className="text-xs text-red-600 hover:text-red-800 ml-auto"
-                  >
-                    Delete
-                  </button>
+                <div key={user.id} className="py-2 px-3 text-sm border-t border-slate-100 first:border-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-900 min-w-0 truncate flex-1">{user.email}</span>
+                    <select
+                      value=""
+                      onChange={e => {
+                        if (e.target.value) handleUpdateUser(user.id, { organization_id: e.target.value })
+                      }}
+                      className="text-xs border border-slate-200 rounded px-1.5 py-1"
+                    >
+                      <option value="">Assign...</option>
+                      {organizations.map(org => (
+                        <option key={org.id} value={org.id}>{org.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={user.role}
+                      onChange={e => handleUpdateUser(user.id, { role: e.target.value })}
+                      className="text-xs border border-slate-200 rounded px-1.5 py-1"
+                    >
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <button
+                      onClick={() => handleDeleteUser(user.id)}
+                      className="text-xs text-red-600 hover:text-red-800 shrink-0"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
               {addingUnassignedUser && (

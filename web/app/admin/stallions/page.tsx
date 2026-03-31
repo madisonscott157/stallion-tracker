@@ -268,7 +268,7 @@ export default function AdminStallionsPage() {
             </div>
           )}
           <form onSubmit={handleAddStallion} className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Name *</label>
                 <input
@@ -352,7 +352,7 @@ export default function AdminStallionsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Equineline URL</label>
                 <input
@@ -403,7 +403,7 @@ export default function AdminStallionsPage() {
             <div key={stallion.id} className="bg-white rounded-lg border border-slate-200 p-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-baseline gap-3">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
                     <h3 className="text-lg font-semibold text-slate-900">{stallion.name}</h3>
                     {stallion.yob && (
                       <span className="text-sm text-slate-500">({stallion.yob})</span>
@@ -448,7 +448,7 @@ export default function AdminStallionsPage() {
 
                   {/* URLs */}
                   {isEditing ? (
-                    <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-medium text-slate-500">Stud Fee</label>
                         <div className="flex">
@@ -470,7 +470,7 @@ export default function AdminStallionsPage() {
                           />
                         </div>
                       </div>
-                      <div />
+                      <div className="hidden sm:block" />
                       <div>
                         <label className="text-xs font-medium text-slate-500">Equineline URL</label>
                         <input
