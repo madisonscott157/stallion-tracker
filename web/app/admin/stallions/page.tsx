@@ -146,13 +146,8 @@ export default function AdminStallionsPage() {
     if (error) {
       setError(`Update failed: ${error.message}`)
     } else {
-      // Update local state directly instead of re-fetching
-      setStallions(prev => prev.map(s =>
-        s.id === stallionId
-          ? { ...s, ...updates }
-          : s
-      ))
       setEditingId(null)
+      fetchData()
     }
   }
 
