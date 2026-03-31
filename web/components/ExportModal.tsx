@@ -36,6 +36,7 @@ export function ExportModal({ isOpen, onClose, onExport, isExporting }: ExportMo
         end: endDate || null,
       } : undefined,
       silksUrl,
+      orgName: profile?.organization?.name || null,
     }
     onExport(options)
   }

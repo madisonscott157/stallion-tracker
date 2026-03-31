@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isCancelled = false
 
-    // Get initial session with timeout to prevent infinite loading
+    // Get initial session
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -109,7 +109,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          // Fetch profile and org silks in parallel
           const [profile, orgs] = await Promise.all([
             fetchProfile(session.user.id),
             fetchAllOrgsWithSilks(),
@@ -121,7 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (error: unknown) {
-        // Ignore AbortError - happens during component unmount/remount
         if (error instanceof Error && error.name === 'AbortError') return
         if (isCancelled) return
         console.error('Error initializing auth:', error)
@@ -132,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Timeout to prevent infinite loading
+    // Timeout safety net to prevent infinite loading
     const timeout = setTimeout(() => {
       if (!isCancelled) {
         setIsLoading(false)
@@ -141,18 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth()
 
-    return () => {
-      isCancelled = true
-      clearTimeout(timeout)
-    }
-  }, [])
-
-  useEffect(() => {
-    let isCancelled = false
-
-    // Listen for auth changes
+    // Listen for auth changes (skip INITIAL_SESSION — getSession() handles it)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (event === 'INITIAL_SESSION') return
         try {
           if (isCancelled) return
           setSession(session)
@@ -175,20 +165,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setAllOrgsWithSilks([])
           }
         } catch (error: unknown) {
-          // Ignore AbortError - happens during component unmount/remount
           if (error instanceof Error && error.name === 'AbortError') return
           if (isCancelled) return
           console.error('Error handling auth state change:', error)
-        } finally {
-          if (!isCancelled) {
-            setIsLoading(false)
-          }
         }
       }
     )
 
     return () => {
       isCancelled = true
+      clearTimeout(timeout)
       subscription.unsubscribe()
     }
   }, [])

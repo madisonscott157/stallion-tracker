@@ -12,14 +12,6 @@ export default function AdminLayout({
   const pathname = usePathname()
   const { profile, signOut, isLoading } = useAuth()
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-500">Loading...</p>
-      </div>
-    )
-  }
-
   const navItems = [
     { href: '/admin', label: 'Users & Stables' },
     { href: '/admin/stallions', label: 'Stallions' },
@@ -38,12 +30,14 @@ export default function AdminLayout({
               >
                 App
               </Link>
-              <button
-                onClick={() => signOut()}
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                Logout
-              </button>
+              {!isLoading && (
+                <button
+                  onClick={() => signOut()}
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  Logout
+                </button>
+              )}
             </div>
           </div>
           <div className="flex gap-4 sm:gap-6 mt-1">
@@ -63,7 +57,13 @@ export default function AdminLayout({
           </div>
         </div>
       </nav>
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">{children}</main>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-6 h-6 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+          </div>
+        ) : children}
+      </main>
     </div>
   )
 }

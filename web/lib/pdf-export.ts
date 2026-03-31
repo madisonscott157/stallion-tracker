@@ -16,6 +16,7 @@ export interface ExportOptions {
     end: string | null
   }
   silksUrl?: string | null
+  orgName?: string | null
 }
 
 export interface OrgWithSilks {
@@ -153,7 +154,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   const raceInfoStyle = isWin && isStakes ? 'font-weight:600;color:#334155;' : 'color:#64748b;'
 
   return `
-    <div style="border:1px solid #e2e8f0;border-left:4px solid ${borderColor};border-radius:6px;padding:6px 10px;margin-bottom:4px;font-size:13px;line-height:1.6;">
+    <div style="border:1px solid #e2e8f0;border-left:4px solid ${borderColor};border-radius:6px;padding:5px 10px;margin-bottom:3px;font-size:13px;line-height:1.5;">
       <table style="width:100%;border-collapse:collapse;"><tr>
         <td style="vertical-align:baseline;width:48px;padding-right:8px;white-space:nowrap;">
           <span style="font-size:12px;font-weight:600;color:#64748b;">${dateStr}</span>
@@ -217,7 +218,7 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
     : ''
 
   return `
-    <div style="border:1px solid #e2e8f0;border-left:4px solid ${borderColor};border-radius:6px;padding:6px 10px;margin-bottom:4px;font-size:13px;line-height:1.6;">
+    <div style="border:1px solid #e2e8f0;border-left:4px solid ${borderColor};border-radius:6px;padding:5px 10px;margin-bottom:3px;font-size:13px;line-height:1.5;">
       <table style="width:100%;border-collapse:collapse;"><tr>
         <td style="vertical-align:baseline;width:48px;padding-right:8px;white-space:nowrap;">
           <span style="font-size:12px;font-weight:600;color:#64748b;">${dateStr}</span>
@@ -235,7 +236,7 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
 }
 
 function sectionHeader(text: string): string {
-  return `<div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin:12px 0 4px 0;">${text}</div>`
+  return `<div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin:10px 0 3px 0;">${text}</div>`
 }
 
 function filterByDateRange<T extends { race_date?: string; workout_date?: string }>(
@@ -260,6 +261,35 @@ function filterByDateRange<T extends { race_date?: string; workout_date?: string
   })
 }
 
+function buildSummarySection(results: Result[], entries: Entry[]): string {
+  const totalResults = results.length
+  const winners = results.filter(r => r.finish_position === 1).length
+  const winPct = totalResults > 0 ? ((winners / totalResults) * 100).toFixed(1) : '0.0'
+  const stakesWinners = results.filter(r => r.finish_position === 1 && r.is_stakes).length
+  const gradedStakesWinners = results.filter(r => r.finish_position === 1 && r.stakes_grade).length
+  const totalPurses = results.reduce((sum, r) => sum + (r.purse || 0), 0)
+  const totalEntries = entries.length
+
+  const cell = (label: string, value: string) =>
+    `<td style="padding:4px 12px 4px 0;vertical-align:top;">
+      <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">${label}</div>
+      <div style="font-size:15px;font-weight:700;color:#0f172a;">${value}</div>
+    </td>`
+
+  return `
+    <div style="margin-bottom:12px;padding:8px 0;">
+      <table style="border-collapse:collapse;"><tr>
+        ${cell('Results', String(totalResults))}
+        ${cell('Winners', String(winners))}
+        ${cell('Win %', `${winPct}%`)}
+        ${cell('SW', String(stakesWinners))}
+        ${cell('GSW', String(gradedStakesWinners))}
+        ${cell('Purses', `$${totalPurses.toLocaleString()}`)}
+        ${cell('Entries', String(totalEntries))}
+      </tr></table>
+    </div>`
+}
+
 export async function exportDashboardToPDF(data: ExportData): Promise<void> {
   const html2canvas = (await import('html2canvas')).default
   const { jsPDF } = await import('jspdf')
@@ -267,17 +297,17 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
   const options = data.options || { type: 'all' }
   const exportType = options.type
 
-  const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const now = new Date()
+  const date = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
   // Filter entries and results based on export type and date range
   let filteredEntries = data.entries.filter(e => !e.scratched)
   let filteredResults = [...data.results]
 
-  // Apply date range filter
   filteredEntries = filterByDateRange(filteredEntries, options.dateRange)
   filteredResults = filterByDateRange(filteredResults, options.dateRange)
 
-  // Apply export type filter
   if (exportType === 'entries') {
     filteredResults = []
   } else if (exportType === 'results') {
@@ -287,41 +317,48 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
     filteredResults = filteredResults.filter(r => r.is_stakes === true || r.stakes_grade)
   }
 
-  // Build subtitle based on export type
-  let subtitle = date
+  // Build subtitle
+  let subtitle = `${date} at ${time}`
   if (exportType === 'entries') subtitle += ' | Entries Only'
   else if (exportType === 'results') subtitle += ' | Results Only'
   else if (exportType === 'stakes') subtitle += ' | Stakes Only'
 
   if (options.dateRange?.start && options.dateRange?.end) {
-    const start = formatDate(options.dateRange.start)
-    const end = formatDate(options.dateRange.end)
-    subtitle += ` | ${start} - ${end}`
+    subtitle += ` | ${formatDate(options.dateRange.start)} - ${formatDate(options.dateRange.end)}`
   } else if (options.dateRange?.start) {
     subtitle += ` | From ${formatDate(options.dateRange.start)}`
   } else if (options.dateRange?.end) {
     subtitle += ` | Through ${formatDate(options.dateRange.end)}`
   }
 
-  let html = ''
+  // Build HTML blocks as individual elements for per-page layout
+  const blocks: string[] = []
 
-  // Header with optional silks
+  // Header block
   const silksHtml = options.silksUrl
     ? `<td style="vertical-align:top;text-align:right;width:60px;"><img src="${options.silksUrl}" style="height:50px;width:auto;object-fit:contain;" crossorigin="anonymous" /></td>`
     : ''
 
-  html += `
-    <div style="border-bottom:2px solid #0f172a;padding-bottom:8px;margin-bottom:14px;">
+  const orgLine = options.orgName
+    ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">Prepared for ${options.orgName}</div>`
+    : ''
+
+  blocks.push(`
+    <div style="border-bottom:2px solid #0f172a;padding-bottom:8px;margin-bottom:10px;">
       <table style="width:100%;border-collapse:collapse;"><tr>
         <td style="vertical-align:top;">
-          <div style="font-size:20px;font-weight:600;color:#0f172a;line-height:1.3;">${data.stallionName.toUpperCase()} PROGENY REPORT</div>
+          <div style="font-size:22px;font-weight:700;color:#0f172a;line-height:1.3;letter-spacing:0.01em;">${data.stallionName.toUpperCase()} PROGENY REPORT</div>
           <div style="font-size:11px;color:#64748b;margin-top:3px;">${subtitle}</div>
+          ${orgLine}
         </td>
         ${silksHtml}
       </tr></table>
-    </div>`
+    </div>`)
 
-  // Build options for row rendering
+  // Summary stats block
+  blocks.push(buildSummarySection(filteredResults, filteredEntries))
+
+  // Build row options
   const rowOptions: BuildRowOptions = {
     orgsWithSilks: data.orgsWithSilks || [],
     isAdmin: data.isAdmin,
@@ -329,81 +366,151 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
     userOrgSilksUrl: data.userOrgSilksUrl,
   }
 
-  // Entries
+  // Entries section
   if (filteredEntries.length > 0) {
-    html += sectionHeader('Upcoming Entries')
-    filteredEntries.forEach(e => { html += buildEntryRow(e, rowOptions) })
+    blocks.push(sectionHeader('Upcoming Entries'))
+    filteredEntries.forEach(e => {
+      const row = buildEntryRow(e, rowOptions)
+      if (row) blocks.push(row)
+    })
   }
 
-  // Results
+  // Results section
   if (filteredResults.length > 0) {
-    html += sectionHeader('Recent Results')
-    filteredResults.forEach(r => { html += buildResultRow(r, rowOptions) })
+    blocks.push(sectionHeader('Recent Results'))
+    filteredResults.forEach(r => { blocks.push(buildResultRow(r, rowOptions)) })
   }
 
-  const wrapper = document.createElement('div')
-  wrapper.style.cssText = `
+  // Measure each block's height by rendering them individually
+  const measureWrapper = document.createElement('div')
+  measureWrapper.style.cssText = `
     position:absolute;left:-9999px;top:0;width:800px;background:#fff;
-    padding:20px 28px 20px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;
+    padding:0 28px 0 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;
   `
-  wrapper.innerHTML = html
-  document.body.appendChild(wrapper)
+  document.body.appendChild(measureWrapper)
 
-  try {
-    // Collect link positions
-    interface LinkInfo { url: string; x: number; y: number; width: number; height: number }
-    const links: LinkInfo[] = []
-    const wrapperRect = wrapper.getBoundingClientRect()
-    wrapper.querySelectorAll('a[href]').forEach(anchor => {
+  const blockHeights: number[] = []
+  for (const block of blocks) {
+    const el = document.createElement('div')
+    el.innerHTML = block
+    measureWrapper.appendChild(el)
+    blockHeights.push(el.offsetHeight)
+    measureWrapper.removeChild(el)
+  }
+  document.body.removeChild(measureWrapper)
+
+  // Group blocks into pages
+  const pageWidth = 210
+  const pageHeight = 297
+  const leftMargin = 4
+  const rightMargin = 3
+  const topPadding = 20
+  const bottomMargin = 12 // space for page numbers
+  const usableWidth = pageWidth - leftMargin - rightMargin
+  const scaleFactor = usableWidth / 800
+  const usableHeightPx = (pageHeight - topPadding * scaleFactor - bottomMargin) / scaleFactor
+
+  const pages: number[][] = [] // each page is array of block indices
+  let currentPage: number[] = []
+  let currentHeightPx = 0
+
+  for (let i = 0; i < blocks.length; i++) {
+    const blockH = blockHeights[i]
+    const isHeader = blocks[i].includes('text-transform:uppercase;letter-spacing')
+
+    // Check if adding this block exceeds page height
+    if (currentPage.length > 0 && currentHeightPx + blockH > usableHeightPx) {
+      pages.push(currentPage)
+      currentPage = []
+      currentHeightPx = 0
+    }
+
+    // Prevent orphaned section headers: if this is a section header and
+    // adding it + the next block won't fit, push both to next page
+    if (isHeader && i + 1 < blocks.length) {
+      const nextH = blockHeights[i + 1]
+      if (currentPage.length > 0 && currentHeightPx + blockH + nextH > usableHeightPx) {
+        pages.push(currentPage)
+        currentPage = []
+        currentHeightPx = 0
+      }
+    }
+
+    currentPage.push(i)
+    currentHeightPx += blockH
+  }
+  if (currentPage.length > 0) pages.push(currentPage)
+
+  // Render each page separately
+  const pdf = new jsPDF('p', 'mm', 'a4')
+  interface LinkInfo { url: string; x: number; y: number; width: number; height: number; page: number }
+  const allLinks: LinkInfo[] = []
+
+  for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+    if (pageIdx > 0) pdf.addPage()
+
+    const pageBlocks = pages[pageIdx]
+    const pageWrapper = document.createElement('div')
+    pageWrapper.style.cssText = `
+      position:absolute;left:-9999px;top:0;width:800px;background:#fff;
+      padding:20px 28px 20px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;
+    `
+    pageWrapper.innerHTML = pageBlocks.map(bi => blocks[bi]).join('')
+    document.body.appendChild(pageWrapper)
+
+    // Collect link positions for this page
+    const wrapperRect = pageWrapper.getBoundingClientRect()
+    pageWrapper.querySelectorAll('a[href]').forEach(anchor => {
       const a = anchor as HTMLAnchorElement
       const href = a.getAttribute('href')
       if (href?.startsWith('http')) {
         const rect = a.getBoundingClientRect()
-        links.push({ url: href, x: rect.left - wrapperRect.left, y: rect.top - wrapperRect.top, width: rect.width, height: rect.height })
+        allLinks.push({
+          url: href,
+          x: rect.left - wrapperRect.left,
+          y: rect.top - wrapperRect.top,
+          width: rect.width,
+          height: rect.height,
+          page: pageIdx + 1,
+        })
       }
     })
 
-    const canvas = await html2canvas(wrapper, {
+    const canvas = await html2canvas(pageWrapper, {
       scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', width: 800, windowWidth: 800,
     })
 
-    const pageWidth = 210
-    const pageHeight = 297
-    const leftMargin = 4 // 4mm left margin to prevent border clipping
-    const usableWidth = pageWidth - leftMargin - 3 // 3mm right margin too
     const imgHeight = (canvas.height * usableWidth) / canvas.width
-    const scaleFactor = usableWidth / 800
-
-    const pdf = new jsPDF('p', 'mm', 'a4')
     const imgData = canvas.toDataURL('image/png')
+    pdf.addImage(imgData, 'PNG', leftMargin, 0, usableWidth, imgHeight)
 
-    let heightLeft = imgHeight
-    let position = 0
-    pdf.addImage(imgData, 'PNG', leftMargin, position, usableWidth, imgHeight)
-    heightLeft -= pageHeight
-
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight
-      pdf.addPage()
-      pdf.addImage(imgData, 'PNG', leftMargin, position, usableWidth, imgHeight)
-      heightLeft -= pageHeight
-    }
-
-    const totalPages = pdf.getNumberOfPages()
-    links.forEach(link => {
-      const linkYInPdf = link.y * scaleFactor
-      const linkPage = Math.floor(linkYInPdf / pageHeight) + 1
-      const linkYOnPage = linkYInPdf - (linkPage - 1) * pageHeight
-      if (linkPage >= 1 && linkPage <= totalPages) {
-        pdf.setPage(linkPage)
-        pdf.link(leftMargin + link.x * scaleFactor, linkYOnPage, link.width * scaleFactor, link.height * scaleFactor, { url: link.url })
-      }
-    })
-
-    const safeStallionName = data.stallionName.toLowerCase().replace(/\s+/g, '-')
-    const dateStr = new Date().toISOString().split('T')[0]
-    pdf.save(data.filename || `${safeStallionName}-report-${dateStr}.pdf`)
-  } finally {
-    document.body.removeChild(wrapper)
+    document.body.removeChild(pageWrapper)
   }
+
+  // Add page numbers
+  const totalPages = pdf.getNumberOfPages()
+  for (let i = 1; i <= totalPages; i++) {
+    pdf.setPage(i)
+    pdf.setFontSize(8)
+    pdf.setTextColor(148, 163, 184) // slate-400
+    pdf.text(`Page ${i} of ${totalPages}`, pageWidth - rightMargin - 2, pageHeight - 5, { align: 'right' })
+  }
+
+  // Add clickable links
+  allLinks.forEach(link => {
+    if (link.page >= 1 && link.page <= totalPages) {
+      pdf.setPage(link.page)
+      pdf.link(
+        leftMargin + link.x * scaleFactor,
+        link.y * scaleFactor,
+        link.width * scaleFactor,
+        link.height * scaleFactor,
+        { url: link.url }
+      )
+    }
+  })
+
+  const safeStallionName = data.stallionName.toLowerCase().replace(/\s+/g, '-')
+  const dateStr = new Date().toISOString().split('T')[0]
+  pdf.save(data.filename || `${safeStallionName}-report-${dateStr}.pdf`)
 }

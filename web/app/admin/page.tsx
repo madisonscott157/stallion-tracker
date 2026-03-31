@@ -23,10 +23,23 @@ interface User {
   show_claiming_races: boolean
 }
 
+interface Stallion {
+  id: string
+  name: string
+}
+
+interface StallionOrg {
+  organization_id: string
+  stallion_id: string
+}
+
 export default function AdminUsersAndStablesPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [users, setUsers] = useState<User[]>([])
+  const [stallions, setStallions] = useState<Stallion[]>([])
+  const [stallionOrgs, setStallionOrgs] = useState<StallionOrg[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   // Stable form state
   const [showAddStableForm, setShowAddStableForm] = useState(false)
@@ -48,14 +61,28 @@ export default function AdminUsersAndStablesPage() {
   const supabase = createClientComponentClient()
 
   async function fetchData() {
-    const [orgsRes, usersRes] = await Promise.all([
-      supabase.from('organizations').select('*').order('name'),
-      supabase.from('users').select('*').order('email'),
-    ])
+    try {
+      setLoadError(null)
+      const [orgsRes, usersRes, stallionsRes, stallionOrgsRes] = await Promise.all([
+        supabase.from('organizations').select('*').order('name'),
+        supabase.from('users').select('*').order('email'),
+        supabase.from('stallions').select('id, name').order('name'),
+        supabase.from('organization_stallions').select('*'),
+      ])
 
-    if (orgsRes.data) setOrganizations(orgsRes.data)
-    if (usersRes.data) setUsers(usersRes.data)
-    setIsLoading(false)
+      if (orgsRes.error) throw new Error(orgsRes.error.message)
+      if (usersRes.error) throw new Error(usersRes.error.message)
+
+      if (orgsRes.data) setOrganizations(orgsRes.data)
+      if (usersRes.data) setUsers(usersRes.data)
+      if (stallionsRes.data) setStallions(stallionsRes.data)
+      if (stallionOrgsRes.data) setStallionOrgs(stallionOrgsRes.data)
+    } catch (err) {
+      console.error('Failed to load admin data:', err)
+      setLoadError(err instanceof Error ? err.message : 'Failed to load data')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -97,6 +124,27 @@ export default function AdminUsersAndStablesPage() {
     if (!confirm('Are you sure you want to delete this stable? All associated users will lose access.')) return
     const { error } = await supabase.from('organizations').delete().eq('id', orgId)
     if (!error) fetchData()
+  }
+
+  async function handleToggleStallion(orgId: string, stallionId: string) {
+    const exists = stallionOrgs.some(
+      so => so.stallion_id === stallionId && so.organization_id === orgId
+    )
+
+    if (exists) {
+      const { error } = await supabase
+        .from('organization_stallions')
+        .delete()
+        .eq('stallion_id', stallionId)
+        .eq('organization_id', orgId)
+      if (error) { alert(`Failed to unlink stallion: ${error.message}`); return }
+    } else {
+      const { error } = await supabase
+        .from('organization_stallions')
+        .insert({ stallion_id: stallionId, organization_id: orgId })
+      if (error) { alert(`Failed to link stallion: ${error.message}`); return }
+    }
+    fetchData()
   }
 
   async function handleSilksUpload(orgId: string, file: File) {
@@ -306,7 +354,35 @@ export default function AdminUsersAndStablesPage() {
   }
 
   if (isLoading) {
-    return <p className="text-slate-500">Loading...</p>
+    return (
+      <div className="space-y-4 animate-pulse">
+        <div className="flex items-center justify-between mb-6">
+          <div className="h-8 w-48 bg-slate-200 rounded" />
+          <div className="h-10 w-28 bg-slate-200 rounded" />
+        </div>
+        {[1, 2, 3].map(i => (
+          <div key={i} className="bg-white rounded-lg border border-slate-200 p-5">
+            <div className="h-5 w-40 bg-slate-200 rounded mb-3" />
+            <div className="h-4 w-64 bg-slate-100 rounded mb-2" />
+            <div className="h-4 w-48 bg-slate-100 rounded" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600 mb-4">{loadError}</p>
+        <button
+          onClick={() => { setIsLoading(true); fetchData() }}
+          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 text-sm font-medium"
+        >
+          Try again
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -477,6 +553,33 @@ export default function AdminUsersAndStablesPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Stallions linked to this stable */}
+              {stallions.length > 0 && (
+                <div className="px-4 sm:px-5 py-2 border-b border-slate-100">
+                  <span className="text-xs font-medium text-slate-500 uppercase">Stallions</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {stallions.map(stallion => {
+                      const isLinked = stallionOrgs.some(
+                        so => so.stallion_id === stallion.id && so.organization_id === org.id
+                      )
+                      return (
+                        <button
+                          key={stallion.id}
+                          onClick={() => handleToggleStallion(org.id, stallion.id)}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            isLinked
+                              ? 'bg-primary text-white'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          {stallion.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Users within this stable */}
               <div className="px-2 py-1">
