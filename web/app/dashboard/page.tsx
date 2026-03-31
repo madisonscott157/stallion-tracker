@@ -88,8 +88,19 @@ export default function DashboardPage() {
 
       <main className="flex-1 px-6 py-6 max-w-5xl mx-auto w-full">
         {(authLoading || loading) ? (
-          <div className="text-center py-12 text-slate-500">
-            Loading...
+          <div className="space-y-6 animate-pulse">
+            <div className="h-5 w-32 bg-slate-200 rounded" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-32 bg-slate-200 rounded-lg" />
+              ))}
+            </div>
+            <div className="h-5 w-40 bg-slate-200 rounded mt-4" />
+            <div className="space-y-3">
+              {[4, 5, 6].map(i => (
+                <div key={i} className="h-24 bg-slate-100 rounded-lg" />
+              ))}
+            </div>
           </div>
         ) : !data ? (
           <div className="text-center py-12 text-slate-500">

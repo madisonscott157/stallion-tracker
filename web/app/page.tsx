@@ -13,7 +13,7 @@ import { SireRankingsTable } from '@/components/SireRankingsTable'
 import { EquinelineSection } from '@/components/EquinelineSection'
 import { ExportModal } from '@/components/ExportModal'
 import { useAuth } from '@/lib/auth-context'
-import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineStats } from '@/lib/supabase'
+import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineStats, Workout } from '@/lib/supabase'
 import type { ExportOptions, OrgWithSilks } from '@/lib/pdf-export'
 
 export default function Home() {
@@ -21,9 +21,12 @@ export default function Home() {
   const [results, setResults] = useState<Result[]>([])
   const [stats, setStats] = useState<StallionStats | null>(null)
   const [sales, setSales] = useState<SalesStats[]>([])
+  const [workouts, setWorkouts] = useState<Workout[]>([])
   const [rankings, setRankings] = useState<SireRanking[]>([])
   const [equinelineStats, setEquinelineStats] = useState<EquinelineStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [fetchKey, setFetchKey] = useState(0)
   const [isExporting, setIsExporting] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [stallionId, setStallionId] = useState<string | null>(null)
@@ -51,6 +54,7 @@ export default function Home() {
       if (!stallionId) return
 
       setLoading(true)
+      setError(false)
 
       try {
         const controller = new AbortController()
@@ -67,12 +71,16 @@ export default function Home() {
           setResults(data.results || [])
           setStats(data.stats || null)
           setSales(data.sales || [])
+          setWorkouts(data.workouts || [])
           setRankings(data.rankings || [])
           setEquinelineStats(data.equineline || null)
+        } else {
+          setError(true)
         }
-      } catch (error) {
-        if (error instanceof Error && error.name !== 'AbortError') {
-          console.error('Error fetching data:', error)
+      } catch (err) {
+        if (err instanceof Error && err.name !== 'AbortError') {
+          console.error('Error fetching data:', err)
+          setError(true)
         }
       } finally {
         setLoading(false)
@@ -80,7 +88,7 @@ export default function Home() {
     }
 
     fetchData()
-  }, [stallion, stallionId])
+  }, [stallion, stallionId, fetchKey])
 
   // Entries are already sorted by date, then time from API
 
@@ -147,8 +155,29 @@ export default function Home() {
 
       <main className="flex-1 px-6 py-6 max-w-5xl mx-auto w-full">
         {(authLoading || loading || !stallionId) ? (
-          <div className="text-center py-12 text-slate-500">
-            Loading...
+          <div className="space-y-6 animate-pulse">
+            <div className="h-5 w-40 bg-slate-200 rounded" />
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-24 bg-slate-100 rounded-lg" />
+              ))}
+            </div>
+            <div className="h-5 w-36 bg-slate-200 rounded mt-6" />
+            <div className="space-y-3">
+              {[4, 5].map(i => (
+                <div key={i} className="h-24 bg-slate-100 rounded-lg" />
+              ))}
+            </div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-slate-500 mb-3">Unable to load data.</p>
+            <button
+              onClick={() => setFetchKey(k => k + 1)}
+              className="text-sm text-slate-600 underline hover:text-slate-800"
+            >
+              Try again
+            </button>
           </div>
         ) : (
           <>
@@ -184,7 +213,7 @@ export default function Home() {
                 </section>
 
                 {/* Workouts */}
-                <WorkoutsSection stallion={stallion} />
+                <WorkoutsSection workouts={workouts} />
               </>
             )}
 
@@ -232,11 +261,13 @@ export default function Home() {
       </main>
 
       {/* Bottom nav */}
-      <nav className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-3">
-        <div className="flex justify-around text-sm max-w-5xl mx-auto">
+      <nav className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-3" aria-label="Main navigation">
+        <div className="flex justify-around text-sm max-w-5xl mx-auto" role="tablist">
           {(['overview', 'results', 'stats', 'sales'] as const).map((tab) => (
             <button
               key={tab}
+              role="tab"
+              aria-selected={activeTab === tab}
               onClick={() => setActiveTab(tab)}
               className={`flex flex-col items-center relative pb-2 ${activeTab === tab ? 'text-slate-900 font-semibold' : 'text-slate-400 font-normal'}`}
             >

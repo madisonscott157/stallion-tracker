@@ -175,8 +175,7 @@ export function formatDistance(distance: string | null): string {
     const fractionWord = furlongFractionMatch[2].toLowerCase()
     const fractionVal = fractionToDecimal[fractionWord] || 0
     const total = whole + fractionVal
-    // Format nicely: 6.5, not 6.500
-    const formatted = total % 1 === 0 ? total.toString() : total.toString()
+    const formatted = total % 1 === 0 ? total.toFixed(0) : parseFloat(total.toPrecision(4)).toString()
     return `${prefix}${formatted}f`
   }
 

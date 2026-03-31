@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
     statsRes,
     stallionIdRes,
     salesRes,
+    workoutsRes,
   ] = await Promise.all([
     // Entries
     (() => {
@@ -78,6 +79,27 @@ export async function GET(request: NextRequest) {
       .ilike('stallions.name', stallion)
       .order('sale_year', { ascending: false })
       .order('sale_type'),
+
+    // Workouts
+    supabase
+      .from('workouts')
+      .select(`
+        *,
+        horses!inner (
+          name,
+          sex,
+          yob,
+          dam,
+          is_unnamed,
+          equibase_profile_url,
+          stallions!inner (
+            name
+          )
+        )
+      `)
+      .ilike('horses.stallions.name', stallion)
+      .order('workout_date', { ascending: false })
+      .limit(100),
   ])
 
   // Second batch: rankings + equineline need stallion ID
@@ -132,11 +154,24 @@ export async function GET(request: NextRequest) {
     stallion_name: stat.stallions?.name,
   }))
 
+  // Flatten workouts
+  const workouts = (workoutsRes.data || []).map((workout: any) => ({
+    ...workout,
+    horse_name: workout.horses?.name,
+    horse_sex: workout.horses?.sex,
+    horse_yob: workout.horses?.yob,
+    horse_dam: workout.horses?.dam,
+    horse_is_unnamed: workout.horses?.is_unnamed,
+    horse_profile_url: workout.horses?.equibase_profile_url,
+    sire_name: workout.horses?.stallions?.name,
+  }))
+
   return NextResponse.json({
     entries,
     results,
     stats,
     sales,
+    workouts,
     rankings: rankingsRes.data || [],
     equineline: equinelineRes.data || null,
   })

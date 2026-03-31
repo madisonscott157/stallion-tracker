@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { WorkoutCard } from '@/components/WorkoutCard'
 import { formatTrack } from '@/lib/utils'
 import type { Workout } from '@/lib/supabase'
 
 interface WorkoutsSectionProps {
-  stallion: string
+  workouts: Workout[]
 }
 
 function cleanTrackForFilter(track: string | null): string {
@@ -16,30 +16,8 @@ function cleanTrackForFilter(track: string | null): string {
   return cleaned
 }
 
-export function WorkoutsSection({ stallion }: WorkoutsSectionProps) {
-  const [allWorkouts, setAllWorkouts] = useState<Workout[]>([])
-  const [loading, setLoading] = useState(true)
+export function WorkoutsSection({ workouts: allWorkouts }: WorkoutsSectionProps) {
   const [trackFilter, setTrackFilter] = useState('')
-
-  useEffect(() => {
-    async function fetchWorkouts() {
-      setLoading(true)
-      try {
-        const params = new URLSearchParams({ stallion, limit: '100' })
-        const res = await fetch(`/api/workouts?${params}`)
-        if (res.ok) {
-          const data = await res.json()
-          setAllWorkouts(data)
-        }
-      } catch (error) {
-        console.error('Error fetching workouts:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchWorkouts()
-  }, [stallion])
 
   // Get unique tracks for dropdown from all workouts
   const uniqueTracks = useMemo(() => {
@@ -76,9 +54,7 @@ export function WorkoutsSection({ stallion }: WorkoutsSectionProps) {
         </select>
       </div>
 
-      {loading ? (
-        <div className="text-center py-8 text-slate-500">Loading workouts...</div>
-      ) : workouts.length > 0 ? (
+      {workouts.length > 0 ? (
         <div className="card-stack">
           {workouts.map(workout => (
             <WorkoutCard key={workout.id} workout={workout} />
