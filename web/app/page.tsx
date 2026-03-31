@@ -52,38 +52,28 @@ export default function Home() {
 
       setLoading(true)
 
-      // Fetch with per-request timeout so one slow endpoint doesn't block the page
-      const fetchWithTimeout = (url: string, ms = 8000) => {
-        const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), ms)
-        return fetch(url, { signal: controller.signal })
-          .finally(() => clearTimeout(timer))
-      }
-
       try {
-        const [entriesRes, resultsRes, statsRes, salesRes, rankingsRes, equinelineRes] = await Promise.allSettled([
-          fetchWithTimeout(`/api/entries?stallion=${stallion}`),
-          fetchWithTimeout(`/api/results?stallion=${stallion}&limit=1000`),
-          fetchWithTimeout(`/api/stats?stallion=${stallion}`),
-          fetchWithTimeout(`/api/sales?stallion=${stallion}`),
-          fetchWithTimeout(`/api/rankings?stallion=${stallion}`),
-          fetchWithTimeout(`/api/equineline-stats?stallion=${stallion}`),
-        ])
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 10000)
+        const res = await fetch(
+          `/api/stallion-data?stallion=${encodeURIComponent(stallion)}`,
+          { signal: controller.signal }
+        )
+        clearTimeout(timer)
 
-        if (entriesRes.status === 'fulfilled' && entriesRes.value.ok)
-          setEntries(await entriesRes.value.json())
-        if (resultsRes.status === 'fulfilled' && resultsRes.value.ok)
-          setResults(await resultsRes.value.json())
-        if (statsRes.status === 'fulfilled' && statsRes.value.ok)
-          setStats(await statsRes.value.json())
-        if (salesRes.status === 'fulfilled' && salesRes.value.ok)
-          setSales(await salesRes.value.json())
-        if (rankingsRes.status === 'fulfilled' && rankingsRes.value.ok)
-          setRankings(await rankingsRes.value.json())
-        if (equinelineRes.status === 'fulfilled' && equinelineRes.value.ok)
-          setEquinelineStats(await equinelineRes.value.json())
+        if (res.ok) {
+          const data = await res.json()
+          setEntries(data.entries || [])
+          setResults(data.results || [])
+          setStats(data.stats || null)
+          setSales(data.sales || [])
+          setRankings(data.rankings || [])
+          setEquinelineStats(data.equineline || null)
+        }
       } catch (error) {
-        console.error('Error fetching data:', error)
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.error('Error fetching data:', error)
+        }
       } finally {
         setLoading(false)
       }
