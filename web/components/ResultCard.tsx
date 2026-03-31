@@ -57,7 +57,10 @@ export function ResultCard({ result, showSireName }: ResultCardProps) {
   return (
     <div
       className={cn(
-        'bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5',
+        'rounded-lg border px-2 sm:px-4 py-1.5 sm:py-2.5',
+        isWinner
+          ? 'bg-amber-50/60 border-gold/30 shadow-[0_1px_4px_rgba(212,175,55,0.15)]'
+          : 'bg-white border-slate-200',
         borderClass
       )}
     >

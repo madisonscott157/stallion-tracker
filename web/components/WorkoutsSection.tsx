@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { WorkoutCard } from '@/components/WorkoutCard'
 import { formatTrack } from '@/lib/utils'
+import { EmptyState } from '@/components/EmptyState'
 import type { Workout } from '@/lib/supabase'
 
 interface WorkoutsSectionProps {
@@ -61,9 +62,7 @@ export function WorkoutsSection({ workouts: allWorkouts }: WorkoutsSectionProps)
           ))}
         </div>
       ) : (
-        <p className="empty-state">
-          {trackFilter ? 'No workouts at this track' : 'No recent workouts'}
-        </p>
+        <EmptyState variant="workouts" message={trackFilter ? 'No workouts at this track' : 'No recent workouts'} />
       )}
     </section>
   )

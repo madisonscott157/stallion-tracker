@@ -58,3 +58,21 @@ button[type="submit"],
 .empty-state {
   @apply text-center py-8 sm:py-12 text-slate-500;
 }
+
+/* Toast slide-in animation */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(100%) scale(0.95); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+.animate-toast-in {
+  animation: toast-in 0.25s ease-out;
+}
+
+/* Tab fade transition */
+.tab-content-enter {
+  animation: tab-fade 0.2s ease-out;
+}
+@keyframes tab-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

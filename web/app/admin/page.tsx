@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { createClientComponentClient } from '@/lib/supabase'
+import { useToast } from '@/components/Toast'
 
 interface Organization {
   id: string
@@ -59,6 +60,7 @@ export default function AdminUsersAndStablesPage() {
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
 
   const supabase = createClientComponentClient()
+  const { toast } = useToast()
 
   async function fetchData() {
     try {
@@ -137,12 +139,12 @@ export default function AdminUsersAndStablesPage() {
         .delete()
         .eq('stallion_id', stallionId)
         .eq('organization_id', orgId)
-      if (error) { alert(`Failed to unlink stallion: ${error.message}`); return }
+      if (error) { toast(`Failed to unlink stallion: ${error.message}`, 'error'); return }
     } else {
       const { error } = await supabase
         .from('organization_stallions')
         .insert({ stallion_id: stallionId, organization_id: orgId })
-      if (error) { alert(`Failed to link stallion: ${error.message}`); return }
+      if (error) { toast(`Failed to link stallion: ${error.message}`, 'error'); return }
     }
     fetchData()
   }
@@ -159,7 +161,7 @@ export default function AdminUsersAndStablesPage() {
         .upload(filePath, file, { upsert: true })
 
       if (uploadError) {
-        alert('Failed to upload silks: ' + uploadError.message)
+        toast('Failed to upload silks: ' + uploadError.message, 'error')
         return
       }
 

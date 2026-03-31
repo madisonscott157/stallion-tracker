@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from 'next'
 import { AuthProvider } from '@/lib/auth-context'
+import { ToastProvider } from '@/components/Toast'
 import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Stallion Tracker',
   description: 'Track racing entries and results for stallion progeny',
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -39,7 +46,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-slate-50">
         <AuthProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

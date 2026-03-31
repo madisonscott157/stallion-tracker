@@ -5,7 +5,9 @@ import { DashboardHeader } from '@/components/DashboardHeader'
 import { StallionSummaryCard } from '@/components/StallionSummaryCard'
 import { EntryCard } from '@/components/EntryCard'
 import { ResultCard } from '@/components/ResultCard'
+import { PullToRefresh } from '@/components/PullToRefresh'
 import { useAuth } from '@/lib/auth-context'
+import { EmptyState } from '@/components/EmptyState'
 import type { Entry, Result } from '@/lib/supabase'
 
 interface StallionSummary {
@@ -30,6 +32,7 @@ export default function DashboardPage() {
   const [entries, setEntries] = useState<Entry[]>([])
   const [results, setResults] = useState<Result[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchKey, setFetchKey] = useState(0)
   const [stallionFilter, setStallionFilter] = useState<string>('')
   const { isLoading: authLoading } = useAuth()
 
@@ -65,7 +68,7 @@ export default function DashboardPage() {
     if (!authLoading) {
       fetchDashboard()
     }
-  }, [authLoading])
+  }, [authLoading, fetchKey])
 
   // Client-side stallion filter
   const filterBySire = <T extends { sire_name?: string }>(items: T[]): T[] => {
@@ -86,6 +89,7 @@ export default function DashboardPage() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <DashboardHeader />
 
+      <PullToRefresh onRefresh={async () => setFetchKey(k => k + 1)}>
       <main className="flex-1 px-4 sm:px-6 py-4 sm:py-6 max-w-5xl mx-auto w-full">
         {(authLoading || loading) ? (
           <div className="space-y-6 animate-pulse">
@@ -136,7 +140,7 @@ export default function DashboardPage() {
                     ))}
                 </div>
               ) : (
-                <p className="empty-state">No stallions found</p>
+                <EmptyState variant="generic" message="No stallions found" />
               )}
             </section>
 
@@ -150,7 +154,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="empty-state">No upcoming entries</p>
+                <EmptyState variant="entries" message="No upcoming entries" />
               )}
             </section>
 
@@ -164,7 +168,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="empty-state">No recent results</p>
+                <EmptyState variant="results" message="No recent results" />
               )}
             </section>
 
@@ -178,7 +182,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="empty-state">No recent winners</p>
+                <EmptyState variant="winners" message="No recent winners" />
               )}
             </section>
 
@@ -192,12 +196,13 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="empty-state">No recent stakes results</p>
+                <EmptyState variant="stakes" message="No recent stakes results" />
               )}
             </section>
           </>
         )}
       </main>
+      </PullToRefresh>
     </div>
   )
 }

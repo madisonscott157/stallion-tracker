@@ -12,8 +12,10 @@ import { WorkoutsSection } from '@/components/WorkoutsSection'
 import { SireRankingsTable } from '@/components/SireRankingsTable'
 import { EquinelineSection } from '@/components/EquinelineSection'
 import { ExportModal } from '@/components/ExportModal'
+import { PullToRefresh } from '@/components/PullToRefresh'
 import { useAuth } from '@/lib/auth-context'
 import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineStats, Workout } from '@/lib/supabase'
+import { EmptyState } from '@/components/EmptyState'
 import type { ExportOptions, OrgWithSilks } from '@/lib/pdf-export'
 
 export default function Home() {
@@ -153,6 +155,7 @@ export default function Home() {
         )
       })()}
 
+      <PullToRefresh onRefresh={async () => setFetchKey(k => k + 1)}>
       <main className="flex-1 px-4 sm:px-6 py-4 sm:py-6 max-w-5xl mx-auto w-full">
         {(authLoading || loading || !stallionId) ? (
           <div className="space-y-6 animate-pulse">
@@ -183,7 +186,7 @@ export default function Home() {
           <>
             {/* Overview Tab */}
             {activeTab === 'overview' && (
-              <>
+              <div key="overview" className="tab-content-enter">
                 {/* Upcoming Entries */}
                 <section className="mb-6 sm:mb-8">
                   <h2 className="section-header">Upcoming Entries</h2>
@@ -194,7 +197,7 @@ export default function Home() {
                       ))}
                     </div>
                   ) : (
-                    <p className="empty-state">No upcoming entries</p>
+                    <EmptyState variant="entries" message="No upcoming entries" />
                   )}
                 </section>
 
@@ -208,57 +211,64 @@ export default function Home() {
                       ))}
                     </div>
                   ) : (
-                    <p className="empty-state">No recent results</p>
+                    <EmptyState variant="results" message="No recent results" />
                   )}
                 </section>
 
                 {/* Workouts */}
                 <WorkoutsSection workouts={workouts} />
-              </>
+              </div>
             )}
 
             {/* Results Tab */}
             {activeTab === 'results' && (
-              <ResultsSection results={results} stallionName={stallion} />
+              <div key="results" className="tab-content-enter">
+                <ResultsSection results={results} stallionName={stallion} />
+              </div>
             )}
 
             {/* Stats Tab */}
             {activeTab === 'stats' && (
-              <section className="max-w-3xl mx-auto">
-                <SireRankingsTable rankings={rankings} />
-                {equinelineStats && (
-                  <EquinelineSection stats={equinelineStats} currentYear={currentYear} />
-                )}
-              </section>
+              <div key="stats" className="tab-content-enter">
+                <section className="max-w-3xl mx-auto">
+                  <SireRankingsTable rankings={rankings} />
+                  {equinelineStats && (
+                    <EquinelineSection stats={equinelineStats} currentYear={currentYear} />
+                  )}
+                </section>
+              </div>
             )}
 
             {/* Sales Tab */}
             {activeTab === 'sales' && (
-              <section className="max-w-3xl mx-auto">
-                <h2 className="section-header">Sales Statistics</h2>
-                {sales.length > 0 ? (
-                  <>
-                    <div className="space-y-4">
-                      {Array.from(new Set(sales.map(s => s.sale_year)))
-                        .sort((a, b) => b - a)
-                        .map(year => (
-                          <SalesTable
-                            key={year}
-                            salesByYear={sales.filter(s => s.sale_year === year)}
-                            year={year}
-                          />
-                        ))}
-                    </div>
-                    <p className="text-xs text-slate-400 mt-4">Source: TDN Insta-tistics</p>
-                  </>
-                ) : (
-                  <p className="empty-state">No sales data available</p>
-                )}
-              </section>
+              <div key="sales" className="tab-content-enter">
+                <section className="max-w-3xl mx-auto">
+                  <h2 className="section-header">Sales Statistics</h2>
+                  {sales.length > 0 ? (
+                    <>
+                      <div className="space-y-4">
+                        {Array.from(new Set(sales.map(s => s.sale_year)))
+                          .sort((a, b) => b - a)
+                          .map(year => (
+                            <SalesTable
+                              key={year}
+                              salesByYear={sales.filter(s => s.sale_year === year)}
+                              year={year}
+                            />
+                          ))}
+                      </div>
+                      <p className="text-xs text-slate-400 mt-4">Source: TDN Insta-tistics</p>
+                    </>
+                  ) : (
+                    <EmptyState variant="sales" message="No sales data available" />
+                  )}
+                </section>
+              </div>
             )}
           </>
         )}
       </main>
+      </PullToRefresh>
 
       {/* Bottom nav */}
       <nav
@@ -276,12 +286,15 @@ export default function Home() {
               className={`flex flex-col items-center relative pb-2 px-3 ${activeTab === tab ? 'text-slate-900 font-semibold' : 'text-slate-400 font-normal'}`}
             >
               <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-              {activeTab === tab && (
-                <span
-                  className="absolute bottom-0 left-0 right-0 rounded-full"
-                  style={{ backgroundColor: 'var(--org-secondary)', height: '3px' }}
-                />
-              )}
+              <span
+                className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-200"
+                style={{
+                  backgroundColor: 'var(--org-secondary)',
+                  height: '3px',
+                  opacity: activeTab === tab ? 1 : 0,
+                  transform: activeTab === tab ? 'scaleX(1)' : 'scaleX(0)',
+                }}
+              />
             </button>
           ))}
         </div>
