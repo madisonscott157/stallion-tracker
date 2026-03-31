@@ -47,15 +47,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Redirect authenticated users away from login page
-  if (session && isLoginPage) {
+  // Fetch user role once if needed for login redirect or admin protection
+  let userRole: string | null = null
+  if (session && (isLoginPage || request.nextUrl.pathname.startsWith('/admin'))) {
     const { data: user } = await supabase
       .from('users')
       .select('role')
       .eq('auth_id', session.user.id)
       .single()
+    userRole = user?.role ?? null
+  }
 
-    if (user?.role === 'admin') {
+  // Redirect authenticated users away from login page
+  if (session && isLoginPage) {
+    if (userRole === 'admin') {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url))
     }
     return NextResponse.redirect(new URL('/', request.url))
@@ -63,13 +68,7 @@ export async function middleware(request: NextRequest) {
 
   // Protect admin routes - check user role
   if (session && request.nextUrl.pathname.startsWith('/admin')) {
-    const { data: user } = await supabase
-      .from('users')
-      .select('role')
-      .eq('auth_id', session.user.id)
-      .single()
-
-    if (user?.role !== 'admin') {
+    if (userRole !== 'admin') {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }

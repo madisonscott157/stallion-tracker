@@ -119,7 +119,7 @@ export default function DashboardPage() {
               {data.recent_winners.length > 0 ? (
                 <div className="card-stack">
                   {data.recent_winners.map(result => (
-                    <ResultCard key={result.id} result={result} showSireName />
+                    <ResultCard key={`w-${result.id}`} result={result} showSireName />
                   ))}
                 </div>
               ) : (
@@ -133,7 +133,7 @@ export default function DashboardPage() {
               {data.recent_stakes.length > 0 ? (
                 <div className="card-stack">
                   {data.recent_stakes.map(result => (
-                    <ResultCard key={result.id} result={result} showSireName />
+                    <ResultCard key={`s-${result.id}`} result={result} showSireName />
                   ))}
                 </div>
               ) : (

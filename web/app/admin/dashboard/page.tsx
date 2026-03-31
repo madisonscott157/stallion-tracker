@@ -154,7 +154,7 @@ export default function AdminDashboardPage() {
         {filteredWinners.length > 0 ? (
           <div className="card-stack">
             {filteredWinners.map(result => (
-              <ResultCard key={result.id} result={result} showSireName />
+              <ResultCard key={`w-${result.id}`} result={result} showSireName />
             ))}
           </div>
         ) : (
@@ -168,7 +168,7 @@ export default function AdminDashboardPage() {
         {filteredStakes.length > 0 ? (
           <div className="card-stack">
             {filteredStakes.map(result => (
-              <ResultCard key={result.id} result={result} showSireName />
+              <ResultCard key={`s-${result.id}`} result={result} showSireName />
             ))}
           </div>
         ) : (

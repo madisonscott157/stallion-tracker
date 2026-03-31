@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Filter by date range if specified
-  if (days) {
+  if (days && !isNaN(parseInt(days))) {
     const since = new Date(Date.now() - parseInt(days) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     query = query.gte('race_date', since)
   }
