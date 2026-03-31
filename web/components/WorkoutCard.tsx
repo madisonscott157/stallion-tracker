@@ -33,7 +33,7 @@ export function WorkoutCard({ workout, showSireName }: WorkoutCardProps) {
     : null
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5">
+    <div className="bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5 card-hover">
       {/* Row 1: Horse name + silks */}
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         {workout.horse_profile_url ? (

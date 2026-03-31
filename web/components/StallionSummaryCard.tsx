@@ -21,7 +21,7 @@ export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
   return (
     <Link
       href={`/?stallion=${stallion.id}`}
-      className="block bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-300 hover:shadow-sm transition-all"
+      className="block bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-300 hover:shadow-sm transition-all card-hover"
     >
       <div className="flex items-center justify-between mb-1">
         <h3 className="font-semibold text-lg" style={{ color: 'var(--org-primary)' }}>

@@ -40,7 +40,7 @@ export function EntryCard({ entry, showSireName }: EntryCardProps) {
   return (
     <div
       className={cn(
-        'bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5',
+        'bg-white rounded-lg border border-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5 card-hover',
         !entry.scratched && borderClass
       )}
     >
