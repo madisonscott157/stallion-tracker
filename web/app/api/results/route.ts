@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   const stallion = searchParams.get('stallion')
   const limit = parseInt(searchParams.get('limit') || '20')
   const winnersOnly = searchParams.get('winners') === 'true'
+  const days = searchParams.get('days')
 
   // Query results table with joins to get horse profile URL
   // RLS policies automatically filter to user's organization's stallions
@@ -41,9 +42,16 @@ export async function GET(request: NextRequest) {
     query = query.eq('finish_position', 1)
   }
 
+  // Filter by date range if specified
+  if (days) {
+    const since = new Date(Date.now() - parseInt(days) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    query = query.gte('race_date', since)
+  }
+
   // Filter out claiming races if user preference is set
+  // Allow null race_type through — only exclude explicitly tagged MCL/CLM
   if (!prefs.show_claiming_races) {
-    query = query.not('race_type', 'is', null).not('race_type', 'in', '("MCL","CLM")')
+    query = query.or('race_type.is.null,race_type.not.in.("MCL","CLM")')
   }
 
   const { data, error } = await query

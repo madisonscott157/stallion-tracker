@@ -40,7 +40,7 @@ export default function AdminDashboardPage() {
         const [dashRes, entriesRes, resultsRes] = await Promise.all([
           fetch('/api/dashboard/summary'),
           fetch('/api/entries'),
-          fetch('/api/results?limit=50'),
+          fetch('/api/results?limit=50&days=14'),
         ])
 
         if (dashRes.ok) setDashboardData(await dashRes.json())
@@ -136,7 +136,7 @@ export default function AdminDashboardPage() {
 
       {/* Recent Results */}
       <section className="mb-8">
-        <h2 className="section-header">Recent Results</h2>
+        <h2 className="section-header">Recent Results <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
         {filteredResults.length > 0 ? (
           <div className="card-stack">
             {filteredResults.map(result => (
