@@ -49,6 +49,15 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from login page
   if (session && isLoginPage) {
+    const { data: user } = await supabase
+      .from('users')
+      .select('role')
+      .eq('auth_id', session.user.id)
+      .single()
+
+    if (user?.role === 'admin') {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+    }
     return NextResponse.redirect(new URL('/', request.url))
   }
 
