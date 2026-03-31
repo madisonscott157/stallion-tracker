@@ -49,11 +49,12 @@ export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
 
       <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
         <div>
-          <span className="font-medium text-slate-700">{stallion.ytd_starters}</span> starters <span className="text-slate-400">YTD</span>
+          <span className="font-medium text-slate-700">{stallion.ytd_starters}</span> starters
         </div>
         <div>
-          <span className="font-medium text-slate-700">{stallion.ytd_winners}</span> winners <span className="text-slate-400">YTD</span>
+          <span className="font-medium text-slate-700">{stallion.ytd_winners}</span> winners
         </div>
+        <span className="text-slate-400">YTD</span>
       </div>
     </Link>
   )
