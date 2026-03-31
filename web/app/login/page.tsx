@@ -34,24 +34,7 @@ function LoginForm() {
       setError('Invalid username or password')
       setIsLoading(false)
     } else {
-      // If no explicit redirect, check if admin and send to admin dashboard
-      if (redirectTo === '/') {
-        const { createClientComponentClient } = await import('@/lib/supabase')
-        const supabase = createClientComponentClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          const { data: user } = await supabase
-            .from('users')
-            .select('role')
-            .eq('auth_id', session.user.id)
-            .single()
-          if (user?.role === 'admin') {
-            router.push('/admin/dashboard')
-            return
-          }
-        }
-      }
-      router.push(redirectTo)
+      router.push(redirectTo === '/' ? '/dashboard' : redirectTo)
     }
   }
 

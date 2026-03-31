@@ -60,10 +60,7 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from login page
   if (session && isLoginPage) {
-    if (userRole === 'admin') {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
-    }
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   // Protect admin routes - check user role

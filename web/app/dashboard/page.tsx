@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const [entries, setEntries] = useState<Entry[]>([])
   const [results, setResults] = useState<Result[]>([])
   const [loading, setLoading] = useState(true)
+  const [stallionFilter, setStallionFilter] = useState<string>('')
   const { isLoading: authLoading } = useAuth()
 
   useEffect(() => {
@@ -56,6 +57,21 @@ export default function DashboardPage() {
     }
   }, [authLoading])
 
+  // Client-side stallion filter
+  const filterBySire = <T extends { sire_name?: string }>(items: T[]): T[] => {
+    if (!stallionFilter) return items
+    return items.filter(item => item.sire_name === stallionFilter)
+  }
+
+  const filteredEntries = filterBySire(entries)
+  const filteredResults = filterBySire(results)
+  const filteredWinners = filterBySire(data?.recent_winners ?? [])
+  const filteredStakes = filterBySire(data?.recent_stakes ?? [])
+
+  const stallionNames = data?.stallions
+    .map(s => s.name)
+    .sort((a, b) => a.localeCompare(b)) ?? []
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <DashboardHeader />
@@ -71,14 +87,32 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
+            {/* Stallion filter */}
+            {stallionNames.length > 1 && (
+              <div className="mb-6">
+                <select
+                  value={stallionFilter}
+                  onChange={e => setStallionFilter(e.target.value)}
+                  className="text-sm border border-slate-300 rounded-md px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                >
+                  <option value="">All Stallions</option>
+                  {stallionNames.map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Stallion Summary Cards */}
             <section className="mb-8">
               <h2 className="section-header">Your Stallions</h2>
               {data.stallions.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {data.stallions.map(stallion => (
-                    <StallionSummaryCard key={stallion.id} stallion={stallion} />
-                  ))}
+                  {data.stallions
+                    .filter(s => !stallionFilter || s.name === stallionFilter)
+                    .map(stallion => (
+                      <StallionSummaryCard key={stallion.id} stallion={stallion} />
+                    ))}
                 </div>
               ) : (
                 <p className="empty-state">No stallions found</p>
@@ -88,9 +122,9 @@ export default function DashboardPage() {
             {/* Upcoming Entries */}
             <section className="mb-8">
               <h2 className="section-header">Upcoming Entries</h2>
-              {entries.length > 0 ? (
+              {filteredEntries.length > 0 ? (
                 <div className="card-stack">
-                  {entries.map(entry => (
+                  {filteredEntries.map(entry => (
                     <EntryCard key={entry.id} entry={entry} showSireName />
                   ))}
                 </div>
@@ -102,9 +136,9 @@ export default function DashboardPage() {
             {/* Recent Results */}
             <section className="mb-8">
               <h2 className="section-header">Recent Results <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
-              {results.length > 0 ? (
+              {filteredResults.length > 0 ? (
                 <div className="card-stack">
-                  {results.map(result => (
+                  {filteredResults.map(result => (
                     <ResultCard key={result.id} result={result} showSireName />
                   ))}
                 </div>
@@ -116,9 +150,9 @@ export default function DashboardPage() {
             {/* Recent Winners */}
             <section className="mb-8">
               <h2 className="section-header">Recent Winners <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
-              {data.recent_winners.length > 0 ? (
+              {filteredWinners.length > 0 ? (
                 <div className="card-stack">
-                  {data.recent_winners.map(result => (
+                  {filteredWinners.map(result => (
                     <ResultCard key={`w-${result.id}`} result={result} showSireName />
                   ))}
                 </div>
@@ -130,9 +164,9 @@ export default function DashboardPage() {
             {/* Recent Stakes Results */}
             <section className="mb-8">
               <h2 className="section-header">Recent Stakes Results <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
-              {data.recent_stakes.length > 0 ? (
+              {filteredStakes.length > 0 ? (
                 <div className="card-stack">
-                  {data.recent_stakes.map(result => (
+                  {filteredStakes.map(result => (
                     <ResultCard key={`s-${result.id}`} result={result} showSireName />
                   ))}
                 </div>
