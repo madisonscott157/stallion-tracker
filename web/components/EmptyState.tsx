@@ -55,40 +55,59 @@ function ChartIcon() {
   )
 }
 
-function RunnerIcon() {
+function HorseAndJockeyIcon() {
   return (
-    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" className="text-slate-300">
+    <svg width="56" height="48" viewBox="0 0 56 48" fill="none" className="text-slate-300">
+      {/* Horse body galloping */}
       <path
-        d="M12 36c4-2 8-2 12 0s8 2 12 0"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 30c4-2 8-2 12 0s8 2 12 0"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        opacity="0.5"
-      />
-      <path
-        d="M30 14l-4 6-6-2-4 6"
+        d="M14 32l3-6 5-2 4 1 6-1 5 2 3 4 2 1"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="32" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" />
+      {/* Horse head and neck */}
+      <path
+        d="M38 28l3-4 4-2 2-1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Ear */}
+      <path d="M46 20l1-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Eye */}
+      <circle cx="45" cy="22" r="1" fill="currentColor" />
+      {/* Front legs (extended gallop) */}
+      <path d="M38 32l4 7M36 32l1 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Hind legs (extended gallop) */}
+      <path d="M19 30l-4 9M22 31l-1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Tail */}
+      <path d="M14 32l-4-3-2-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Jockey body */}
+      <path
+        d="M32 26l-1-5 2-4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Jockey head */}
+      <circle cx="33" cy="15" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+      {/* Jockey arms (holding reins) */}
+      <path d="M31 21l4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Speed lines */}
+      <path d="M6 26h5M4 30h6M7 34h4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.4" />
     </svg>
   )
 }
 
 const iconMap: Record<EmptyStateVariant, () => JSX.Element> = {
   entries: CalendarIcon,
-  results: HorseIcon,
+  results: TrophyIcon,
   winners: TrophyIcon,
   stakes: TrophyIcon,
-  workouts: RunnerIcon,
+  workouts: HorseAndJockeyIcon,
   sales: ChartIcon,
   generic: HorseIcon,
 }
