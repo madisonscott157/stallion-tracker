@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 
 from models import EntryData, HorseData
 from comments_parser import parse_comments, extract_age_sex
+from distance_normalizer import normalize_distance
 
 
 # Track timezone mapping
@@ -210,15 +211,30 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
     )
     if distance_match:
         distance = distance_match.group(1).strip()
+        # Strip concatenated surface text: "YardsOnTheAllWeather" → "Yards"
+        distance = re.sub(
+            r'(Furlongs?|Miles?|Yards?)OnThe.*$',
+            r'\1',
+            distance,
+            flags=re.IGNORECASE
+        )
+        # Split concatenated number+unit: "SeventyYards" → "Seventy Yards"
+        distance = re.sub(
+            r'([a-z])(Furlongs?|Miles?|Yards?)',
+            r'\1 \2',
+            distance
+        )
+        distance = normalize_distance(distance)
 
     # 7. Extract surface
     surface = None
-    # Check for All Weather Track first (Tapeta, Polytrack, synthetic surfaces)
-    if re.search(r'\b(All[- ]?Weather|Tapeta|Polytrack|Synthetic)\b', text, re.IGNORECASE):
+    # Check for All Weather Track (Tapeta, Polytrack, synthetic surfaces)
+    # Handle both spaced and concatenated forms (e.g., "OnTheAllWeather")
+    if re.search(r'All[- ]?Weather|OnTheAllWeather|Tapeta|Polytrack|Synthetic', text, re.IGNORECASE):
         surface = 'AWT'
-    elif re.search(r'\bTurf\b', text, re.IGNORECASE):
+    elif re.search(r'OnTheTurf|\bTurf\b', text, re.IGNORECASE):
         surface = 'Turf'
-    elif re.search(r'\bDirt\b', text, re.IGNORECASE):
+    elif re.search(r'OnTheDirt|OnTheMainTrack|\bDirt\b', text, re.IGNORECASE):
         surface = 'Dirt'
 
     # 8. Extract horse profile URL and refno

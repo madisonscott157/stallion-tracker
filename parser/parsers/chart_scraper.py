@@ -8,6 +8,8 @@ from dataclasses import dataclass
 import requests
 import pdfplumber
 
+from distance_normalizer import normalize_distance
+
 
 @dataclass
 class ChartData:
@@ -156,7 +158,7 @@ def extract_race_details(text: str) -> ChartData:
     if distance_match:
         dist_text = distance_match.group(1).strip()
         # Clean up common patterns (words may run together in PDF text)
-        dist_text = re.sub(r'OnThe(Turf|Dirt|MainTrack)', r' On The \1', dist_text)
+        dist_text = re.sub(r'OnThe(Turf|Dirt|MainTrack|AllWeather(?:Track)?)', r' On The \1', dist_text)
         dist_text = re.sub(r'(\d)(Furlongs?|Miles?|Yards?)', r'\1 \2', dist_text)
         dist_text = re.sub(r'(One|Two|Three|Four|Five|Six|Seven|About)(Mile|Furlong|And)', r'\1 \2', dist_text, flags=re.IGNORECASE)
         dist_text = re.sub(r'(Mile|Furlong)(And|On)', r'\1 \2', dist_text, flags=re.IGNORECASE)
@@ -168,10 +170,10 @@ def extract_race_details(text: str) -> ChartData:
         dist_text = re.sub(r'Seven(Eighths)', r'Seven \1', dist_text, flags=re.IGNORECASE)
         dist_text = re.sub(r'(Half|Quarter|Eighth|Sixteenth)(Mile|Furlong)', r'\1 \2', dist_text, flags=re.IGNORECASE)
         # Remove surface from distance string
-        dist_text = re.sub(r'\s*On\s*The\s*(Turf|Dirt|Main\s*Track)\s*$', '', dist_text, flags=re.IGNORECASE)
+        dist_text = re.sub(r'\s*On\s*The\s*(Turf|Dirt|Main\s*Track|All\s*Weather(?:\s*Track)?)\s*$', '', dist_text, flags=re.IGNORECASE)
         dist_text = ' '.join(dist_text.split())  # Clean extra spaces
         if dist_text:
-            data.distance = dist_text
+            data.distance = normalize_distance(dist_text)
 
     # Fallback distance patterns
     if not data.distance:
@@ -184,12 +186,14 @@ def extract_race_details(text: str) -> ChartData:
         for pattern in distance_patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                data.distance = match.group(1).strip()
+                data.distance = normalize_distance(match.group(1).strip())
                 break
 
     # Extract surface - look in Distance line or Track line
     # Common formats: "OnTheTurf", "On The Turf", "Track:Firm" (Turf), "Track:Fast" (Dirt)
-    if re.search(r'OnThe\s*Turf|On\s*The\s*Turf|Turf\s*Course', text, re.IGNORECASE):
+    if re.search(r'OnThe\s*All\s*Weather|On\s*The\s*All\s*Weather|All[- ]?Weather|Tapeta|Polytrack|Synthetic', text, re.IGNORECASE):
+        data.surface = 'AWT'
+    elif re.search(r'OnThe\s*Turf|On\s*The\s*Turf|Turf\s*Course', text, re.IGNORECASE):
         data.surface = 'Turf'
     elif re.search(r'OnThe\s*Dirt|On\s*The\s*Dirt|Main\s*Track', text, re.IGNORECASE):
         data.surface = 'Dirt'

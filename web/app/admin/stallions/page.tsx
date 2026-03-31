@@ -11,7 +11,7 @@ interface Stallion {
   dam: string | null
   dam_sire: string | null
   stud_farm: string | null
-  stud_fee: number | null
+  stud_fee: string | null
   equineline_url: string | null
   tdn_url: string | null
 }
@@ -26,6 +26,35 @@ interface StallionOrg {
   stallion_id: string
 }
 
+const CURRENCIES = [
+  { symbol: '$', label: 'USD' },
+  { symbol: '£', label: 'GBP' },
+  { symbol: '€', label: 'EUR' },
+  { symbol: 'A$', label: 'AUD' },
+  { symbol: '¥', label: 'JPY' },
+] as const
+
+function parseFee(value: string): { currency: string; amount: string } {
+  for (const c of CURRENCIES) {
+    if (value.startsWith(c.symbol)) {
+      return { currency: c.symbol, amount: value.slice(c.symbol.length) }
+    }
+  }
+  return { currency: '$', amount: value }
+}
+
+function formatAmount(raw: string): string {
+  const digits = raw.replace(/[^0-9]/g, '')
+  if (!digits) return ''
+  return Number(digits).toLocaleString('en-US')
+}
+
+function buildFee(currency: string, amount: string): string {
+  const formatted = formatAmount(amount)
+  if (!formatted) return ''
+  return `${currency}${formatted}`
+}
+
 export default function AdminStallionsPage() {
   const [stallions, setStallions] = useState<Stallion[]>([])
   const [organizations, setOrganizations] = useState<Organization[]>([])
@@ -33,7 +62,9 @@ export default function AdminStallionsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingUrls, setEditingUrls] = useState<{ equineline_url: string; tdn_url: string; stud_fee: string }>({ equineline_url: '', tdn_url: '', stud_fee: '' })
+  const [editingUrls, setEditingUrls] = useState<{ equineline_url: string; tdn_url: string }>({ equineline_url: '', tdn_url: '' })
+  const [editFeeCurrency, setEditFeeCurrency] = useState('$')
+  const [editFeeAmount, setEditFeeAmount] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [newStallion, setNewStallion] = useState({
     name: '',
@@ -46,6 +77,8 @@ export default function AdminStallionsPage() {
     equineline_url: '',
     tdn_url: '',
   })
+  const [newFeeCurrency, setNewFeeCurrency] = useState('$')
+  const [newFeeAmount, setNewFeeAmount] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -89,7 +122,8 @@ export default function AdminStallionsPage() {
     if (newStallion.dam) stallionData.dam = newStallion.dam
     if (newStallion.dam_sire) stallionData.dam_sire = newStallion.dam_sire
     if (newStallion.stud_farm) stallionData.stud_farm = newStallion.stud_farm
-    if (newStallion.stud_fee) stallionData.stud_fee = parseInt(newStallion.stud_fee)
+    const builtFee = buildFee(newFeeCurrency, newFeeAmount)
+    if (builtFee) stallionData.stud_fee = builtFee
     if (newStallion.equineline_url) stallionData.equineline_url = newStallion.equineline_url
     if (newStallion.tdn_url) stallionData.tdn_url = newStallion.tdn_url
 
@@ -118,8 +152,15 @@ export default function AdminStallionsPage() {
     setEditingUrls({
       equineline_url: stallion.equineline_url || '',
       tdn_url: stallion.tdn_url || '',
-      stud_fee: stallion.stud_fee != null ? String(stallion.stud_fee) : '',
     })
+    if (stallion.stud_fee) {
+      const parsed = parseFee(stallion.stud_fee)
+      setEditFeeCurrency(parsed.currency)
+      setEditFeeAmount(parsed.amount)
+    } else {
+      setEditFeeCurrency('$')
+      setEditFeeAmount('')
+    }
   }
 
   async function saveAndCloseEditing(stallionId: string) {
@@ -131,7 +172,8 @@ export default function AdminStallionsPage() {
     const updates: Record<string, string | number> = {}
     if (editingUrls.equineline_url) updates.equineline_url = editingUrls.equineline_url
     if (editingUrls.tdn_url) updates.tdn_url = editingUrls.tdn_url
-    if (editingUrls.stud_fee) updates.stud_fee = parseInt(editingUrls.stud_fee)
+    const editBuiltFee = buildFee(editFeeCurrency, editFeeAmount)
+    if (editBuiltFee) updates.stud_fee = editBuiltFee
 
     // If no fields provided, just close without updating
     if (Object.keys(updates).length === 0) {
@@ -259,14 +301,25 @@ export default function AdminStallionsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Stud Fee (USD)</label>
-                <input
-                  type="number"
-                  value={newStallion.stud_fee}
-                  onChange={e => setNewStallion({ ...newStallion, stud_fee: e.target.value })}
-                  placeholder="25000"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
-                />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Stud Fee</label>
+                <div className="flex">
+                  <select
+                    value={newFeeCurrency}
+                    onChange={e => setNewFeeCurrency(e.target.value)}
+                    className="px-2 py-2 border border-r-0 border-slate-300 rounded-l-md bg-slate-50 text-sm"
+                  >
+                    {CURRENCIES.map(c => (
+                      <option key={c.label} value={c.symbol}>{c.symbol} {c.label}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={newFeeAmount}
+                    onChange={e => setNewFeeAmount(formatAmount(e.target.value))}
+                    placeholder="25,000"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-r-md"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Sire</label>
@@ -358,8 +411,8 @@ export default function AdminStallionsPage() {
                     {stallion.stud_farm && (
                       <span className="text-sm text-slate-400">@ {stallion.stud_farm}</span>
                     )}
-                    {stallion.stud_fee != null && (
-                      <span className="text-sm text-slate-400">${stallion.stud_fee.toLocaleString()}</span>
+                    {stallion.stud_fee && (
+                      <span className="text-sm text-slate-400">{stallion.stud_fee}</span>
                     )}
                   </div>
                   {(stallion.sire || stallion.dam) && (
@@ -397,14 +450,25 @@ export default function AdminStallionsPage() {
                   {isEditing ? (
                     <div className="mt-3 grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-medium text-slate-500">Stud Fee (USD)</label>
-                        <input
-                          type="number"
-                          value={editingUrls.stud_fee}
-                          onChange={e => setEditingUrls({ ...editingUrls, stud_fee: e.target.value })}
-                          placeholder="25000"
-                          className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
-                        />
+                        <label className="text-xs font-medium text-slate-500">Stud Fee</label>
+                        <div className="flex">
+                          <select
+                            value={editFeeCurrency}
+                            onChange={e => setEditFeeCurrency(e.target.value)}
+                            className="px-2 py-1 text-sm border border-r-0 border-slate-300 rounded-l bg-slate-50"
+                          >
+                            {CURRENCIES.map(c => (
+                              <option key={c.label} value={c.symbol}>{c.symbol} {c.label}</option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            value={editFeeAmount}
+                            onChange={e => setEditFeeAmount(formatAmount(e.target.value))}
+                            placeholder="25,000"
+                            className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded-r"
+                          />
+                        </div>
                       </div>
                       <div />
                       <div>

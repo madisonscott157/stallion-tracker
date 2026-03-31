@@ -20,7 +20,7 @@ export async function GET() {
   }
 
   // 1. Fetch visible stallions (same logic as /api/stallions)
-  let stallionList: { id: string; name: string; stud_farm: string | null; stud_fee: number | null }[] = []
+  let stallionList: { id: string; name: string; stud_farm: string | null; stud_fee: string | null }[] = []
 
   if (profile.role === 'admin') {
     const { data } = await supabase
@@ -38,7 +38,7 @@ export async function GET() {
       .eq('organization_id', profile.organization_id)
 
     stallionList = (data || [])
-      .map(os => os.stallions as unknown as { id: string; name: string; stud_farm: string | null; stud_fee: number | null })
+      .map(os => os.stallions as unknown as { id: string; name: string; stud_farm: string | null; stud_fee: string | null })
       .filter(Boolean)
       .sort((a, b) => a.name.localeCompare(b.name))
   }

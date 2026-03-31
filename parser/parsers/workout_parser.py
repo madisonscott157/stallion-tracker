@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 
 from models import WorkoutData, HorseData
 from comments_parser import parse_comments, extract_age_sex
+from distance_normalizer import normalize_distance
 
 
 def parse_workout_email(html_content: str, email_id: str) -> Optional[WorkoutData]:
@@ -115,7 +116,7 @@ def parse_workout_email(html_content: str, email_id: str) -> Optional[WorkoutDat
     distance = None
     distance_match = re.search(r"Distance:\s*(.+?)(?=Time:|Track Condition:|Surface:|Rank:|\n|$)", text)
     if distance_match:
-        distance = distance_match.group(1).strip()
+        distance = normalize_distance(distance_match.group(1).strip())
 
     # 6. Extract time and note (e.g., "49:60 Breezing")
     time = None
