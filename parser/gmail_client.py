@@ -40,7 +40,7 @@ class GmailClient:
             try:
                 self.mail.close()
                 self.mail.logout()
-            except:
+            except (OSError, imaplib.IMAP4.error):
                 pass
             self.mail = None
 
@@ -108,7 +108,7 @@ class GmailClient:
                 date_str = msg["Date"]
                 try:
                     msg_date = email.utils.parsedate_to_datetime(date_str)
-                except:
+                except (ValueError, TypeError):
                     msg_date = datetime.now()
 
                 # Get message ID for deduplication
@@ -131,7 +131,7 @@ class GmailClient:
                                     html_body = body
                                 elif content_type == "text/plain":
                                     text_body = body
-                        except:
+                        except (UnicodeDecodeError, LookupError, AttributeError):
                             continue
                 else:
                     content_type = msg.get_content_type()

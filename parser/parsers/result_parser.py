@@ -31,6 +31,7 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
 
     # Variables to fill
     race_date = None
+    date_str = None
     track = None
     race_number = None
     finish_position = None
