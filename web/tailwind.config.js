@@ -29,6 +29,12 @@ module.exports = {
           light: '#c0c0c0',
           border: '#8e8e93',
         },
+        // Bronze - for 3rd place
+        bronze: {
+          DEFAULT: '#cd7f32',
+          light: '#d4944a',
+          border: '#a0622a',
+        },
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],

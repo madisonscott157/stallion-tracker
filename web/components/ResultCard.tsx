@@ -34,12 +34,14 @@ export function ResultCard({ result, showSireName }: ResultCardProps) {
   // Stakes winner should have bold race info
   const isStakesWinner = isWinner && result.is_stakes
   const isSecond = result.finish_position === 2
+  const isThird = result.finish_position === 3
   const isG1 = result.stakes_grade === 'G1'
   const isG2 = result.stakes_grade === 'G2'
 
   // Determine border color:
   // - WIN or G1: gold
   // - 2nd place or G2: silver
+  // - 3rd place: bronze
   // - G3 or other stakes: accent (orange)
   // - Non-graded stakes: navy
   // - Other: no border
@@ -48,6 +50,8 @@ export function ResultCard({ result, showSireName }: ResultCardProps) {
     borderClass = 'border-l-4 border-l-gold-border'
   } else if (isSecond || isG2) {
     borderClass = 'border-l-4 border-l-silver-border'
+  } else if (isThird) {
+    borderClass = 'border-l-4 border-l-bronze-border'
   } else if (result.stakes_grade) {
     borderClass = 'border-l-4 border-l-accent'
   } else if (result.is_stakes) {
@@ -60,6 +64,10 @@ export function ResultCard({ result, showSireName }: ResultCardProps) {
         'rounded-lg border px-2 sm:px-4 py-1.5 sm:py-2.5 card-hover',
         isWinner
           ? 'bg-amber-50/60 border-gold/30 shadow-[0_1px_4px_rgba(212,175,55,0.15)]'
+          : isSecond
+          ? 'bg-slate-50/60 border-silver/30 shadow-[0_1px_4px_rgba(168,169,173,0.15)]'
+          : isThird
+          ? 'bg-orange-50/40 border-bronze/30 shadow-[0_1px_4px_rgba(205,127,50,0.15)]'
           : 'bg-white border-slate-200',
         borderClass
       )}
@@ -73,6 +81,10 @@ export function ResultCard({ result, showSireName }: ResultCardProps) {
         ) : isSecond ? (
           <span className="bg-silver text-white text-xs rounded font-medium px-1.5 py-0.5 relative top-[-1px]">
             2nd
+          </span>
+        ) : isThird ? (
+          <span className="bg-bronze text-white text-xs rounded font-medium px-1.5 py-0.5 relative top-[-1px]">
+            3rd
           </span>
         ) : (
           <span className="text-slate-500 text-sm font-medium">
