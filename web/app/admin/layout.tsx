@@ -30,14 +30,12 @@ export default function AdminLayout({
               >
                 App
               </Link>
-              {!isLoading && (
-                <button
-                  onClick={() => signOut()}
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Logout
-                </button>
-              )}
+              <button
+                onClick={() => signOut()}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                Logout
+              </button>
             </div>
           </div>
           <div className="flex gap-4 sm:gap-6 mt-1">
