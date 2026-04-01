@@ -156,17 +156,17 @@ export function Header({
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className="hover:text-white transition-colors"
+                  className="hover:text-white transition-colors inline-flex items-center"
                 >
                   Admin
                 </Link>
               )}
-              <span className="hidden lg:inline">
+              <span className="hidden lg:inline-flex items-center">
                 {profile?.organization?.name || profile?.email}
               </span>
               <button
                 onClick={() => signOut()}
-                className="hover:text-white transition-colors"
+                className="hover:text-white transition-colors inline-flex items-center"
               >
                 Logout
               </button>
