@@ -48,6 +48,12 @@ export default function AdminUsersAndStablesPage() {
   const [isSubmittingOrg, setIsSubmittingOrg] = useState(false)
   const [orgError, setOrgError] = useState('')
 
+  // Stallion form state
+  const [showAddStallionForm, setShowAddStallionForm] = useState(false)
+  const [newStallion, setNewStallion] = useState({ name: '', yob: '', sire: '', dam: '', dam_sire: '', stud_farm: '' })
+  const [isSubmittingStallion, setIsSubmittingStallion] = useState(false)
+  const [stallionError, setStallionError] = useState('')
+
   // User form state — tracks which org card has the form open (null = closed)
   const [addingUserToOrg, setAddingUserToOrg] = useState<string | null>(null)
   const [addingUnassignedUser, setAddingUnassignedUser] = useState(false)
@@ -126,6 +132,31 @@ export default function AdminUsersAndStablesPage() {
     if (!confirm('Are you sure you want to delete this stable? All associated users will lose access.')) return
     const { error } = await supabase.from('organizations').delete().eq('id', orgId)
     if (!error) fetchData()
+  }
+
+  async function handleAddStallion(e: React.FormEvent) {
+    e.preventDefault()
+    setIsSubmittingStallion(true)
+    setStallionError('')
+
+    const stallionData: Record<string, string | number> = { name: newStallion.name }
+    if (newStallion.yob) stallionData.yob = parseInt(newStallion.yob)
+    if (newStallion.sire) stallionData.sire = newStallion.sire
+    if (newStallion.dam) stallionData.dam = newStallion.dam
+    if (newStallion.dam_sire) stallionData.dam_sire = newStallion.dam_sire
+    if (newStallion.stud_farm) stallionData.stud_farm = newStallion.stud_farm
+
+    const { error: insertError } = await supabase.from('stallions').insert(stallionData)
+
+    setIsSubmittingStallion(false)
+    if (insertError) {
+      setStallionError(insertError.message)
+    } else {
+      setShowAddStallionForm(false)
+      setNewStallion({ name: '', yob: '', sire: '', dam: '', dam_sire: '', stud_farm: '' })
+      toast('Stallion created', 'success')
+      fetchData()
+    }
   }
 
   async function handleToggleStallion(orgId: string, stallionId: string) {
@@ -391,13 +422,112 @@ export default function AdminUsersAndStablesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold text-slate-900">Users & Stables</h2>
-        <button
-          onClick={() => setShowAddStableForm(true)}
-          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
-        >
-          Add Stable
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowAddStallionForm(true)}
+            className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors text-sm font-medium"
+          >
+            Add Stallion
+          </button>
+          <button
+            onClick={() => setShowAddStableForm(true)}
+            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
+          >
+            Add Stable
+          </button>
+        </div>
       </div>
+
+      {/* Add Stallion form */}
+      {showAddStallionForm && (
+        <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
+          <h3 className="text-lg font-medium text-slate-900 mb-4">Add New Stallion</h3>
+          {stallionError && (
+            <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">{stallionError}</div>
+          )}
+          <form onSubmit={handleAddStallion} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Name *</label>
+                <input
+                  type="text"
+                  value={newStallion.name}
+                  onChange={e => setNewStallion({ ...newStallion, name: e.target.value })}
+                  required
+                  placeholder="McKinzie"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Year of Birth</label>
+                <input
+                  type="number"
+                  value={newStallion.yob}
+                  onChange={e => setNewStallion({ ...newStallion, yob: e.target.value })}
+                  placeholder="2015"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Stud Farm</label>
+                <input
+                  type="text"
+                  value={newStallion.stud_farm}
+                  onChange={e => setNewStallion({ ...newStallion, stud_farm: e.target.value })}
+                  placeholder="Gainesway"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Sire</label>
+                <input
+                  type="text"
+                  value={newStallion.sire}
+                  onChange={e => setNewStallion({ ...newStallion, sire: e.target.value })}
+                  placeholder="Street Sense"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Dam</label>
+                <input
+                  type="text"
+                  value={newStallion.dam}
+                  onChange={e => setNewStallion({ ...newStallion, dam: e.target.value })}
+                  placeholder="Runway Model"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Dam Sire</label>
+                <input
+                  type="text"
+                  value={newStallion.dam_sire}
+                  onChange={e => setNewStallion({ ...newStallion, dam_sire: e.target.value })}
+                  placeholder="Petionville"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={isSubmittingStallion}
+                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 text-sm font-medium"
+              >
+                {isSubmittingStallion ? 'Creating...' : 'Create Stallion'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAddStallionForm(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 text-sm font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Add Stable form */}
       {showAddStableForm && (
@@ -557,31 +687,53 @@ export default function AdminUsersAndStablesPage() {
               </div>
 
               {/* Stallions linked to this stable */}
-              {stallions.length > 0 && (
-                <div className="px-4 sm:px-5 py-2 border-b border-slate-100">
-                  <span className="text-xs font-medium text-slate-500 uppercase">Stallions</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {stallions.map(stallion => {
-                      const isLinked = stallionOrgs.some(
-                        so => so.stallion_id === stallion.id && so.organization_id === org.id
-                      )
-                      return (
-                        <button
+              {(() => {
+                const linkedStallions = stallions.filter(s =>
+                  stallionOrgs.some(so => so.stallion_id === s.id && so.organization_id === org.id)
+                )
+                const unlinkedStallions = stallions.filter(s =>
+                  !stallionOrgs.some(so => so.stallion_id === s.id && so.organization_id === org.id)
+                )
+                return (
+                  <div className="px-4 sm:px-5 py-2 border-b border-slate-100">
+                    <span className="text-xs font-medium text-slate-500 uppercase">Stallions</span>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      {linkedStallions.map(stallion => (
+                        <span
                           key={stallion.id}
-                          onClick={() => handleToggleStallion(org.id, stallion.id)}
-                          className={`px-2 py-1 text-xs rounded transition-colors ${
-                            isLinked
-                              ? 'bg-primary text-white'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-primary text-white"
                         >
                           {stallion.name}
-                        </button>
-                      )
-                    })}
+                          <button
+                            onClick={() => handleToggleStallion(org.id, stallion.id)}
+                            className="hover:text-white/70 ml-0.5"
+                            title={`Remove ${stallion.name}`}
+                          >
+                            &times;
+                          </button>
+                        </span>
+                      ))}
+                      {unlinkedStallions.length > 0 && (
+                        <select
+                          value=""
+                          onChange={e => {
+                            if (e.target.value) handleToggleStallion(org.id, e.target.value)
+                          }}
+                          className="text-xs border border-slate-200 rounded px-1.5 py-1 text-slate-500"
+                        >
+                          <option value="">+ Add stallion</option>
+                          {unlinkedStallions.map(s => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      )}
+                      {linkedStallions.length === 0 && unlinkedStallions.length === 0 && (
+                        <span className="text-xs text-slate-400">No stallions created yet</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               {/* Users within this stable */}
               <div className="px-2 py-1">

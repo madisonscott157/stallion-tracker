@@ -60,26 +60,11 @@ export default function AdminStallionsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [stallionOrgs, setStallionOrgs] = useState<StallionOrg[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingUrls, setEditingUrls] = useState<{ equineline_url: string; tdn_url: string }>({ equineline_url: '', tdn_url: '' })
   const [editFeeCurrency, setEditFeeCurrency] = useState('$')
   const [editFeeAmount, setEditFeeAmount] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  const [newStallion, setNewStallion] = useState({
-    name: '',
-    yob: '',
-    sire: '',
-    dam: '',
-    dam_sire: '',
-    stud_farm: '',
-    stud_fee: '',
-    equineline_url: '',
-    tdn_url: '',
-  })
-  const [newFeeCurrency, setNewFeeCurrency] = useState('$')
-  const [newFeeAmount, setNewFeeAmount] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   async function fetchData() {
@@ -107,36 +92,6 @@ export default function AdminStallionsPage() {
   useEffect(() => {
     fetchData()
   }, [])
-
-  async function handleAddStallion(e: React.FormEvent) {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setError('')
-
-    // Only send fields that have values (avoid sending nulls - causes Supabase client to hang)
-    const stallionData: Record<string, string | number> = {
-      name: newStallion.name,
-    }
-    if (newStallion.yob) stallionData.yob = parseInt(newStallion.yob)
-    if (newStallion.sire) stallionData.sire = newStallion.sire
-    if (newStallion.dam) stallionData.dam = newStallion.dam
-    if (newStallion.dam_sire) stallionData.dam_sire = newStallion.dam_sire
-    if (newStallion.stud_farm) stallionData.stud_farm = newStallion.stud_farm
-    const builtFee = buildFee(newFeeCurrency, newFeeAmount)
-    if (builtFee) stallionData.stud_fee = builtFee
-    if (newStallion.equineline_url) stallionData.equineline_url = newStallion.equineline_url
-    if (newStallion.tdn_url) stallionData.tdn_url = newStallion.tdn_url
-
-    const { error: insertError } = await supabase.from('stallions').insert(stallionData)
-
-    setIsSubmitting(false)
-    if (insertError) {
-      setError(insertError.message)
-    } else {
-      // Reload the page to show the new stallion
-      window.location.reload()
-    }
-  }
 
   async function handleUpdateStallion(stallionId: string, updates: Partial<Stallion>) {
     const { error } = await supabase.from('stallions').update(updates).eq('id', stallionId)
@@ -269,146 +224,11 @@ export default function AdminStallionsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold text-slate-900">Stallions</h2>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
-        >
-          Add Stallion
-        </button>
       </div>
 
-      {showAddForm && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
-          <h3 className="text-lg font-medium text-slate-900 mb-4">Add New Stallion</h3>
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-          <form onSubmit={handleAddStallion} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Name *</label>
-                <input
-                  type="text"
-                  value={newStallion.name}
-                  onChange={e => setNewStallion({ ...newStallion, name: e.target.value })}
-                  required
-                  placeholder="McKinzie"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Year of Birth</label>
-                <input
-                  type="number"
-                  value={newStallion.yob}
-                  onChange={e => setNewStallion({ ...newStallion, yob: e.target.value })}
-                  placeholder="2015"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Stud Farm</label>
-                <input
-                  type="text"
-                  value={newStallion.stud_farm}
-                  onChange={e => setNewStallion({ ...newStallion, stud_farm: e.target.value })}
-                  placeholder="Gainesway"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Stud Fee</label>
-                <div className="flex">
-                  <select
-                    value={newFeeCurrency}
-                    onChange={e => setNewFeeCurrency(e.target.value)}
-                    className="px-2 py-2 border border-r-0 border-slate-300 rounded-l-md bg-slate-50 text-sm"
-                  >
-                    {CURRENCIES.map(c => (
-                      <option key={c.label} value={c.symbol}>{c.symbol} {c.label}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="text"
-                    value={newFeeAmount}
-                    onChange={e => setNewFeeAmount(formatAmount(e.target.value))}
-                    placeholder="25,000"
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-r-md"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Sire</label>
-                <input
-                  type="text"
-                  value={newStallion.sire}
-                  onChange={e => setNewStallion({ ...newStallion, sire: e.target.value })}
-                  placeholder="Street Sense"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Dam</label>
-                <input
-                  type="text"
-                  value={newStallion.dam}
-                  onChange={e => setNewStallion({ ...newStallion, dam: e.target.value })}
-                  placeholder="Runway Model"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Dam Sire</label>
-                <input
-                  type="text"
-                  value={newStallion.dam_sire}
-                  onChange={e => setNewStallion({ ...newStallion, dam_sire: e.target.value })}
-                  placeholder="Petionville"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Equineline URL</label>
-                <input
-                  type="url"
-                  value={newStallion.equineline_url}
-                  onChange={e => setNewStallion({ ...newStallion, equineline_url: e.target.value })}
-                  placeholder="https://www.equineline.com/..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">TDN Sire List URL</label>
-                <input
-                  type="url"
-                  value={newStallion.tdn_url}
-                  onChange={e => setNewStallion({ ...newStallion, tdn_url: e.target.value })}
-                  placeholder="https://www.thoroughbreddailynews.com/..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 text-sm font-medium"
-              >
-                {isSubmitting ? 'Creating...' : 'Create Stallion'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 text-sm font-medium"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+          {error}
         </div>
       )}
 
@@ -561,7 +381,7 @@ export default function AdminStallionsPage() {
 
         {stallions.length === 0 && (
           <div className="bg-white rounded-lg border border-slate-200 p-8 text-center text-slate-500">
-            No stallions yet. Add your first stallion above.
+            No stallions yet. Add stallions from the Users &amp; Stables page.
           </div>
         )}
       </div>
