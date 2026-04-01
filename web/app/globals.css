@@ -3,14 +3,6 @@
 @tailwind utilities;
 
 :root {
-  /* Primary - Dark navy */
-  --color-primary: #0f172a;
-  --color-primary-light: #1e293b;
-
-  /* Accent - Gold */
-  --color-accent: #b45309;
-  --color-accent-light: #d97706;
-
   /* Organization theme colors (set dynamically via JS) */
   --org-primary: #0f172a;
   --org-secondary: #64748b;

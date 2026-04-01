@@ -29,7 +29,12 @@ export async function PATCH(request: NextRequest) {
 
   if (error) {
     console.error('Error updating preferences:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const status = error.code === 'PGRST116' ? 404 : 500
+    return NextResponse.json({ error: error.message }, { status })
+  }
+
+  if (!data) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
   return NextResponse.json(data)

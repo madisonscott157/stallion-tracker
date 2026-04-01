@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { ResultCard } from '@/components/ResultCard'
-import { formatDate, formatDistance, formatTrack } from '@/lib/utils'
+import { formatDistance, formatTrack } from '@/lib/utils'
 import type { Result } from '@/lib/supabase'
 
 interface ResultsSectionProps {

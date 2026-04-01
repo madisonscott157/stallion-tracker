@@ -5,7 +5,7 @@
  */
 
 import type { Result, Entry } from './supabase'
-import { formatDate, formatDistance, formatOrdinal, formatTrack, cleanRaceName } from './utils'
+import { formatDate, formatDistance, formatHorseDescription, formatOrdinal, formatTrack, cleanRaceName } from './utils'
 
 export type ExportType = 'all' | 'entries' | 'results' | 'stakes'
 
@@ -30,11 +30,6 @@ export interface ExportData {
   isAdmin?: boolean
   userOrgName?: string
   userOrgSilksUrl?: string | null
-}
-
-function formatHorseDesc(sex: string | null, yob: number | null): string {
-  const age = yob ? new Date().getFullYear() - yob : null
-  return [sex?.toLowerCase(), age].filter(Boolean).join(', ')
 }
 
 function badge(text: string, bgColor: string): string {
@@ -123,7 +118,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   const name = r.horse_profile_url
     ? `<a href="${r.horse_profile_url}" style="color:#0f172a;text-decoration:none;">${nameText}</a>`
     : nameText
-  const desc = formatHorseDesc(r.horse_sex || null, r.horse_yob || null)
+  const desc = formatHorseDescription(r.horse_sex || null, r.horse_yob || null)
   const ownerSilks = getSilksForOwner(r.owner, orgsWithSilks, isAdmin, userOrgName, userOrgSilksUrl)
   const raceInfo = [r.race_type, r.purse ? `$${r.purse.toLocaleString()}` : null, formatDistance(r.distance || null) || null].filter(Boolean).join(' | ')
 
@@ -191,7 +186,7 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
   const name = e.horse_profile_url
     ? `<a href="${e.horse_profile_url}" style="color:#0f172a;text-decoration:none;">${nameText}</a>`
     : nameText
-  const desc = formatHorseDesc(e.horse_sex || null, e.horse_yob || null)
+  const desc = formatHorseDescription(e.horse_sex || null, e.horse_yob || null)
   const ownerSilks = getSilksForOwner(e.owner, orgsWithSilks, isAdmin, userOrgName, userOrgSilksUrl)
   const track = formatTrack(e.track)
   const dateStr = formatDate(e.race_date)

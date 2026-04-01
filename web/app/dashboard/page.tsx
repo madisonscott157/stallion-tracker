@@ -37,9 +37,12 @@ export default function DashboardPage() {
   const { isLoading: authLoading } = useAuth()
 
   useEffect(() => {
+    if (authLoading) return
+
+    const controller = new AbortController()
+
     async function fetchDashboard() {
       const fetchWithTimeout = (url: string, ms = 8000) => {
-        const controller = new AbortController()
         const timer = setTimeout(() => controller.abort(), ms)
         return fetch(url, { signal: controller.signal })
           .finally(() => clearTimeout(timer))
@@ -52,6 +55,8 @@ export default function DashboardPage() {
           fetchWithTimeout('/api/results?limit=50&days=14'),
         ])
 
+        if (controller.signal.aborted) return
+
         if (dashRes.status === 'fulfilled' && dashRes.value.ok)
           setData(await dashRes.value.json())
         if (entriesRes.status === 'fulfilled' && entriesRes.value.ok)
@@ -59,15 +64,17 @@ export default function DashboardPage() {
         if (resultsRes.status === 'fulfilled' && resultsRes.value.ok)
           setResults(await resultsRes.value.json())
       } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return
         console.error('Error fetching dashboard:', error)
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
       }
     }
 
-    if (!authLoading) {
-      fetchDashboard()
-    }
+    fetchDashboard()
+    return () => controller.abort()
   }, [authLoading, fetchKey])
 
   // Client-side stallion filter

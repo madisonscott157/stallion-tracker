@@ -52,14 +52,15 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    async function fetchData() {
-      if (!stallionId) return
+    if (!stallionId) return
 
+    const controller = new AbortController()
+
+    async function fetchData() {
       setLoading(true)
       setError(false)
 
       try {
-        const controller = new AbortController()
         const timer = setTimeout(() => controller.abort(), 10000)
         const res = await fetch(
           `/api/stallion-data?stallion=${encodeURIComponent(stallion)}`,
@@ -85,11 +86,14 @@ export default function Home() {
           setError(true)
         }
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchData()
+    return () => controller.abort()
   }, [stallion, stallionId, fetchKey])
 
   // Entries are already sorted by date, then time from API

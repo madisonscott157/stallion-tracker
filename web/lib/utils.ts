@@ -32,17 +32,6 @@ export function formatOrdinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
 
-export function formatSex(sex: string | null): string {
-  const sexMap: Record<string, string> = {
-    'c': 'colt',
-    'f': 'filly',
-    'g': 'gelding',
-    'h': 'horse',
-    'm': 'mare',
-  }
-  return sex ? sexMap[sex.toLowerCase()] || sex : ''
-}
-
 export function formatSexShort(sex: string | null): string {
   return sex?.toLowerCase() || ''
 }
@@ -63,16 +52,6 @@ export function formatDate(dateStr: string): string {
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-  })
-}
-
-export function formatDateFull(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00')
-  return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
   })
 }
 

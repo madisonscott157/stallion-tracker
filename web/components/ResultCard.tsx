@@ -14,7 +14,6 @@ export function ResultCard({ result, showSireName }: ResultCardProps) {
   const horseName = result.horse_name || 'Unknown'
   const horseDesc = formatHorseDescription(result.horse_sex || null, result.horse_yob || null)
   const isWinner = result.finish_position === 1
-  const isTopThree = result.finish_position <= 3
 
   const { show: showSilks, silksUrls } = shouldShowSilks(profile?.organization, result.owner, allOrgsWithSilks, isAdmin)
 
@@ -88,7 +87,7 @@ export function ResultCard({ result, showSireName }: ResultCardProps) {
           </span>
         ) : (
           <span className="text-slate-500 text-sm font-medium">
-            {formatOrdinal(result.finish_position)}
+            {result.finish_position > 0 ? formatOrdinal(result.finish_position) : '-'}
           </span>
         )}
         {result.horse_profile_url ? (

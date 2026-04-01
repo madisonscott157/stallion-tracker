@@ -12,27 +12,6 @@ export function createClientComponentClient() {
 }
 
 // Types for database tables
-export interface Stallion {
-  id: string
-  name: string
-  yob: number | null
-  sire: string | null
-  dam: string | null
-  stud_farm: string | null
-  stud_fee: string | null
-}
-
-export interface Horse {
-  id: string
-  name: string | null
-  sex: string | null
-  yob: number | null
-  sire_id: string
-  dam: string | null
-  is_unnamed: boolean
-  equibase_profile_url: string | null
-}
-
 export interface Entry {
   id: string
   horse_id: string

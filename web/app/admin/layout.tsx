@@ -10,7 +10,7 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const { profile, signOut, isLoading } = useAuth()
+  const { signOut, isLoading } = useAuth()
 
   const navItems = [
     { href: '/admin', label: 'Users & Stables' },

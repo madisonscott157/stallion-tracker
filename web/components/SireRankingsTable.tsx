@@ -47,7 +47,7 @@ export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
                     <span className="text-sm text-slate-700">{listLabel}</span>
                   )}
                 </div>
-                <span className="text-lg font-bold text-slate-900">#{ranking.rank}</span>
+                <span className="text-lg font-bold text-slate-900">{ranking.rank != null ? `#${ranking.rank}` : '-'}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-sm">
                 <div className="text-center">
@@ -129,7 +129,7 @@ export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
                     )}
                   </td>
                   <td className="py-2 px-2 text-sm text-slate-900 text-center font-semibold">
-                    #{ranking.rank}
+                    {ranking.rank != null ? `#${ranking.rank}` : '-'}
                   </td>
                   <td className="py-2 px-2 text-sm text-slate-600 text-center tabular-nums">
                     {ranking.starters ?? '-'}

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { createClientComponentClient } from './supabase'
 
@@ -35,7 +35,6 @@ interface AuthContextType {
   allOrgsWithSilks: Organization[]
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
-  refreshProfile: () => Promise<void>
   updateProfile: (updates: { show_claiming_races?: boolean }) => Promise<void>
 }
 
@@ -186,18 +185,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('Error signing out:', err)
+    }
     setUser(null)
     setProfile(null)
     setSession(null)
     window.location.href = '/login'
-  }
-
-  const refreshProfile = async () => {
-    if (user) {
-      const profile = await fetchProfile(user.id)
-      setProfile(profile)
-    }
   }
 
   const updateProfile = async (updates: { show_claiming_races?: boolean }) => {
@@ -210,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Failed to update preferences')
     }
     const data = await res.json()
-    setProfile(prev => prev ? { ...prev, ...data } : prev)
+    setProfile(prev => prev ? { ...prev, show_claiming_races: data.show_claiming_races } : prev)
   }
 
   // Prevent hydration mismatch by not rendering until mounted
@@ -228,7 +224,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       allOrgsWithSilks,
       signIn,
       signOut,
-      refreshProfile,
       updateProfile,
     }}>
       {children}
