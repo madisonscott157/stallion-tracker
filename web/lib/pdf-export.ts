@@ -41,12 +41,12 @@ function formatHorseDesc(sex: string | null, yob: number | null): string {
   return [sex?.toLowerCase(), age].filter(Boolean).join(', ')
 }
 
-function badge(text: string, color: string): string {
-  return `<span style="color:${color};font-size:12px;font-weight:700;margin-right:4px;">${text}</span>`
+function badge(text: string, bgColor: string): string {
+  return `<span style="background:${bgColor};color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;margin-right:6px;letter-spacing:0.02em;display:inline-block;vertical-align:baseline;position:relative;top:-1px;">${text}</span>`
 }
 
 function pipe(): string {
-  return `<span style="color:#cbd5e1;margin:0 4px;">|</span>`
+  return `<span style="color:#cbd5e1;margin:0 6px;">|</span>`
 }
 
 function getSilksForOwner(
@@ -109,10 +109,17 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   else if (r.stakes_grade) borderColor = '#b45309'
   else if (isStakes) borderColor = '#0f172a'
 
+  // Row background tint
+  let rowBg = '#ffffff'
+  let rowBorder = '#e2e8f0'
+  if (isWin) { rowBg = 'rgba(255,251,235,0.6)'; rowBorder = 'rgba(212,175,55,0.3)' }
+  else if (is2nd) { rowBg = 'rgba(248,250,252,0.6)'; rowBorder = 'rgba(168,169,173,0.3)' }
+  else if (is3rd) { rowBg = 'rgba(255,247,237,0.4)'; rowBorder = 'rgba(205,127,50,0.3)' }
+
   // Position badge
   let pos = ''
-  if (isWin) pos = badge('WIN', '#b8860b')
-  else if (is2nd) pos = badge('2nd', '#94a3b8')
+  if (isWin) pos = badge('WIN', '#d4af37')
+  else if (is2nd) pos = badge('2nd', '#a8a9ad')
   else if (is3rd) pos = badge('3rd', '#cd7f32')
   else pos = `<span style="color:#64748b;font-size:13px;">${formatOrdinal(r.finish_position)}</span> `
 
@@ -138,29 +145,29 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   if (r.stakes_grade || stakesName) {
     let gradeBadge = ''
     if (r.stakes_grade) {
-      const gc = isG1 ? '#b8860b' : isG2 ? '#94a3b8' : '#b45309'
+      const gc = isG1 ? '#d4af37' : isG2 ? '#a8a9ad' : '#b45309'
       gradeBadge = badge(r.stakes_grade, gc)
     }
     const nameColor = isG1 ? '#b8860b' : isG2 ? '#94a3b8' : r.stakes_grade ? '#b45309' : '#0f172a'
     const nameWeight = isWin && isStakes ? 'font-weight:700;' : 'font-weight:500;'
     const sn = stakesName ? `<span style="color:${nameColor};${nameWeight}">${stakesName}</span>` : ''
     const margin = isWin && r.win_margin ? `${pipe()}<span style="color:#15803d;font-weight:500;">Won by ${r.win_margin}</span>` : ''
-    stakesRow = `<div style="margin-top:2px;font-size:13px;margin-left:52px;">${gradeBadge}${sn}${margin}</div>`
+    stakesRow = `<div style="margin-top:2px;font-size:13px;margin-left:68px;">${gradeBadge}${sn}${margin}</div>`
   }
 
   // Win margin for non-stakes
   let winRow = ''
   if (isWin && r.win_margin && !isStakes) {
-    winRow = `<div style="margin-top:2px;font-size:13px;color:#15803d;font-weight:500;margin-left:52px;">Won by ${r.win_margin}</div>`
+    winRow = `<div style="margin-top:2px;font-size:13px;color:#15803d;font-weight:500;margin-left:68px;">Won by ${r.win_margin}</div>`
   }
 
   const raceInfoStyle = isWin && isStakes ? 'font-weight:600;color:#334155;' : 'color:#64748b;'
 
   return `
-    <div style="border:1px solid #e2e8f0;border-left:4px solid ${borderColor};border-radius:6px;padding:5px 10px;margin-bottom:3px;font-size:13px;line-height:1.5;">
+    <div style="border:1px solid ${rowBorder};border-left:4px solid ${borderColor};border-radius:6px;padding:7px 12px;margin-bottom:5px;font-size:13px;line-height:1.5;background:${rowBg};">
       <table style="width:100%;border-collapse:collapse;"><tr>
-        <td style="vertical-align:baseline;width:48px;padding-right:8px;white-space:nowrap;">
-          <span style="font-size:12px;font-weight:600;color:#64748b;">${dateStr}</span>
+        <td style="vertical-align:baseline;width:56px;padding-right:12px;white-space:nowrap;">
+          <span style="font-size:12px;font-weight:600;color:#475569;">${dateStr}</span>
         </td>
         <td style="vertical-align:baseline;">
           ${pos}<span style="font-size:14px;font-weight:600;color:#0f172a;">${name}</span>
@@ -207,24 +214,24 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
     let gradeBadge = ''
     if (e.stakes_grade) gradeBadge = badge(e.stakes_grade, '#b45309')
     const sn = stakesName ? `<span style="font-weight:500;">${stakesName}</span>` : ''
-    stakesRow = `<div style="margin-top:1px;font-size:13px;margin-left:52px;">${gradeBadge}${sn}${raceDetails ? `${pipe()}${raceDetails}` : ''}</div>`
+    stakesRow = `<div style="margin-top:1px;font-size:13px;margin-left:68px;">${gradeBadge}${sn}${raceDetails ? `${pipe()}${raceDetails}` : ''}</div>`
   }
 
-  const row2 = !stakesRow && raceDetails ? `<div style="margin-top:1px;font-size:13px;color:#64748b;margin-left:52px;">${raceDetails}</div>` : ''
+  const row2 = !stakesRow && raceDetails ? `<div style="margin-top:1px;font-size:13px;color:#64748b;margin-left:68px;">${raceDetails}</div>` : ''
 
   // Trainer/Jockey row
   const connections: string[] = []
   if (e.trainer) connections.push(`T: ${e.trainer}`)
   if (e.jockey) connections.push(`J: ${e.jockey}`)
   const connectionsRow = connections.length > 0
-    ? `<div style="margin-top:1px;font-size:12px;color:#64748b;margin-left:52px;">${connections.join(`${pipe()}`)}</div>`
+    ? `<div style="margin-top:1px;font-size:12px;color:#64748b;margin-left:68px;">${connections.join(`${pipe()}`)}</div>`
     : ''
 
   return `
-    <div style="border:1px solid #e2e8f0;border-left:4px solid ${borderColor};border-radius:6px;padding:5px 10px;margin-bottom:3px;font-size:13px;line-height:1.5;">
+    <div style="border:1px solid #e2e8f0;border-left:4px solid ${borderColor};border-radius:6px;padding:7px 12px;margin-bottom:5px;font-size:13px;line-height:1.5;">
       <table style="width:100%;border-collapse:collapse;"><tr>
-        <td style="vertical-align:baseline;width:48px;padding-right:8px;white-space:nowrap;">
-          <span style="font-size:12px;font-weight:600;color:#64748b;">${dateStr}</span>
+        <td style="vertical-align:baseline;width:56px;padding-right:12px;white-space:nowrap;">
+          <span style="font-size:12px;font-weight:600;color:#475569;">${dateStr}</span>
         </td>
         <td style="vertical-align:baseline;">
           <span style="font-size:14px;font-weight:600;color:#0f172a;">${name}</span>
@@ -239,7 +246,7 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
 }
 
 function sectionHeader(text: string): string {
-  return `<div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin:10px 0 3px 0;">${text}</div>`
+  return `<div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 6px 0;padding-top:10px;border-top:1px solid #e2e8f0;">${text}</div>`
 }
 
 function filterByDateRange<T extends { race_date?: string; workout_date?: string }>(
@@ -280,8 +287,8 @@ function buildSummarySection(results: Result[], entries: Entry[]): string {
     </td>`
 
   return `
-    <div style="margin-bottom:12px;padding:8px 0;">
-      <table style="border-collapse:collapse;"><tr>
+    <div style="margin-bottom:14px;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
+      <table style="border-collapse:collapse;width:100%;"><tr>
         ${cell('Results', String(totalResults))}
         ${cell('Winners', String(winners))}
         ${cell('Win %', `${winPct}%`)}
