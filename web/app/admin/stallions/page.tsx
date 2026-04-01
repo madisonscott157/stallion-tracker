@@ -11,26 +11,9 @@ interface Stallion {
   dam: string | null
   dam_sire: string | null
   stud_farm: string | null
-  stud_fee: string | null
+  stud_fee: number | null
   equineline_url: string | null
   tdn_url: string | null
-}
-
-const CURRENCIES = [
-  { symbol: '$', label: 'USD' },
-  { symbol: '£', label: 'GBP' },
-  { symbol: '€', label: 'EUR' },
-  { symbol: 'A$', label: 'AUD' },
-  { symbol: '¥', label: 'JPY' },
-] as const
-
-function parseFee(value: string): { currency: string; amount: string } {
-  for (const c of CURRENCIES) {
-    if (value.startsWith(c.symbol)) {
-      return { currency: c.symbol, amount: value.slice(c.symbol.length) }
-    }
-  }
-  return { currency: '$', amount: value }
 }
 
 function formatAmount(raw: string): string {
@@ -39,18 +22,11 @@ function formatAmount(raw: string): string {
   return Number(digits).toLocaleString('en-US')
 }
 
-function buildFee(currency: string, amount: string): string {
-  const formatted = formatAmount(amount)
-  if (!formatted) return ''
-  return `${currency}${formatted}`
-}
-
 export default function AdminStallionsPage() {
   const [stallions, setStallions] = useState<Stallion[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingUrls, setEditingUrls] = useState<{ equineline_url: string; tdn_url: string }>({ equineline_url: '', tdn_url: '' })
-  const [editFeeCurrency, setEditFeeCurrency] = useState('$')
   const [editFeeAmount, setEditFeeAmount] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
@@ -92,14 +68,7 @@ export default function AdminStallionsPage() {
       equineline_url: stallion.equineline_url || '',
       tdn_url: stallion.tdn_url || '',
     })
-    if (stallion.stud_fee) {
-      const parsed = parseFee(stallion.stud_fee)
-      setEditFeeCurrency(parsed.currency)
-      setEditFeeAmount(parsed.amount)
-    } else {
-      setEditFeeCurrency('$')
-      setEditFeeAmount('')
-    }
+    setEditFeeAmount(stallion.stud_fee ? Number(stallion.stud_fee).toLocaleString('en-US') : '')
   }
 
   async function saveAndCloseEditing(stallionId: string) {
@@ -111,8 +80,8 @@ export default function AdminStallionsPage() {
     const updates: Record<string, string | number> = {}
     if (editingUrls.equineline_url) updates.equineline_url = editingUrls.equineline_url
     if (editingUrls.tdn_url) updates.tdn_url = editingUrls.tdn_url
-    const editBuiltFee = buildFee(editFeeCurrency, editFeeAmount)
-    if (editBuiltFee) updates.stud_fee = editBuiltFee
+    const feeDigits = editFeeAmount.replace(/[^0-9]/g, '')
+    if (feeDigits) updates.stud_fee = parseInt(feeDigits)
 
     // If no fields provided, just close without updating
     if (Object.keys(updates).length === 0) {
@@ -213,7 +182,7 @@ export default function AdminStallionsPage() {
                       <span className="text-sm text-slate-400">@ {stallion.stud_farm}</span>
                     )}
                     {stallion.stud_fee && (
-                      <span className="text-sm text-slate-400">{stallion.stud_fee}</span>
+                      <span className="text-sm text-slate-400">${Number(stallion.stud_fee).toLocaleString()}</span>
                     )}
                   </div>
                   {(stallion.sire || stallion.dam) && (
@@ -230,15 +199,7 @@ export default function AdminStallionsPage() {
                       <div>
                         <label className="text-xs font-medium text-slate-500">Stud Fee</label>
                         <div className="flex">
-                          <select
-                            value={editFeeCurrency}
-                            onChange={e => setEditFeeCurrency(e.target.value)}
-                            className="px-2 py-1 text-sm border border-r-0 border-slate-300 rounded-l bg-slate-50"
-                          >
-                            {CURRENCIES.map(c => (
-                              <option key={c.label} value={c.symbol}>{c.symbol} {c.label}</option>
-                            ))}
-                          </select>
+                          <span className="px-2 py-1 text-sm border border-r-0 border-slate-300 rounded-l bg-slate-50 text-slate-500">$</span>
                           <input
                             type="text"
                             value={editFeeAmount}
