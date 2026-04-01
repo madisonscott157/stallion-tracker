@@ -1,10 +1,29 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 
-export function DashboardHeader() {
-  const { profile, signOut, isAdmin } = useAuth()
+interface DashboardHeaderProps {
+  onPreferenceChange?: () => void
+}
+
+export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
+  const { profile, signOut, isAdmin, updateProfile } = useAuth()
+  const [clmUpdating, setClmUpdating] = useState(false)
+
+  const handleClmToggle = async () => {
+    if (clmUpdating) return
+    setClmUpdating(true)
+    try {
+      await updateProfile({ show_claiming_races: !profile?.show_claiming_races })
+      onPreferenceChange?.()
+    } catch (err) {
+      console.error('Failed to update CLM preference:', err)
+    } finally {
+      setClmUpdating(false)
+    }
+  }
 
   return (
     <header className="sticky top-0 z-10 text-white px-3 sm:px-6 py-1.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)' }}>
@@ -15,6 +34,18 @@ export function DashboardHeader() {
 
         {/* Mobile nav */}
         <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
+          {profile && (
+            <label className="inline-flex items-center gap-1 cursor-pointer text-[10px] font-medium uppercase tracking-wide opacity-80 mr-1">
+              <input
+                type="checkbox"
+                checked={profile.show_claiming_races}
+                onChange={handleClmToggle}
+                disabled={clmUpdating}
+                className="w-3 h-3 rounded accent-white"
+              />
+              CLM
+            </label>
+          )}
           {isAdmin && (
             <Link
               href="/admin"
@@ -41,7 +72,19 @@ export function DashboardHeader() {
         </div>
 
         {/* Desktop nav */}
-        <div className="hidden sm:flex items-baseline gap-3 text-sm" style={{ color: 'var(--org-secondary)' }}>
+        <div className="hidden sm:flex items-center gap-3 text-sm" style={{ color: 'var(--org-secondary)' }}>
+          {profile && (
+            <label className="inline-flex items-center gap-1 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity">
+              <input
+                type="checkbox"
+                checked={profile.show_claiming_races}
+                onChange={handleClmToggle}
+                disabled={clmUpdating}
+                className="w-3 h-3 rounded accent-white"
+              />
+              CLM
+            </label>
+          )}
           {isAdmin && (
             <Link href="/admin" className="hover:text-white transition-colors">
               Admin

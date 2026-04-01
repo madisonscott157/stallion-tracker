@@ -140,6 +140,7 @@ export default function Home() {
         onStallionChange={handleStallionChange}
         onExportPDF={handleExportPDF}
         isExporting={isExporting}
+        onPreferenceChange={() => setFetchKey(k => k + 1)}
       />
 
       {rankings.length > 0 && (() => {

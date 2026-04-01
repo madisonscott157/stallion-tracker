@@ -87,7 +87,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <DashboardHeader />
+      <DashboardHeader onPreferenceChange={() => setFetchKey(k => k + 1)} />
 
       <PullToRefresh onRefresh={async () => setFetchKey(k => k + 1)}>
       <main className="flex-1 px-4 sm:px-6 py-4 sm:py-6 max-w-5xl mx-auto w-full">

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { StallionSelector } from './StallionSelector'
@@ -10,6 +11,7 @@ interface HeaderProps {
   onStallionChange: (id: string, name: string) => void
   onExportPDF?: () => void
   isExporting?: boolean
+  onPreferenceChange?: () => void
 }
 
 export function Header({
@@ -17,9 +19,24 @@ export function Header({
   stallionId,
   onStallionChange,
   onExportPDF,
-  isExporting
+  isExporting,
+  onPreferenceChange
 }: HeaderProps) {
-  const { profile, signOut, isAdmin } = useAuth()
+  const { profile, signOut, isAdmin, updateProfile } = useAuth()
+  const [clmUpdating, setClmUpdating] = useState(false)
+
+  const handleClmToggle = async () => {
+    if (clmUpdating) return
+    setClmUpdating(true)
+    try {
+      await updateProfile({ show_claiming_races: !profile?.show_claiming_races })
+      onPreferenceChange?.()
+    } catch (err) {
+      console.error('Failed to update CLM preference:', err)
+    } finally {
+      setClmUpdating(false)
+    }
+  }
 
   return (
     <header className="sticky top-0 z-10 text-white px-3 sm:px-6 py-1.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)' }}>
@@ -54,6 +71,18 @@ export function Header({
 
             {/* Mobile nav links - all use identical wrapper styling for alignment */}
             <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
+              {profile && (
+                <label className="inline-flex items-center gap-1 cursor-pointer text-[10px] font-medium uppercase tracking-wide opacity-80">
+                  <input
+                    type="checkbox"
+                    checked={profile.show_claiming_races}
+                    onChange={handleClmToggle}
+                    disabled={clmUpdating}
+                    className="w-3 h-3 rounded accent-white"
+                  />
+                  CLM
+                </label>
+              )}
               {onExportPDF && (
                 <button
                   onClick={onExportPDF}
@@ -111,7 +140,19 @@ export function Header({
               </button>
             )}
 
-            <div className="flex items-baseline gap-3 text-sm border-l border-white/20 pl-4" style={{ color: 'var(--org-secondary)' }}>
+            <div className="flex items-center gap-3 text-sm border-l border-white/20 pl-4" style={{ color: 'var(--org-secondary)' }}>
+              {profile && (
+                <label className="inline-flex items-center gap-1 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity">
+                  <input
+                    type="checkbox"
+                    checked={profile.show_claiming_races}
+                    onChange={handleClmToggle}
+                    disabled={clmUpdating}
+                    className="w-3 h-3 rounded accent-white"
+                  />
+                  CLM
+                </label>
+              )}
               {isAdmin && (
                 <Link
                   href="/admin"

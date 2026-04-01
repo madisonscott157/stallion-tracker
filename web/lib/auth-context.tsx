@@ -36,6 +36,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
+  updateProfile: (updates: { show_claiming_races?: boolean }) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -199,6 +200,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updateProfile = async (updates: { show_claiming_races?: boolean }) => {
+    const res = await fetch('/api/user/preferences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+    if (!res.ok) {
+      throw new Error('Failed to update preferences')
+    }
+    const data = await res.json()
+    setProfile(prev => prev ? { ...prev, ...data } : prev)
+  }
+
   // Prevent hydration mismatch by not rendering until mounted
   if (!isMounted) {
     return null
@@ -215,6 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
       refreshProfile,
+      updateProfile,
     }}>
       {children}
     </AuthContext.Provider>
