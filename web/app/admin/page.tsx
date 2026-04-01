@@ -304,12 +304,13 @@ export default function AdminUsersAndStablesPage() {
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Password</label>
               <input
-                type="password"
+                type="text"
                 value={newUser.password}
                 onChange={e => setNewUser({ ...newUser, password: e.target.value })}
                 required
                 minLength={6}
                 placeholder="Min 6 characters"
+                autoComplete="off"
                 className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md"
               />
             </div>
