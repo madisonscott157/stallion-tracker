@@ -73,9 +73,14 @@ export default function AdminStallionsPage() {
   }, [])
 
   async function handleUpdateStallion(stallionId: string, updates: Partial<Stallion>) {
-    const { error } = await supabase.from('stallions').update(updates).eq('id', stallionId).select()
-    if (error) {
-      setError(`Update failed: ${error.message}`)
+    const res = await fetch('/api/admin/stallions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: stallionId, ...updates }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setError(`Update failed: ${data.error}`)
     } else {
       fetchData()
     }
@@ -117,10 +122,15 @@ export default function AdminStallionsPage() {
     }
 
     try {
-      const { error } = await supabase.from('stallions').update(updates).eq('id', stallionId).select()
+      const res = await fetch('/api/admin/stallions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: stallionId, ...updates }),
+      })
+      const data = await res.json()
 
-      if (error) {
-        setError(`Update failed: ${error.message}`)
+      if (!res.ok) {
+        setError(`Update failed: ${data.error}`)
       } else {
         setEditingId(null)
         fetchData()
@@ -135,16 +145,20 @@ export default function AdminStallionsPage() {
   async function handleDeleteStallion(stallionId: string) {
     if (!confirm('Are you sure you want to delete this stallion? This will also remove all stable links.')) return
 
-    const { error: linkError } = await supabase.from('organization_stallions').delete().eq('stallion_id', stallionId)
-    if (linkError) {
-      setError(`Delete failed: ${linkError.message}`)
-      return
-    }
-    const { error } = await supabase.from('stallions').delete().eq('id', stallionId)
-    if (error) {
-      setError(`Delete failed: ${error.message}`)
-    } else {
-      fetchData()
+    try {
+      const res = await fetch('/api/admin/stallions', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: stallionId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(`Delete failed: ${data.error}`)
+      } else {
+        fetchData()
+      }
+    } catch {
+      setError('Delete failed unexpectedly')
     }
   }
 

@@ -146,38 +146,45 @@ export default function AdminUsersAndStablesPage() {
     if (newStallion.dam_sire) stallionData.dam_sire = newStallion.dam_sire
     if (newStallion.stud_farm) stallionData.stud_farm = newStallion.stud_farm
 
-    const { error: insertError } = await supabase.from('stallions').insert(stallionData)
+    try {
+      const res = await fetch('/api/admin/stallions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(stallionData),
+      })
+      const data = await res.json()
 
-    setIsSubmittingStallion(false)
-    if (insertError) {
-      setStallionError(insertError.message)
-    } else {
-      setShowAddStallionForm(false)
-      setNewStallion({ name: '', yob: '', sire: '', dam: '', dam_sire: '', stud_farm: '' })
-      toast('Stallion created', 'success')
-      fetchData()
+      if (!res.ok) {
+        setStallionError(data.error)
+      } else {
+        setShowAddStallionForm(false)
+        setNewStallion({ name: '', yob: '', sire: '', dam: '', dam_sire: '', stud_farm: '' })
+        toast('Stallion created', 'success')
+        fetchData()
+      }
+    } catch {
+      setStallionError('Failed to create stallion')
+    } finally {
+      setIsSubmittingStallion(false)
     }
   }
 
   async function handleToggleStallion(orgId: string, stallionId: string) {
-    const exists = stallionOrgs.some(
-      so => so.stallion_id === stallionId && so.organization_id === orgId
-    )
-
-    if (exists) {
-      const { error } = await supabase
-        .from('organization_stallions')
-        .delete()
-        .eq('stallion_id', stallionId)
-        .eq('organization_id', orgId)
-      if (error) { toast(`Failed to unlink stallion: ${error.message}`, 'error'); return }
-    } else {
-      const { error } = await supabase
-        .from('organization_stallions')
-        .insert({ stallion_id: stallionId, organization_id: orgId })
-      if (error) { toast(`Failed to link stallion: ${error.message}`, 'error'); return }
+    try {
+      const res = await fetch('/api/admin/stallions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stallion_id: stallionId, organization_id: orgId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast(`Failed to update stallion link: ${data.error}`, 'error')
+        return
+      }
+      fetchData()
+    } catch {
+      toast('Failed to update stallion link', 'error')
     }
-    fetchData()
   }
 
   async function handleSilksUpload(orgId: string, file: File) {
