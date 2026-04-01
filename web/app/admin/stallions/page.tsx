@@ -73,7 +73,7 @@ export default function AdminStallionsPage() {
   }, [])
 
   async function handleUpdateStallion(stallionId: string, updates: Partial<Stallion>) {
-    const { error } = await supabase.from('stallions').update(updates).eq('id', stallionId)
+    const { error } = await supabase.from('stallions').update(updates).eq('id', stallionId).select()
     if (error) {
       setError(`Update failed: ${error.message}`)
     } else {
@@ -116,14 +116,19 @@ export default function AdminStallionsPage() {
       return
     }
 
-    const { error } = await supabase.from('stallions').update(updates).eq('id', stallionId)
+    try {
+      const { error } = await supabase.from('stallions').update(updates).eq('id', stallionId).select()
 
-    setIsSaving(false)
-    if (error) {
-      setError(`Update failed: ${error.message}`)
-    } else {
-      setEditingId(null)
-      fetchData()
+      if (error) {
+        setError(`Update failed: ${error.message}`)
+      } else {
+        setEditingId(null)
+        fetchData()
+      }
+    } catch (err) {
+      setError('Update failed unexpectedly')
+    } finally {
+      setIsSaving(false)
     }
   }
 
