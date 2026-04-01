@@ -103,7 +103,7 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
         const stallion = stallions.find(s => s.id === e.target.value)
         if (stallion) onChange(stallion.id, stallion.name)
       }}
-      className="px-3 py-1.5 text-sm bg-white/10 border border-white/20 rounded text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+      className="px-3 py-1.5 text-sm bg-white/10 border border-white/20 rounded text-white focus:outline-none focus:ring-2 focus:ring-white/30 max-w-[160px] sm:max-w-none truncate"
     >
       {stallions.map(s => (
         <option key={s.id} value={s.id} className="text-slate-900 bg-white">

@@ -26,6 +26,7 @@ body {
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
 }
 
 /* Prevent iOS zoom on input focus */
@@ -38,6 +39,7 @@ nav button,
 nav a,
 header button,
 header a,
+header label,
 button[type="submit"],
 .tap-target {
   min-height: 44px;

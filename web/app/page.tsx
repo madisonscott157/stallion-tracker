@@ -272,7 +272,7 @@ export default function Home() {
       </PullToRefresh>
 
       {/* Spacer for fixed bottom nav */}
-      <div className="h-12" />
+      <div className="h-12" style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }} />
 
       {/* Bottom nav */}
       <nav

@@ -97,7 +97,7 @@ export function SalesTable({ salesByYear, year }: SalesTableProps) {
   })
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-lg border border-slate-200 overflow-x-auto">
       <div className="bg-slate-50 px-4 py-2 border-b border-slate-200">
         <span className="font-semibold text-slate-900">{year}</span>
       </div>

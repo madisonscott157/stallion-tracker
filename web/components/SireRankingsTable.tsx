@@ -89,7 +89,7 @@ export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
       </div>
 
       {/* Desktop: Table layout */}
-      <div className="hidden sm:block bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div className="hidden sm:block bg-white rounded-lg border border-slate-200 overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="text-xs text-slate-500 uppercase tracking-wide border-b border-slate-100 bg-slate-50">

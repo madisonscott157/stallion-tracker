@@ -428,18 +428,18 @@ export default function AdminUsersAndStablesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <h2 className="text-2xl font-semibold text-slate-900">Users & Stables</h2>
         <div className="flex gap-2">
           <button
             onClick={() => setShowAddStallionForm(true)}
-            className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors text-sm font-medium"
+            className="flex-1 sm:flex-none px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors text-sm font-medium"
           >
             Add Stallion
           </button>
           <button
             onClick={() => setShowAddStableForm(true)}
-            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
+            className="flex-1 sm:flex-none px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
           >
             Add Stable
           </button>

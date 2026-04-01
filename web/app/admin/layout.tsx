@@ -20,7 +20,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-slate-50">
       <nav className="bg-slate-900 text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-1">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-1" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
           <div className="flex flex-row items-center justify-between">
             <h1 className="text-lg sm:text-xl font-semibold">Admin</h1>
             <div className="flex flex-row items-center gap-3 sm:gap-4 text-sm">

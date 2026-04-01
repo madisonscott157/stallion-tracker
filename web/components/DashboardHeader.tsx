@@ -26,22 +26,22 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-10 text-white px-3 sm:px-6 py-1.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)' }}>
+    <header className="sticky top-0 z-10 text-white px-3 sm:px-6 py-1.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.375rem, env(safe-area-inset-top))' }}>
       <div className="max-w-5xl mx-auto flex items-center justify-between">
-        <h1 className="text-lg font-semibold tracking-wide" style={{ color: 'var(--org-secondary)' }}>
+        <h1 className="text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
           {profile?.organization?.name || 'Progeny Tracker'}
         </h1>
 
         {/* Mobile nav */}
         <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
           {profile && (
-            <label className="inline-flex items-center gap-1 cursor-pointer text-[10px] font-medium uppercase tracking-wide opacity-80 mr-1">
+            <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80">
               <input
                 type="checkbox"
                 checked={profile.show_claiming_races}
                 onChange={handleClmToggle}
                 disabled={clmUpdating}
-                className="w-3 h-3 rounded accent-white"
+                className="w-4 h-4 rounded accent-white"
               />
               CLM
             </label>
@@ -74,13 +74,13 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
         {/* Desktop nav */}
         <div className="hidden sm:flex items-center gap-3 text-sm" style={{ color: 'var(--org-secondary)' }}>
           {profile && (
-            <label className="inline-flex items-center gap-1 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity">
+            <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity">
               <input
                 type="checkbox"
                 checked={profile.show_claiming_races}
                 onChange={handleClmToggle}
                 disabled={clmUpdating}
-                className="w-3 h-3 rounded accent-white"
+                className="w-4 h-4 rounded accent-white"
               />
               CLM
             </label>

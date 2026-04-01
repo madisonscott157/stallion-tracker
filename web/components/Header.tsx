@@ -39,7 +39,7 @@ export function Header({
   }
 
   return (
-    <header className="sticky top-0 z-10 text-white px-3 sm:px-6 py-1.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)' }}>
+    <header className="sticky top-0 z-10 text-white px-3 sm:px-6 py-1.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.375rem, env(safe-area-inset-top))' }}>
       <div className="max-w-5xl mx-auto">
         {/* Mobile: Two rows */}
         {/* Desktop: Single row */}
@@ -65,20 +65,20 @@ export function Header({
             />
 
             {/* Title - hidden on mobile */}
-            <h1 className="hidden md:block text-lg font-semibold tracking-wide truncate" style={{ color: 'var(--org-secondary)' }}>
+            <h1 className="hidden lg:block text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
               {stallionName.toUpperCase()} <span className="font-normal text-white/70">| Progeny Tracker</span>
             </h1>
 
             {/* Mobile nav links - all use identical wrapper styling for alignment */}
             <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
               {profile && (
-                <label className="inline-flex items-center gap-1 cursor-pointer text-[10px] font-medium uppercase tracking-wide opacity-80">
+                <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80">
                   <input
                     type="checkbox"
                     checked={profile.show_claiming_races}
                     onChange={handleClmToggle}
                     disabled={clmUpdating}
-                    className="w-3 h-3 rounded accent-white"
+                    className="w-4 h-4 rounded accent-white"
                   />
                   CLM
                 </label>
@@ -142,13 +142,13 @@ export function Header({
 
             <div className="flex items-center gap-3 text-sm border-l border-white/20 pl-4" style={{ color: 'var(--org-secondary)' }}>
               {profile && (
-                <label className="inline-flex items-center gap-1 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity">
+                <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity">
                   <input
                     type="checkbox"
                     checked={profile.show_claiming_races}
                     onChange={handleClmToggle}
                     disabled={clmUpdating}
-                    className="w-3 h-3 rounded accent-white"
+                    className="w-4 h-4 rounded accent-white"
                   />
                   CLM
                 </label>
