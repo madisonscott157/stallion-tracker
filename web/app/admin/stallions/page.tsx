@@ -76,19 +76,12 @@ export default function AdminStallionsPage() {
     setIsSaving(true)
     setError('')
 
-    // Only include fields that have values
-    const updates: Record<string, string | number> = {}
-    if (editingUrls.equineline_url) updates.equineline_url = editingUrls.equineline_url
-    if (editingUrls.tdn_url) updates.tdn_url = editingUrls.tdn_url
-    const feeDigits = editFeeAmount.replace(/[^0-9]/g, '')
-    if (feeDigits) updates.stud_fee = parseInt(feeDigits)
-
-    // If no fields provided, just close without updating
-    if (Object.keys(updates).length === 0) {
-      setIsSaving(false)
-      setEditingId(null)
-      return
+    const updates: Record<string, string | number | null> = {
+      equineline_url: editingUrls.equineline_url || null,
+      tdn_url: editingUrls.tdn_url || null,
     }
+    const feeDigits = editFeeAmount.replace(/[^0-9]/g, '')
+    updates.stud_fee = feeDigits ? parseInt(feeDigits) : null
 
     try {
       const res = await fetch('/api/admin/stallions', {
