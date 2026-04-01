@@ -270,9 +270,12 @@ export default function Home() {
       </main>
       </PullToRefresh>
 
+      {/* Spacer for fixed bottom nav */}
+      <div className="h-12" />
+
       {/* Bottom nav */}
       <nav
-        className="sticky bottom-0 bg-white border-t border-slate-200 px-4 sm:px-6 pt-2 pb-2"
+        className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 px-4 sm:px-6 pt-2 pb-2"
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
         aria-label="Main navigation"
       >
