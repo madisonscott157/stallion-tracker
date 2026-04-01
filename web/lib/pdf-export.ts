@@ -11,10 +11,6 @@ export type ExportType = 'all' | 'entries' | 'results' | 'stakes'
 
 export interface ExportOptions {
   type: ExportType
-  dateRange?: {
-    start: string | null
-    end: string | null
-  }
   silksUrl?: string | null
   orgName?: string | null
 }
@@ -249,28 +245,6 @@ function sectionHeader(text: string): string {
   return `<div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 6px 0;padding-top:10px;border-top:1px solid #e2e8f0;">${text}</div>`
 }
 
-function filterByDateRange<T extends { race_date?: string; workout_date?: string }>(
-  items: T[],
-  dateRange?: { start: string | null; end: string | null }
-): T[] {
-  if (!dateRange || (!dateRange.start && !dateRange.end)) return items
-
-  const startDate = dateRange.start ? new Date(dateRange.start + 'T00:00:00') : null
-  const endDate = dateRange.end ? new Date(dateRange.end + 'T23:59:59') : null
-
-  return items.filter(item => {
-    const itemDateStr = item.race_date || item.workout_date
-    if (!itemDateStr) return true
-
-    const itemDate = new Date(itemDateStr)
-    if (isNaN(itemDate.getTime())) return true
-
-    if (startDate && itemDate < startDate) return false
-    if (endDate && itemDate > endDate) return false
-    return true
-  })
-}
-
 function buildSummarySection(results: Result[], entries: Entry[]): string {
   const totalResults = results.length
   const winners = results.filter(r => r.finish_position === 1).length
@@ -311,12 +285,9 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
   const date = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
-  // Filter entries and results based on export type and date range
+  // Filter entries and results based on export type
   let filteredEntries = data.entries.filter(e => !e.scratched)
   let filteredResults = [...data.results]
-
-  filteredEntries = filterByDateRange(filteredEntries, options.dateRange)
-  filteredResults = filterByDateRange(filteredResults, options.dateRange)
 
   if (exportType === 'entries') {
     filteredResults = []
@@ -332,14 +303,6 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
   if (exportType === 'entries') subtitle += ' | Entries Only'
   else if (exportType === 'results') subtitle += ' | Results Only'
   else if (exportType === 'stakes') subtitle += ' | Stakes Only'
-
-  if (options.dateRange?.start && options.dateRange?.end) {
-    subtitle += ` | ${formatDate(options.dateRange.start)} - ${formatDate(options.dateRange.end)}`
-  } else if (options.dateRange?.start) {
-    subtitle += ` | From ${formatDate(options.dateRange.start)}`
-  } else if (options.dateRange?.end) {
-    subtitle += ` | Through ${formatDate(options.dateRange.end)}`
-  }
 
   // Build HTML blocks as individual elements for per-page layout
   const blocks: string[] = []

@@ -14,9 +14,6 @@ interface ExportModalProps {
 export function ExportModal({ isOpen, onClose, onExport, isExporting }: ExportModalProps) {
   const { isAdmin, allOrgsWithSilks, profile } = useAuth()
   const [exportType, setExportType] = useState<ExportType>('all')
-  const [useDateRange, setUseDateRange] = useState(false)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
   const [selectedSilks, setSelectedSilks] = useState<string>('')
 
   // User's own organization silks
@@ -31,10 +28,6 @@ export function ExportModal({ isOpen, onClose, onExport, isExporting }: ExportMo
 
     const options: ExportOptions = {
       type: exportType,
-      dateRange: useDateRange ? {
-        start: startDate || null,
-        end: endDate || null,
-      } : undefined,
       silksUrl,
       orgName: profile?.organization?.name || null,
     }
@@ -104,43 +97,6 @@ export function ExportModal({ isOpen, onClose, onExport, isExporting }: ExportMo
               ))}
             </div>
           </div>
-
-          {/* Date range toggle */}
-          <div className="pt-2 border-t border-slate-100">
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useDateRange}
-                onChange={(e) => setUseDateRange(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
-              />
-              <span className="ml-2 text-sm font-medium text-slate-700">Filter by date range</span>
-            </label>
-          </div>
-
-          {/* Date range inputs */}
-          {useDateRange && (
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-slate-500 mb-1">From</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-slate-500 mb-1">To</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-            </div>
-          )}
 
           {/* Silks selector (admin only) */}
           {isAdmin && allOrgsWithSilks.length > 0 && (
