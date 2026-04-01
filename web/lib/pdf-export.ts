@@ -96,6 +96,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   const { orgsWithSilks = [], isAdmin, userOrgName, userOrgSilksUrl } = options
   const isWin = r.finish_position === 1
   const is2nd = r.finish_position === 2
+  const is3rd = r.finish_position === 3
   const isG1 = r.stakes_grade === 'G1'
   const isG2 = r.stakes_grade === 'G2'
   const isStakes = r.is_stakes
@@ -104,6 +105,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   let borderColor = 'transparent'
   if (isWin || isG1) borderColor = '#b8860b'
   else if (is2nd || isG2) borderColor = '#94a3b8'
+  else if (is3rd) borderColor = '#a0622a'
   else if (r.stakes_grade) borderColor = '#b45309'
   else if (isStakes) borderColor = '#0f172a'
 
@@ -111,6 +113,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   let pos = ''
   if (isWin) pos = badge('WIN', '#b8860b')
   else if (is2nd) pos = badge('2nd', '#94a3b8')
+  else if (is3rd) pos = badge('3rd', '#cd7f32')
   else pos = `<span style="color:#64748b;font-size:13px;">${formatOrdinal(r.finish_position)}</span> `
 
   const nameText = r.horse_name || 'Unknown'
