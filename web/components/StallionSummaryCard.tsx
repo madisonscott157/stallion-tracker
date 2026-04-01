@@ -6,7 +6,7 @@ interface StallionSummary {
   id: string
   name: string
   stud_farm?: string | null
-  stud_fee?: string | null
+  stud_fee?: number | null
   upcoming_entries: number
   ytd_starters: number
   ytd_winners: number
@@ -36,7 +36,7 @@ export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
         <div className="flex flex-wrap items-baseline gap-x-2 text-sm text-slate-500 mb-3">
           {stallion.stud_farm && <span>{stallion.stud_farm}</span>}
           {stallion.stud_farm && stallion.stud_fee && <span className="text-slate-300">|</span>}
-          {stallion.stud_fee && <span>{stallion.stud_fee}</span>}
+          {stallion.stud_fee && <span>${Number(stallion.stud_fee).toLocaleString()}</span>}
         </div>
       )}
 
