@@ -51,6 +51,8 @@ export async function GET() {
   const today = new Date().toISOString().split('T')[0]
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
+  try {
+
   // Build claiming race filter helper
   // Allow null race_type through — only exclude explicitly tagged MCL/CLM
   const applyClaimingFilter = (query: any) => {
@@ -166,4 +168,9 @@ export async function GET() {
   const recent_stakes = (stakesRes.data || []).map(flattenResult)
 
   return NextResponse.json({ stallions, recent_winners, recent_stakes })
+
+  } catch (error) {
+    console.error('Error fetching dashboard summary:', error)
+    return NextResponse.json({ error: 'Failed to fetch dashboard summary' }, { status: 500 })
+  }
 }

@@ -26,63 +26,72 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
 
   const isAdmin = profile?.role === 'admin'
 
+  // Effect 1: Fetch stallion list when profile becomes available
   useEffect(() => {
     if (!profile || hasFetched.current) return
     hasFetched.current = true
 
     async function fetchStallions() {
-      let stallionList: Stallion[] = []
+      try {
+        let stallionList: Stallion[] = []
 
-      if (isAdmin) {
-        // Admin: fetch org stallions and all stallions in parallel, use whichever is larger
-        const [orgResult, apiResult] = await Promise.allSettled([
-          profile!.organization?.id
-            ? supabase
-                .from('organization_stallions')
-                .select('stallion_id, stallions(id, name)')
-                .eq('organization_id', profile!.organization.id)
-            : Promise.resolve({ data: null, error: null }),
-          fetch('/api/stallions').then(r => r.ok ? r.json() : []),
-        ])
+        if (isAdmin) {
+          const [orgResult, apiResult] = await Promise.allSettled([
+            profile!.organization?.id
+              ? supabase
+                  .from('organization_stallions')
+                  .select('stallion_id, stallions(id, name)')
+                  .eq('organization_id', profile!.organization.id)
+              : Promise.resolve({ data: null, error: null }),
+            fetch('/api/stallions').then(r => r.ok ? r.json() : []),
+          ])
 
-        const orgStallions = orgResult.status === 'fulfilled' && orgResult.value?.data
-          ? (orgResult.value.data as any[])
+          const orgStallions = orgResult.status === 'fulfilled' && orgResult.value?.data
+            ? (orgResult.value.data as any[])
+                .map(os => os.stallions as unknown as Stallion)
+                .filter(Boolean)
+                .sort((a, b) => a.name.localeCompare(b.name))
+            : []
+          const apiStallions: Stallion[] = apiResult.status === 'fulfilled' ? apiResult.value : []
+          stallionList = apiStallions.length > orgStallions.length ? apiStallions : orgStallions
+        } else if (profile!.organization?.id) {
+          const { data, error } = await supabase
+            .from('organization_stallions')
+            .select('stallion_id, stallions(id, name)')
+            .eq('organization_id', profile!.organization.id)
+
+          if (!error && data) {
+            stallionList = data
               .map(os => os.stallions as unknown as Stallion)
               .filter(Boolean)
               .sort((a, b) => a.name.localeCompare(b.name))
-          : []
-        const apiStallions: Stallion[] = apiResult.status === 'fulfilled' ? apiResult.value : []
-        stallionList = apiStallions.length > orgStallions.length ? apiStallions : orgStallions
-      } else if (profile!.organization?.id) {
-        const { data, error } = await supabase
-          .from('organization_stallions')
-          .select('stallion_id, stallions(id, name)')
-          .eq('organization_id', profile!.organization.id)
-
-        if (!error && data) {
-          stallionList = data
-            .map(os => os.stallions as unknown as Stallion)
-            .filter(Boolean)
-            .sort((a, b) => a.name.localeCompare(b.name))
+          }
         }
+
+        setStallions(stallionList)
+      } catch (error) {
+        console.error('Error fetching stallions:', error)
+      } finally {
+        setIsLoading(false)
       }
-
-      setStallions(stallionList)
-
-      // Auto-select: prefer URL param, then first stallion
-      if (!value && stallionList.length > 0) {
-        const urlStallion = stallionParam
-          ? stallionList.find(s => s.id === stallionParam)
-          : null
-        const pick = urlStallion || stallionList[0]
-        onChange(pick.id, pick.name)
-      }
-
-      setIsLoading(false)
     }
 
     fetchStallions()
   }, [profile])
+
+  // Effect 2: Auto-select stallion when list loads or URL param changes
+  useEffect(() => {
+    if (stallions.length === 0) return
+
+    if (stallionParam) {
+      const urlStallion = stallions.find(s => s.id === stallionParam)
+      if (urlStallion && urlStallion.id !== value) {
+        onChange(urlStallion.id, urlStallion.name)
+      }
+    } else if (!value) {
+      onChange(stallions[0].id, stallions[0].name)
+    }
+  }, [stallions, stallionParam])
 
   if (isLoading) return null
   if (stallions.length <= 1 && !isAdmin) return null

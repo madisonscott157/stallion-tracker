@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
     ? 'race_type.is.null,race_type.not.in.("MCL","CLM")'
     : null
 
+  try {
+
   // All data queries in parallel — single DB connection, single auth context
   const [
     entriesRes,
@@ -175,4 +177,9 @@ export async function GET(request: NextRequest) {
     rankings: rankingsRes.data || [],
     equineline: equinelineRes.data || null,
   })
+
+  } catch (error) {
+    console.error('Error fetching stallion data:', error)
+    return NextResponse.json({ error: 'Failed to fetch stallion data' }, { status: 500 })
+  }
 }
