@@ -16,16 +16,6 @@ interface Stallion {
   tdn_url: string | null
 }
 
-interface Organization {
-  id: string
-  name: string
-}
-
-interface StallionOrg {
-  organization_id: string
-  stallion_id: string
-}
-
 const CURRENCIES = [
   { symbol: '$', label: 'USD' },
   { symbol: '£', label: 'GBP' },
@@ -57,8 +47,6 @@ function buildFee(currency: string, amount: string): string {
 
 export default function AdminStallionsPage() {
   const [stallions, setStallions] = useState<Stallion[]>([])
-  const [organizations, setOrganizations] = useState<Organization[]>([])
-  const [stallionOrgs, setStallionOrgs] = useState<StallionOrg[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingUrls, setEditingUrls] = useState<{ equineline_url: string; tdn_url: string }>({ equineline_url: '', tdn_url: '' })
@@ -69,19 +57,10 @@ export default function AdminStallionsPage() {
 
   async function fetchData() {
     try {
-      const [stallionsRes, orgsRes, stallionOrgsRes] = await Promise.all([
-        supabase.from('stallions').select('*').order('name'),
-        supabase.from('organizations').select('id, name').order('name'),
-        supabase.from('organization_stallions').select('*'),
-      ])
+      const stallionsRes = await supabase.from('stallions').select('*').order('name')
 
       if (stallionsRes.error) console.error('Stallions fetch error:', stallionsRes.error)
-      if (orgsRes.error) console.error('Orgs fetch error:', orgsRes.error)
-      if (stallionOrgsRes.error) console.error('StallionOrgs fetch error:', stallionOrgsRes.error)
-
       if (stallionsRes.data) setStallions(stallionsRes.data)
-      if (orgsRes.data) setOrganizations(orgsRes.data)
-      if (stallionOrgsRes.data) setStallionOrgs(stallionOrgsRes.data)
     } catch (err) {
       console.error('Fetch error:', err)
       setError('Failed to load data')
@@ -164,40 +143,6 @@ export default function AdminStallionsPage() {
     }
   }
 
-  async function handleToggleOrg(stallionId: string, orgId: string) {
-    const exists = stallionOrgs.some(
-      so => so.stallion_id === stallionId && so.organization_id === orgId
-    )
-
-    if (exists) {
-      const { error } = await supabase
-        .from('organization_stallions')
-        .delete()
-        .eq('stallion_id', stallionId)
-        .eq('organization_id', orgId)
-      if (error) {
-        setError(`Failed to unlink stable: ${error.message}`)
-        return
-      }
-    } else {
-      const { error } = await supabase
-        .from('organization_stallions')
-        .insert({ stallion_id: stallionId, organization_id: orgId })
-      if (error) {
-        setError(`Failed to link stable: ${error.message}`)
-        return
-      }
-    }
-    fetchData()
-  }
-
-  function getStallionOrgs(stallionId: string) {
-    return stallionOrgs
-      .filter(so => so.stallion_id === stallionId)
-      .map(so => organizations.find(o => o.id === so.organization_id))
-      .filter(Boolean) as Organization[]
-  }
-
   if (isLoading) {
     return (
       <div className="space-y-4 animate-pulse">
@@ -234,7 +179,6 @@ export default function AdminStallionsPage() {
 
       <div className="space-y-4">
         {stallions.map(stallion => {
-          const linkedOrgs = getStallionOrgs(stallion.id)
           const isEditing = editingId === stallion.id
 
           return (
@@ -260,29 +204,6 @@ export default function AdminStallionsPage() {
                       {stallion.dam_sire && <span> ({stallion.dam_sire})</span>}
                     </div>
                   )}
-
-                  {/* Stables */}
-                  <div className="mt-3">
-                    <span className="text-xs font-medium text-slate-500 uppercase">Stables:</span>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {organizations.map(org => {
-                        const isLinked = linkedOrgs.some(lo => lo.id === org.id)
-                        return (
-                          <button
-                            key={org.id}
-                            onClick={() => handleToggleOrg(stallion.id, org.id)}
-                            className={`px-2 py-1 text-xs rounded transition-colors ${
-                              isLinked
-                                ? 'bg-primary text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            {org.name}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
 
                   {/* URLs */}
                   {isEditing ? (
