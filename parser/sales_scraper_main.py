@@ -35,8 +35,10 @@ load_dotenv()
 # crop_number = current_year - first_crop_year + 1
 STALLION_FIRST_CROP_YEAR = {
     'mckinzie': 2024,      # 2024=freshman, 2025=2nd crop, 2026=3rd crop
-    'olympiad': 2026,      # 2026=freshman (first runners in 2026)
-    # Add other stallions as needed
+    'olympiad': 2026,      # first foals 2024, first runners 2026
+    'idol': 2026,
+    'life is good': 2026,
+    'mo donegal': 2026,
 }
 
 CROP_LIST_TYPES = {
