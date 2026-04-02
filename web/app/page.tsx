@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { Suspense, useEffect, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { StatsBar } from '@/components/StatsBar'
@@ -19,6 +19,14 @@ import { EmptyState } from '@/components/EmptyState'
 import type { ExportOptions, OrgWithSilks } from '@/lib/pdf-export'
 
 export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+      <HomeContent />
+    </Suspense>
+  )
+}
+
+function HomeContent() {
   const [entries, setEntries] = useState<Entry[]>([])
   const [results, setResults] = useState<Result[]>([])
   const [stats, setStats] = useState<StallionStats | null>(null)
