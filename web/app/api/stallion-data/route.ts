@@ -17,12 +17,19 @@ export async function GET(request: NextRequest) {
 
   // Accept either name or ID — resolve name from ID if needed
   if (!stallion && stallionIdParam) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(stallionIdParam)) {
+      return NextResponse.json({ error: 'Invalid stallion id format' }, { status: 400 })
+    }
     const { data: stallionRow } = await supabase
       .from('stallions')
       .select('name')
       .eq('id', stallionIdParam)
       .single()
-    stallion = stallionRow?.name ?? null
+    if (!stallionRow) {
+      return NextResponse.json({ error: 'Stallion not found' }, { status: 404 })
+    }
+    stallion = stallionRow.name
   }
 
   if (!stallion) {

@@ -220,7 +220,7 @@ def check_emails(db: Database, tracked_stallions: list[str], limit: int = 20):
 def main():
     parser = argparse.ArgumentParser(description='Stallion Tracker Email Parser')
     parser.add_argument('--once', action='store_true',
-                       help='Run once and exit (processes last 20 emails)')
+                       help='Run once and exit')
     parser.add_argument('--interval', type=int, default=1,
                        help='Poll interval in minutes (default: 1)')
     parser.add_argument('--limit', type=int, default=200,
