@@ -12,10 +12,21 @@ export async function GET(request: NextRequest) {
   const { supabase, userId } = auth
 
   const { searchParams } = new URL(request.url)
-  const stallion = searchParams.get('stallion')
+  let stallion = searchParams.get('stallion')
+  const stallionIdParam = searchParams.get('id')
+
+  // Accept either name or ID — resolve name from ID if needed
+  if (!stallion && stallionIdParam) {
+    const { data: stallionRow } = await supabase
+      .from('stallions')
+      .select('name')
+      .eq('id', stallionIdParam)
+      .single()
+    stallion = stallionRow?.name ?? null
+  }
 
   if (!stallion) {
-    return NextResponse.json({ error: 'stallion parameter required' }, { status: 400 })
+    return NextResponse.json({ error: 'stallion or id parameter required' }, { status: 400 })
   }
 
   // Single auth + preferences query (was duplicated across 6 routes)

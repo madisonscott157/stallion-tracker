@@ -37,8 +37,6 @@ export default function DashboardPage() {
   const { isLoading: authLoading } = useAuth()
 
   useEffect(() => {
-    if (authLoading) return
-
     const controller = new AbortController()
 
     async function fetchDashboard() {
@@ -75,7 +73,7 @@ export default function DashboardPage() {
 
     fetchDashboard()
     return () => controller.abort()
-  }, [authLoading, fetchKey])
+  }, [fetchKey])
 
   // Client-side stallion filter
   const filterBySire = <T extends { sire_name?: string }>(items: T[]): T[] => {

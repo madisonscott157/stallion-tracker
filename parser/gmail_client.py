@@ -51,7 +51,7 @@ class GmailClient:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.disconnect()
 
-    def fetch_equibase_emails(self, limit: int = 20, unseen_only: bool = False) -> Generator[EmailMessage, None, None]:
+    def fetch_equibase_emails(self, limit: int = 200, unseen_only: bool = False) -> Generator[EmailMessage, None, None]:
         """
         Fetch emails from Equibase Virtual Stable.
 

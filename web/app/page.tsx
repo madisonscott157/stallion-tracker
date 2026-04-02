@@ -46,6 +46,13 @@ export default function Home() {
     }
   }, [authLoading, profile, stallionParam, router])
 
+  // Set stallionId from URL param immediately — don't wait for StallionSelector
+  useEffect(() => {
+    if (stallionParam && stallionParam !== stallionId) {
+      setStallionId(stallionParam)
+    }
+  }, [stallionParam])
+
   const handleStallionChange = useCallback((id: string, name: string) => {
     setStallionId(id)
     setStallion(name)
@@ -62,8 +69,12 @@ export default function Home() {
 
       try {
         const timer = setTimeout(() => controller.abort(), 10000)
+        // Fetch by ID when name hasn't resolved yet, otherwise by name
+        const param = stallion && stallion !== 'Loading...'
+          ? `stallion=${encodeURIComponent(stallion)}`
+          : `id=${encodeURIComponent(stallionId!)}`
         const res = await fetch(
-          `/api/stallion-data?stallion=${encodeURIComponent(stallion)}`,
+          `/api/stallion-data?${param}`,
           { signal: controller.signal }
         )
         clearTimeout(timer)
@@ -94,7 +105,7 @@ export default function Home() {
 
     fetchData()
     return () => controller.abort()
-  }, [stallion, stallionId, fetchKey])
+  }, [stallionId, fetchKey])
 
   // Entries are already sorted by date, then time from API
 

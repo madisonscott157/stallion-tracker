@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { createClientComponentClient } from './supabase'
 
@@ -31,6 +31,7 @@ interface AuthContextType {
   profile: UserProfile | null
   session: Session | null
   isLoading: boolean
+  isSigningOut: boolean
   isAdmin: boolean
   allOrgsWithSilks: Organization[]
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
@@ -45,8 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isMounted, setIsMounted] = useState(false)
   const [allOrgsWithSilks, setAllOrgsWithSilks] = useState<Organization[]>([])
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const signOutRef = useRef(false)
 
   const supabase = createClientComponentClient()
 
@@ -79,10 +81,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return data as Organization[]
   }
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
 
   // Apply org theme colors as CSS variables
   useEffect(() => {
@@ -185,10 +183,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
+    if (signOutRef.current) return
+    signOutRef.current = true
+    setIsSigningOut(true)
     try {
-      await supabase.auth.signOut()
+      // Race the server signout against a 3-second timeout
+      const result = await Promise.race([
+        supabase.auth.signOut(),
+        new Promise<{ error: { message: string } }>((resolve) =>
+          setTimeout(() => resolve({ error: { message: 'Sign out timed out' } }), 3000)
+        ),
+      ])
+      if (result.error) {
+        console.error('Server sign out failed, clearing locally:', result.error)
+        await supabase.auth.signOut({ scope: 'local' })
+      }
     } catch (err) {
-      console.error('Error signing out:', err)
+      console.error('Error signing out, clearing locally:', err)
+      try {
+        await supabase.auth.signOut({ scope: 'local' })
+      } catch {
+        // Local clear failed too — cookies will expire on their own
+      }
     }
     setUser(null)
     setProfile(null)
@@ -209,17 +225,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(prev => prev ? { ...prev, show_claiming_races: data.show_claiming_races } : prev)
   }
 
-  // Prevent hydration mismatch by not rendering until mounted
-  if (!isMounted) {
-    return null
-  }
-
   return (
     <AuthContext.Provider value={{
       user,
       profile,
       session,
       isLoading,
+      isSigningOut,
       isAdmin: profile?.role === 'admin',
       allOrgsWithSilks,
       signIn,

@@ -223,8 +223,8 @@ def main():
                        help='Run once and exit (processes last 20 emails)')
     parser.add_argument('--interval', type=int, default=1,
                        help='Poll interval in minutes (default: 1)')
-    parser.add_argument('--limit', type=int, default=20,
-                       help='Max emails to process per run (default: 20)')
+    parser.add_argument('--limit', type=int, default=200,
+                       help='Max emails to process per run (default: 200)')
     args = parser.parse_args()
 
     # Get tracked stallions from environment

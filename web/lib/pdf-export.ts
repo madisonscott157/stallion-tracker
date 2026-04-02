@@ -33,7 +33,7 @@ export interface ExportData {
 }
 
 function badge(text: string, bgColor: string): string {
-  return `<span style="background:${bgColor};color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;margin-right:6px;letter-spacing:0.02em;display:inline-block;vertical-align:baseline;position:relative;top:-1px;">${text}</span>`
+  return `<span style="background:${bgColor};color:#fff;font-size:10px;font-weight:600;padding:2px 5px;border-radius:3px;margin-right:6px;letter-spacing:0.02em;display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;">${text}</span>`
 }
 
 function pipe(): string {
