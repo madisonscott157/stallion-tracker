@@ -24,6 +24,7 @@ export function Header({
 }: HeaderProps) {
   const { profile, signOut, isSigningOut, isAdmin, updateProfile } = useAuth()
   const [clmUpdating, setClmUpdating] = useState(false)
+  const showClmToggle = profile?.organization?.allow_claiming_toggle !== false
 
   const handleClmToggle = async () => {
     if (clmUpdating) return
@@ -71,7 +72,7 @@ export function Header({
 
             {/* Mobile nav links - all use identical wrapper styling for alignment */}
             <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
-              {profile && (
+              {profile && showClmToggle && (
                 <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80">
                   <input
                     type="checkbox"
@@ -149,7 +150,7 @@ export function Header({
             )}
 
             <div className="flex items-center gap-3 text-sm border-l border-white/20 pl-4" style={{ color: 'var(--org-secondary)' }}>
-              {profile && (
+              {profile && showClmToggle && (
                 <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity">
                   <input
                     type="checkbox"
