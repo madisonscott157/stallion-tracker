@@ -12,6 +12,7 @@ export interface Organization {
   secondary_color: string
   logo_url: string | null
   silks_url: string | null
+  allow_claiming_toggle: boolean
 }
 
 export interface UserProfile {

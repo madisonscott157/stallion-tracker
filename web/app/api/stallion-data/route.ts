@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
     sire_name: workout.horses?.stallions?.name,
   }))
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     entries,
     results,
     stats,
@@ -195,6 +195,8 @@ export async function GET(request: NextRequest) {
     rankings: rankingsRes.data || [],
     equineline: equinelineRes.data || null,
   })
+  response.headers.set('Cache-Control', 'private, s-maxage=300, stale-while-revalidate=600')
+  return response
 
   } catch (error) {
     console.error('Error fetching stallion data:', error)

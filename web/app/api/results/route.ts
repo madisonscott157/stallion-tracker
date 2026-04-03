@@ -75,5 +75,7 @@ export async function GET(request: NextRequest) {
     sire_name: result.horses?.stallions?.name,
   })) || []
 
-  return NextResponse.json(results)
+  const response = NextResponse.json(results)
+  response.headers.set('Cache-Control', 'private, s-maxage=300, stale-while-revalidate=600')
+  return response
 }

@@ -281,7 +281,7 @@ export default function AdminUsersAndStablesPage() {
           <div className="mb-3 p-2 bg-red-50 text-red-700 rounded text-sm">{userError}</div>
         )}
         <form onSubmit={handleAddUser} className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
               <input
@@ -314,24 +314,24 @@ export default function AdminUsersAndStablesPage() {
                 className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md"
               />
             </div>
-            <div className="flex items-end gap-4">
-              <div className="flex-1">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 sm:gap-4">
+              <div className="w-full sm:flex-1">
                 <label className="block text-xs font-medium text-slate-600 mb-1">Role</label>
                 <select
                   value={newUser.role}
                   onChange={e => setNewUser({ ...newUser, role: e.target.value })}
-                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md"
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
-              <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer pb-1.5">
+              <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer sm:pb-1.5">
                 <input
                   type="checkbox"
                   checked={newUser.show_claiming_races}
                   onChange={e => setNewUser({ ...newUser, show_claiming_races: e.target.checked })}
-                  className="w-3.5 h-3.5 rounded border-slate-300"
+                  className="w-4 h-4 rounded border-slate-300"
                 />
                 Claiming
               </label>
@@ -363,29 +363,29 @@ export default function AdminUsersAndStablesPage() {
   function renderUserRow(user: User) {
     return (
       <div key={user.id} className="py-2 px-3 text-sm border-t border-slate-100 first:border-0">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-900 min-w-0 truncate flex-1">{user.email}</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-slate-900 min-w-0 truncate flex-1 basis-full sm:basis-auto">{user.email}</span>
           <span className="text-slate-500 min-w-0 truncate hidden sm:inline w-32">{user.name || '-'}</span>
           <select
             value={user.role}
             onChange={e => handleUpdateUser(user.id, { role: e.target.value })}
-            className="text-xs border border-slate-200 rounded px-1.5 py-1"
+            className="text-xs border border-slate-200 rounded px-2 py-1.5 min-h-[36px]"
           >
             <option value="user">User</option>
             <option value="admin">Admin</option>
           </select>
-          <label className="hidden sm:flex items-center gap-1 text-xs text-slate-500 cursor-pointer" title="Show claiming races">
+          <label className="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer min-h-[36px]" title="Show claiming races">
             <input
               type="checkbox"
               checked={user.show_claiming_races}
               onChange={e => handleUpdateUser(user.id, { show_claiming_races: e.target.checked })}
-              className="w-3.5 h-3.5 rounded border-slate-300"
+              className="w-4 h-4 rounded border-slate-300"
             />
             CLM
           </label>
           <button
             onClick={() => handleDeleteUser(user.id)}
-            className="text-xs text-red-600 hover:text-red-800 shrink-0"
+            className="text-xs text-red-600 hover:text-red-800 shrink-0 min-h-[36px] px-2"
           >
             Delete
           </button>
@@ -454,7 +454,7 @@ export default function AdminUsersAndStablesPage() {
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">{stallionError}</div>
           )}
           <form onSubmit={handleAddStallion} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Name *</label>
                 <input
@@ -569,12 +569,12 @@ export default function AdminUsersAndStablesPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Primary Color</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <input
                     type="color"
                     value={newOrg.primary_color}
                     onChange={e => setNewOrg({ ...newOrg, primary_color: e.target.value })}
-                    className="h-10 w-14 border border-slate-300 rounded"
+                    className="h-10 w-16 border border-slate-300 rounded cursor-pointer"
                   />
                   <input
                     type="text"
@@ -586,12 +586,12 @@ export default function AdminUsersAndStablesPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Secondary Color</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <input
                     type="color"
                     value={newOrg.secondary_color}
                     onChange={e => setNewOrg({ ...newOrg, secondary_color: e.target.value })}
-                    className="h-10 w-14 border border-slate-300 rounded"
+                    className="h-10 w-16 border border-slate-300 rounded cursor-pointer"
                   />
                   <input
                     type="text"
@@ -709,12 +709,12 @@ export default function AdminUsersAndStablesPage() {
                       {linkedStallions.map(stallion => (
                         <span
                           key={stallion.id}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-primary text-white"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded bg-primary text-white"
                         >
                           {stallion.name}
                           <button
                             onClick={() => handleToggleStallion(org.id, stallion.id)}
-                            className="hover:text-white/70 ml-0.5"
+                            className="hover:text-white/70 ml-0.5 w-5 h-5 inline-flex items-center justify-center"
                             title={`Remove ${stallion.name}`}
                           >
                             &times;

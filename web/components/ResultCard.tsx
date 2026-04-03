@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { cn, cleanRaceName, formatDistance, formatHorseDescription, formatDate, formatOrdinal, formatTrack, shouldShowSilks, isToday, isTomorrow } from '@/lib/utils'
 import { useAuth } from '@/lib/auth-context'
 import type { Result } from '@/lib/supabase'
@@ -9,7 +10,7 @@ interface ResultCardProps {
   showSireName?: boolean
 }
 
-export function ResultCard({ result, showSireName }: ResultCardProps) {
+export const ResultCard = memo(function ResultCard({ result, showSireName }: ResultCardProps) {
   const { profile, allOrgsWithSilks, isAdmin } = useAuth()
   const horseName = result.horse_name || 'Unknown'
   const horseDesc = formatHorseDescription(result.horse_sex || null, result.horse_yob || null)
@@ -205,4 +206,4 @@ export function ResultCard({ result, showSireName }: ResultCardProps) {
       )}
     </div>
   )
-}
+})

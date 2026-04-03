@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { DashboardHeader } from '@/components/DashboardHeader'
 import { StallionSummaryCard } from '@/components/StallionSummaryCard'
 import { EntryCard } from '@/components/EntryCard'
@@ -28,13 +29,33 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+      <DashboardContent />
+    </Suspense>
+  )
+}
+
+function DashboardContent() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [entries, setEntries] = useState<Entry[]>([])
   const [results, setResults] = useState<Result[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchKey, setFetchKey] = useState(0)
-  const [stallionFilter, setStallionFilter] = useState<string>('')
   const { isLoading: authLoading } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const stallionFilter = searchParams.get('stallion') || ''
+
+  const setStallionFilter = (name: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (name) {
+      params.set('stallion', name)
+    } else {
+      params.delete('stallion')
+    }
+    router.replace(`/dashboard?${params.toString()}`, { scroll: false })
+  }
 
   useEffect(() => {
     const controller = new AbortController()

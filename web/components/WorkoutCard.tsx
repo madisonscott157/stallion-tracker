@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { formatDate, formatDistance, formatTrack, shouldShowSilks } from '@/lib/utils'
 import { useAuth } from '@/lib/auth-context'
 import type { Workout } from '@/lib/supabase'
@@ -16,7 +17,7 @@ function cleanWorkoutTrack(track: string | null): string {
   return formatTrack(cleaned)
 }
 
-export function WorkoutCard({ workout, showSireName }: WorkoutCardProps) {
+export const WorkoutCard = memo(function WorkoutCard({ workout, showSireName }: WorkoutCardProps) {
   const { profile, allOrgsWithSilks, isAdmin } = useAuth()
 
   // Show name, or "YOB Dam" if unnamed
@@ -93,4 +94,4 @@ export function WorkoutCard({ workout, showSireName }: WorkoutCardProps) {
       </div>
     </div>
   )
-}
+})

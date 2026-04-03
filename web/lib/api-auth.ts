@@ -30,11 +30,15 @@ export async function getUserPreferences(
 ): Promise<UserPreferences> {
   const { data } = await supabase
     .from('users')
-    .select('show_claiming_races')
+    .select('show_claiming_races, organizations(allow_claiming_toggle)')
     .eq('auth_id', userId)
     .single()
 
+  // If the org has disabled the CLM toggle, force claiming races off
+  const orgAllowsToggle = (data?.organizations as any)?.allow_claiming_toggle ?? true
+  const showClaiming = orgAllowsToggle ? (data?.show_claiming_races ?? true) : false
+
   return {
-    show_claiming_races: data?.show_claiming_races ?? true,
+    show_claiming_races: showClaiming,
   }
 }

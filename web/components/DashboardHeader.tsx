@@ -11,6 +11,7 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
   const { profile, signOut, isSigningOut, isAdmin, updateProfile } = useAuth()
   const [clmUpdating, setClmUpdating] = useState(false)
+  const showClmToggle = profile?.organization?.allow_claiming_toggle !== false
 
   const handleClmToggle = async () => {
     if (clmUpdating) return
@@ -34,7 +35,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
 
         {/* Mobile nav */}
         <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
-          {profile && (
+          {profile && showClmToggle && (
             <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80">
               <input
                 type="checkbox"
@@ -81,7 +82,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
 
         {/* Desktop nav */}
         <div className="hidden sm:flex items-center gap-3 text-sm" style={{ color: 'var(--org-secondary)' }}>
-          {profile && (
+          {profile && showClmToggle && (
             <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity">
               <input
                 type="checkbox"

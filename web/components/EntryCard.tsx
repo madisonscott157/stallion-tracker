@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { cn, cleanRaceName, formatDate, formatDistance, formatHorseDescription, formatTrack, shouldShowSilks, isToday, isTomorrow } from '@/lib/utils'
 import { useAuth } from '@/lib/auth-context'
 import type { Entry } from '@/lib/supabase'
@@ -9,7 +10,7 @@ interface EntryCardProps {
   showSireName?: boolean
 }
 
-export function EntryCard({ entry, showSireName }: EntryCardProps) {
+export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryCardProps) {
   const { profile, allOrgsWithSilks, isAdmin } = useAuth()
   const horseName = entry.horse_name || `${entry.horse_yob || ''} ${entry.horse_dam || 'Unknown'}`.trim()
   const horseDesc = formatHorseDescription(entry.horse_sex || null, entry.horse_yob || null)
@@ -183,4 +184,4 @@ export function EntryCard({ entry, showSireName }: EntryCardProps) {
       )}
     </div>
   )
-}
+})

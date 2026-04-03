@@ -167,7 +167,9 @@ export async function GET() {
   const recent_winners = (winnersRes.data || []).map(flattenResult)
   const recent_stakes = (stakesRes.data || []).map(flattenResult)
 
-  return NextResponse.json({ stallions, recent_winners, recent_stakes })
+  const response = NextResponse.json({ stallions, recent_winners, recent_stakes })
+  response.headers.set('Cache-Control', 'private, s-maxage=300, stale-while-revalidate=600')
+  return response
 
   } catch (error) {
     console.error('Error fetching dashboard summary:', error)
