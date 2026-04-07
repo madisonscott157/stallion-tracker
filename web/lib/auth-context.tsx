@@ -188,25 +188,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOutRef.current = true
     setIsSigningOut(true)
     try {
-      // Race the server signout against a 3-second timeout
-      const result = await Promise.race([
-        supabase.auth.signOut(),
-        new Promise<{ error: { message: string } }>((resolve) =>
-          setTimeout(() => resolve({ error: { message: 'Sign out timed out' } }), 3000)
-        ),
-      ])
-      if (result.error) {
-        console.error('Server sign out failed, clearing locally:', result.error)
-        await supabase.auth.signOut({ scope: 'local' })
-      }
-    } catch (err) {
-      console.error('Error signing out, clearing locally:', err)
-      try {
-        await supabase.auth.signOut({ scope: 'local' })
-      } catch {
-        // Local clear failed too — cookies will expire on their own
-      }
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch {
+      // Ignore — we force-clear below
     }
+    // Force-clear all Supabase cookies (chunked auth tokens included)
+    document.cookie.split(';').forEach(c => {
+      const name = c.split('=')[0].trim()
+      if (name.startsWith('sb-')) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
+      }
+    })
+    // Clear any localStorage remnants
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-')) localStorage.removeItem(key)
+    })
     setUser(null)
     setProfile(null)
     setSession(null)
