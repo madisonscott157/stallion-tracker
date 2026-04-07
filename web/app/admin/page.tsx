@@ -259,8 +259,21 @@ export default function AdminUsersAndStablesPage() {
 
   async function handleDeleteUser(userId: string) {
     if (!confirm('Are you sure you want to delete this user?')) return
-    const { error } = await supabase.from('users').delete().eq('id', userId)
-    if (!error) fetchData()
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      if (res.ok) {
+        fetchData()
+      } else {
+        const data = await res.json()
+        toast(data.error || 'Failed to delete user', 'error')
+      }
+    } catch {
+      toast('Failed to delete user', 'error')
+    }
   }
 
   // --- Derived data ---

@@ -49,7 +49,7 @@ export function StallionSelector({ value, onChange }: StallionSelectorProps) {
 
     if (stallionParam) {
       const urlStallion = stallions.find(s => s.id === stallionParam)
-      if (urlStallion && urlStallion.id !== value) {
+      if (urlStallion) {
         onChange(urlStallion.id, urlStallion.name)
       }
     } else if (!value) {
