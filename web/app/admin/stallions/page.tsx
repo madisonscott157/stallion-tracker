@@ -27,6 +27,7 @@ export default function AdminStallionsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingUrls, setEditingUrls] = useState<{ equineline_url: string; tdn_url: string }>({ equineline_url: '', tdn_url: '' })
+  const [editStudFarm, setEditStudFarm] = useState('')
   const [editFeeAmount, setEditFeeAmount] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
@@ -69,6 +70,7 @@ export default function AdminStallionsPage() {
       tdn_url: stallion.tdn_url || '',
     })
     setEditFeeAmount(stallion.stud_fee ? Number(stallion.stud_fee).toLocaleString('en-US') : '')
+    setEditStudFarm(stallion.stud_farm || '')
   }
 
   async function saveAndCloseEditing(stallionId: string) {
@@ -79,6 +81,7 @@ export default function AdminStallionsPage() {
     const updates: Record<string, string | number | null> = {
       equineline_url: editingUrls.equineline_url || null,
       tdn_url: editingUrls.tdn_url || null,
+      stud_farm: editStudFarm.trim() || null,
     }
     const feeDigits = editFeeAmount.replace(/[^0-9]/g, '')
     updates.stud_fee = feeDigits ? parseInt(feeDigits) : null
@@ -190,6 +193,16 @@ export default function AdminStallionsPage() {
                   {isEditing ? (
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
+                        <label className="text-xs font-medium text-slate-500">Stud Farm</label>
+                        <input
+                          type="text"
+                          value={editStudFarm}
+                          onChange={e => setEditStudFarm(e.target.value)}
+                          placeholder="Gainesway"
+                          className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
+                        />
+                      </div>
+                      <div>
                         <label className="text-xs font-medium text-slate-500">Stud Fee</label>
                         <div className="flex">
                           <span className="px-2 py-1 text-sm border border-r-0 border-slate-300 rounded-l bg-slate-50 text-slate-500">$</span>
@@ -202,7 +215,6 @@ export default function AdminStallionsPage() {
                           />
                         </div>
                       </div>
-                      <div className="hidden sm:block" />
                       <div>
                         <label className="text-xs font-medium text-slate-500">Equineline URL</label>
                         <input
