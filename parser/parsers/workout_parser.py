@@ -65,7 +65,7 @@ def parse_workout_email(html_content: str, email_id: str) -> Optional[WorkoutDat
 
     # 2. Extract sire/dam from comments
     comments_match = re.search(
-        r"Your comments for this horse were:\s*(.+?)(?:\n|$)",
+        r"Your comments for this horse were:\s*(.+?)(?=Date:\s|\n|$)",
         text,
         re.IGNORECASE
     )

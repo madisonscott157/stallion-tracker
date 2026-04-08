@@ -118,7 +118,7 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
 
     # 3. Extract sire/dam/yob from comments
     comments_match = re.search(
-        r"Your comments for this horse were:\s*(.+?)(?:\n|$)",
+        r"Your comments for this horse were:\s*(.+?)(?=View Chart|Race Replay|\n|$)",
         text,
         re.IGNORECASE
     )
