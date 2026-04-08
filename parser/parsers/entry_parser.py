@@ -90,7 +90,7 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
 
     # 2. Extract sire/dam/yob from comments field
     comments_match = re.search(
-        r"Your comments for this horse were:\s*(.+?)(?=Race:\s|\n|$)",
+        r"Your comments for this horse were:\s*(.+?)(?=Full Entries|Overnight|Race:\s|\n|$)",
         text,
         re.IGNORECASE
     )
