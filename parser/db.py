@@ -358,6 +358,8 @@ class Database:
             "rank_total": workout.rank_total,
             "equibase_email_id": workout.equibase_email_id,
         }
+        if workout.owner:
+            insert_data["owner"] = workout.owner
 
         try:
             result = self.client.table("workouts") \

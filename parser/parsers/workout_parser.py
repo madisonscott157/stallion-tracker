@@ -69,6 +69,7 @@ def parse_workout_email(html_content: str, email_id: str) -> Optional[WorkoutDat
         text,
         re.IGNORECASE
     )
+    owner = None
     if comments_match:
         comments = comments_match.group(1).strip()
         parsed = parse_comments(comments)
@@ -77,6 +78,8 @@ def parse_workout_email(html_content: str, email_id: str) -> Optional[WorkoutDat
         horse.dam_sire = parsed.dam_sire
         if parsed.yob and not horse.yob:
             horse.yob = parsed.yob
+        if parsed.notes:
+            owner = parsed.notes
 
     # 3. Extract workout date
     workout_date = None
@@ -170,5 +173,6 @@ def parse_workout_email(html_content: str, email_id: str) -> Optional[WorkoutDat
         surface=surface,
         rank_position=rank_position,
         rank_total=rank_total,
+        owner=owner,
         equibase_email_id=email_id,
     )

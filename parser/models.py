@@ -97,6 +97,7 @@ class WorkoutData(BaseModel):
     surface: Optional[str] = None
     rank_position: Optional[int] = None
     rank_total: Optional[int] = None
+    owner: Optional[str] = None
     equibase_email_id: Optional[str] = None
 
 
