@@ -63,15 +63,21 @@ export async function GET() {
   }
 
   // 2-5. Parallel queries
-  const [entriesRes, ytdRes, winnersRes, stakesRes] = await Promise.all([
+  const [entriesRes, entryResultsRes, ytdRes, winnersRes, stakesRes] = await Promise.all([
     // Upcoming entries (all stallions, not scratched, from today)
     applyClaimingFilter(
       supabase
         .from('entries')
-        .select('id, horse_id, horses!inner(sire_id)')
+        .select('id, horse_id, race_date, track, race_number, horses!inner(sire_id)')
         .eq('scratched', false)
         .gte('race_date', today)
     ),
+
+    // Results for today+ (to exclude entries whose race has already run)
+    supabase
+      .from('results')
+      .select('horse_id, race_date, track, race_number')
+      .gte('race_date', today),
 
     // YTD stats from view (use stallion_name since view may not have stallion_id)
     supabase
@@ -118,14 +124,24 @@ export async function GET() {
 
   // Log any query errors
   if (entriesRes.error) console.error('Dashboard entries query error:', entriesRes.error)
+  if (entryResultsRes.error) console.error('Dashboard entry-results query error:', entryResultsRes.error)
   if (ytdRes.error) console.error('Dashboard YTD query error:', ytdRes.error)
   if (winnersRes.error) console.error('Dashboard winners query error:', winnersRes.error)
   if (stakesRes.error) console.error('Dashboard stakes query error:', stakesRes.error)
 
-  // Group entry counts by sire_id
+  // Build a set of results to exclude entries whose race has already run
+  const resultKeys = new Set(
+    (entryResultsRes.data || []).map((r: any) =>
+      `${r.horse_id}|${r.race_date}|${r.track}|${r.race_number}`
+    )
+  )
+
+  // Group entry counts by sire_id, excluding entries with matching results
   const entryCounts: Record<string, number> = {}
   if (entriesRes.data) {
     for (const entry of entriesRes.data) {
+      const key = `${entry.horse_id}|${(entry as any).race_date}|${(entry as any).track}|${(entry as any).race_number}`
+      if (resultKeys.has(key)) continue
       const sireId = (entry.horses as any)?.sire_id
       if (sireId && stallionIds.includes(sireId)) {
         entryCounts[sireId] = (entryCounts[sireId] || 0) + 1

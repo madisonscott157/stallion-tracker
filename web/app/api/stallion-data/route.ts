@@ -140,17 +140,29 @@ export async function GET(request: NextRequest) {
       ])
     : [{ data: [], error: null }, { data: null, error: null }]
 
-  // Flatten entries
-  const entries = (entriesRes.data || []).map((entry: any) => ({
-    ...entry,
-    horse_name: entry.horses?.name,
-    horse_sex: entry.horses?.sex,
-    horse_yob: entry.horses?.yob,
-    horse_dam: entry.horses?.dam,
-    horse_is_unnamed: entry.horses?.is_unnamed,
-    horse_profile_url: entry.horses?.equibase_profile_url,
-    sire_name: entry.horses?.stallions?.name,
-  }))
+  // Build a set of results keyed by horse_id+race_date+track+race_number
+  // so we can exclude entries whose race has already run
+  const resultKeys = new Set(
+    (resultsRes.data || []).map((r: any) =>
+      `${r.horse_id}|${r.race_date}|${r.track}|${r.race_number}`
+    )
+  )
+
+  // Flatten entries, excluding any where a matching result already exists
+  const entries = (entriesRes.data || [])
+    .filter((entry: any) => !resultKeys.has(
+      `${entry.horse_id}|${entry.race_date}|${entry.track}|${entry.race_number}`
+    ))
+    .map((entry: any) => ({
+      ...entry,
+      horse_name: entry.horses?.name,
+      horse_sex: entry.horses?.sex,
+      horse_yob: entry.horses?.yob,
+      horse_dam: entry.horses?.dam,
+      horse_is_unnamed: entry.horses?.is_unnamed,
+      horse_profile_url: entry.horses?.equibase_profile_url,
+      sire_name: entry.horses?.stallions?.name,
+    }))
 
   // Flatten results
   const results = (resultsRes.data || []).map((result: any) => ({

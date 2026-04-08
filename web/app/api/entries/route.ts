@@ -52,26 +52,51 @@ export async function GET(request: NextRequest) {
     query = query.or('race_type.is.null,race_type.not.in.("MCL","CLM")')
   }
 
-  const { data, error } = await query
-    .order('race_date', { ascending: true })
-    .order('post_time', { ascending: true })
+  // Fetch entries and results with matching dates in parallel
+  // so we can exclude entries whose race has already run
+  let resultsQuery = supabase
+    .from('results')
+    .select('horse_id, race_date, track, race_number')
+    .gte('race_date', dateFrom || today)
 
-  if (error) {
-    console.error('Error fetching entries:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (dateTo) {
+    resultsQuery = resultsQuery.lte('race_date', dateTo)
   }
 
-  // Flatten the response for easier frontend consumption
-  const entries = data?.map(entry => ({
-    ...entry,
-    horse_name: entry.horses?.name,
-    horse_sex: entry.horses?.sex,
-    horse_yob: entry.horses?.yob,
-    horse_dam: entry.horses?.dam,
-    horse_is_unnamed: entry.horses?.is_unnamed,
-    horse_profile_url: entry.horses?.equibase_profile_url,
-    sire_name: entry.horses?.stallions?.name,
-  })) || []
+  const [entriesResult, resultsResult] = await Promise.all([
+    query
+      .order('race_date', { ascending: true })
+      .order('post_time', { ascending: true }),
+    resultsQuery,
+  ])
+
+  if (entriesResult.error) {
+    console.error('Error fetching entries:', entriesResult.error)
+    return NextResponse.json({ error: entriesResult.error.message }, { status: 500 })
+  }
+
+  // Build a set of results keyed by horse_id+race_date+track+race_number
+  const resultKeys = new Set(
+    (resultsResult.data || []).map(r =>
+      `${r.horse_id}|${r.race_date}|${r.track}|${r.race_number}`
+    )
+  )
+
+  // Flatten the response, excluding entries whose race has already run
+  const entries = (entriesResult.data || [])
+    .filter(entry => !resultKeys.has(
+      `${entry.horse_id}|${entry.race_date}|${entry.track}|${entry.race_number}`
+    ))
+    .map(entry => ({
+      ...entry,
+      horse_name: entry.horses?.name,
+      horse_sex: entry.horses?.sex,
+      horse_yob: entry.horses?.yob,
+      horse_dam: entry.horses?.dam,
+      horse_is_unnamed: entry.horses?.is_unnamed,
+      horse_profile_url: entry.horses?.equibase_profile_url,
+      sire_name: entry.horses?.stallions?.name,
+    }))
 
   const response = NextResponse.json(entries)
   response.headers.set('Cache-Control', 'private, s-maxage=300, stale-while-revalidate=600')
