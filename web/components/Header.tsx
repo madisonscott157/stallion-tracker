@@ -77,7 +77,7 @@ export function Header({
 
             {/* Title - hidden on mobile */}
             <h1 className="hidden lg:block text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
-              {stallionName.toUpperCase()} <span className="font-normal text-white/70">| Progeny Tracker</span>
+              {stallionName.toUpperCase()} <span className="font-normal text-white/70">| Stallion Tracker</span>
             </h1>
 
             {/* Mobile nav links - all use identical wrapper styling for alignment */}

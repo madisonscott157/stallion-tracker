@@ -43,7 +43,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
     <header className="sticky top-0 z-10 text-white px-3 sm:px-6 py-1.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.375rem, env(safe-area-inset-top))' }}>
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <h1 className="text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
-          {profile?.organization?.name || 'Progeny Tracker'}
+          {profile?.organization?.name || 'Stallion Tracker'}
         </h1>
 
         {/* Mobile nav */}
