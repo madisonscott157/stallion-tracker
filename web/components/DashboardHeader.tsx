@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 
 interface DashboardHeaderProps {
@@ -13,6 +14,8 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
   const [clmUpdating, setClmUpdating] = useState(false)
   const [hasBookings, setHasBookings] = useState(false)
   const showClmToggle = profile?.organization?.allow_claiming_toggle !== false
+  const pathname = usePathname()
+  const isBookingsPage = pathname === '/dashboard/bookings'
 
   useEffect(() => {
     fetch('/api/bookings')
@@ -39,9 +42,15 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
   return (
     <header className="sticky top-0 z-10 text-white px-3 sm:px-6 py-1.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.375rem, env(safe-area-inset-top))' }}>
       <div className="max-w-5xl mx-auto flex items-center justify-between">
-        <h1 className="text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
-          {profile?.organization?.name || 'Progeny Tracker'}
-        </h1>
+        {isBookingsPage ? (
+          <Link href="/dashboard" className="text-lg font-semibold tracking-wide truncate min-w-0 hover:opacity-80 transition-opacity" style={{ color: 'var(--org-secondary)' }}>
+            Dashboard
+          </Link>
+        ) : (
+          <h1 className="text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
+            {profile?.organization?.name || 'Progeny Tracker'}
+          </h1>
+        )}
 
         {/* Mobile nav */}
         <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
