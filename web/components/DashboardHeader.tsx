@@ -37,7 +37,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
         </h1>
 
         {/* Mobile nav */}
-        <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
+        <div className="flex sm:hidden items-center gap-1.5 shrink-0" style={{ color: 'var(--org-secondary)' }}>
           {hasBookings && (
             isBookingsPage ? (
               <Link
@@ -54,18 +54,6 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
                 Bookings
               </Link>
             )
-          )}
-          {profile && showClmToggle && (
-            <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80">
-              <input
-                type="checkbox"
-                checked={profile.show_claiming_races}
-                onChange={handleClmToggle}
-                disabled={clmUpdating}
-                className="w-4 h-4 rounded accent-white"
-              />
-              CLM
-            </label>
           )}
           {isAdmin && (
             <Link

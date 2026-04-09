@@ -28,6 +28,40 @@ interface DashboardData {
   recent_stakes: Result[]
 }
 
+function MobileClmToggle({ onPreferenceChange }: { onPreferenceChange: () => void }) {
+  const { profile, updateProfile } = useAuth()
+  const [updating, setUpdating] = useState(false)
+  const showToggle = profile?.organization?.allow_claiming_toggle !== false
+
+  if (!profile || !showToggle) return null
+
+  const handleToggle = async () => {
+    if (updating) return
+    setUpdating(true)
+    try {
+      await updateProfile({ show_claiming_races: !profile.show_claiming_races })
+      onPreferenceChange()
+    } catch (err) {
+      console.error('Failed to update CLM preference:', err)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  return (
+    <label className="sm:hidden inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-500 uppercase tracking-wide">
+      <input
+        type="checkbox"
+        checked={profile.show_claiming_races}
+        onChange={handleToggle}
+        disabled={updating}
+        className="w-4 h-4 rounded accent-slate-600"
+      />
+      CLM
+    </label>
+  )
+}
+
 export default function DashboardPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
@@ -138,9 +172,9 @@ function DashboardContent() {
           </div>
         ) : (
           <>
-            {/* Stallion filter */}
-            {stallionNames.length > 1 && (
-              <div className="mb-6">
+            {/* Stallion filter + mobile CLM toggle */}
+            <div className="mb-6 flex items-center gap-3">
+              {stallionNames.length > 1 && (
                 <select
                   value={stallionFilter}
                   onChange={e => setStallionFilter(e.target.value)}
@@ -151,8 +185,9 @@ function DashboardContent() {
                     <option key={name} value={name}>{name}</option>
                   ))}
                 </select>
-              </div>
-            )}
+              )}
+              <MobileClmToggle onPreferenceChange={() => setFetchKey(k => k + 1)} />
+            </div>
 
             {/* Stallion Summary Cards */}
             <section className="mb-6 sm:mb-8">
