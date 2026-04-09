@@ -90,10 +90,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (profile?.organization) {
       document.documentElement.style.setProperty('--org-primary', profile.organization.primary_color)
       document.documentElement.style.setProperty('--org-secondary', profile.organization.secondary_color)
+      const sec = profile.organization.secondary_color?.toLowerCase().replace(/\s/g, '')
+      if (sec === '#ffffff' || sec === '#fff' || sec === 'white') {
+        document.documentElement.setAttribute('data-white-secondary', '')
+      } else {
+        document.documentElement.removeAttribute('data-white-secondary')
+      }
     } else {
       // Default colors
       document.documentElement.style.setProperty('--org-primary', '#0f172a')
       document.documentElement.style.setProperty('--org-secondary', '#64748b')
+      document.documentElement.removeAttribute('data-white-secondary')
     }
   }, [profile])
 

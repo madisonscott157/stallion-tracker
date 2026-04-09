@@ -48,12 +48,15 @@ button[type="submit"],
   @apply mt-2 sm:mt-3;
 }
 
-/* Card hover — light org-secondary tint, with fallback for white secondary */
+/* Card hover — pure secondary tint for colored orgs, slate for white secondary orgs */
 .card-hover {
   transition: background-color 0.15s ease;
 }
 .card-hover:hover {
-  background-color: color-mix(in srgb, var(--org-secondary) 4%, #f8fafc);
+  background-color: color-mix(in srgb, var(--org-secondary) 6%, white);
+}
+:root[data-white-secondary] .card-hover:hover {
+  background-color: #f1f5f9;
 }
 
 /* Empty state */
