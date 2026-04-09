@@ -237,3 +237,22 @@ export interface EquinelineStats {
   source_url: string | null
   scraped_at: string
 }
+
+export interface BookingRow {
+  stallion: string
+  stud_fee: string
+  repole_interest: string
+  mares_booked: number | string
+  sold_since: number | string
+  farm: string
+  notes: string
+}
+
+export interface StallionBookingReport {
+  id: string
+  organization_id: string
+  report_date: string
+  label: string | null
+  data: BookingRow[]
+  created_at: string
+}

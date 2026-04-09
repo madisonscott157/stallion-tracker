@@ -15,6 +15,7 @@ export default function AdminLayout({
   const navItems = [
     { href: '/admin', label: 'Users & Stables' },
     { href: '/admin/stallions', label: 'Stallions' },
+    { href: '/admin/bookings', label: 'Bookings' },
   ]
 
   return (
