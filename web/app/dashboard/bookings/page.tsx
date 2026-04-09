@@ -271,7 +271,7 @@ export default function BookingsPage() {
                 </thead>
                 <tbody>
                   {rows.map((row, i) => (
-                    <tr key={i} className="border-t border-slate-100 hover:bg-slate-50/50">
+                    <tr key={i} className="border-t border-slate-100 card-hover">
                       <td className="px-4 py-2 font-semibold whitespace-nowrap" style={{ color: 'var(--org-primary)' }}>
                         {trackedStallions.has(row.stallion) ? (
                           <Link
