@@ -31,13 +31,13 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
 
   return (
     <header className="sticky top-0 z-10 text-white px-3 sm:px-6 py-1.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.375rem, env(safe-area-inset-top))' }}>
-      <div className="max-w-5xl mx-auto flex items-center justify-between">
+      <div className="max-w-5xl mx-auto flex items-baseline justify-between">
         <h1 className="text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
           {profile?.organization?.name || 'Stallion Tracker'}
         </h1>
 
         {/* Mobile nav */}
-        <div className="flex sm:hidden items-center gap-1.5 shrink-0" style={{ color: 'var(--org-secondary)' }}>
+        <div className="flex sm:hidden items-baseline gap-1.5 shrink-0" style={{ color: 'var(--org-secondary)' }}>
           {hasBookings && (
             isBookingsPage ? (
               <Link
@@ -58,7 +58,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
           {isAdmin && (
             <Link
               href="/admin"
-              className="w-7 h-7 inline-flex items-center justify-center hover:text-white transition-colors"
+              className="w-7 h-7 inline-flex items-center justify-center hover:text-white transition-colors translate-y-[3px]"
               title="Admin"
               aria-label="Admin settings"
             >
@@ -71,7 +71,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
           <button
             onClick={() => signOut()}
             disabled={isSigningOut}
-            className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center hover:text-white transition-colors disabled:opacity-50"
+            className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center hover:text-white transition-colors disabled:opacity-50 translate-y-[3px]"
             title="Logout"
             aria-label="Logout"
           >
