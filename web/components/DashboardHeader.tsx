@@ -71,7 +71,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
           <button
             onClick={() => signOut()}
             disabled={isSigningOut}
-            className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center hover:text-white transition-colors disabled:opacity-50 self-center"
+            className="w-8 h-8 inline-flex items-center justify-center hover:text-white transition-colors disabled:opacity-50 self-center"
             title="Logout"
             aria-label="Logout"
           >
