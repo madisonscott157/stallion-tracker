@@ -188,7 +188,14 @@ export default function BookingsPage() {
       <DashboardHeader />
 
       <main className="flex-1 px-4 sm:px-6 py-4 sm:py-6 max-w-5xl mx-auto w-full">
-        <h1 className="section-header">Stallion Bookings</h1>
+        <div className="flex items-baseline gap-3 mb-3 sm:mb-4">
+          <h1 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mt-2 sm:mt-3">Stallion Bookings</h1>
+          {report && (
+            <span className="text-xs text-slate-400">
+              {rows.length} stallions &middot; {rows.reduce((sum, r) => { const n = parseInt(String(r.mares_booked), 10); return sum + (isNaN(n) ? 0 : n) }, 0)} mares booked
+            </span>
+          )}
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">

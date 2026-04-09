@@ -9,7 +9,6 @@ import { ResultCard } from '@/components/ResultCard'
 import { PullToRefresh } from '@/components/PullToRefresh'
 import { useAuth } from '@/lib/auth-context'
 import { EmptyState } from '@/components/EmptyState'
-import { StallionBookingsCard } from '@/components/StallionBookingsCard'
 import type { Entry, Result } from '@/lib/supabase'
 
 interface StallionSummary {
@@ -165,7 +164,6 @@ function DashboardContent() {
                     .map(stallion => (
                       <StallionSummaryCard key={stallion.id} stallion={stallion} />
                     ))}
-                  <StallionBookingsCard />
                 </div>
               ) : (
                 <EmptyState variant="generic" message="No stallions found" />
