@@ -120,7 +120,7 @@ function DashboardContent() {
         {(authLoading || loading) ? (
           <div className="space-y-6 animate-pulse">
             <div className="h-5 w-32 bg-slate-200 rounded" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-32 bg-slate-200 rounded-lg" />
               ))}
@@ -158,7 +158,7 @@ function DashboardContent() {
             <section className="mb-6 sm:mb-8">
               <h2 className="section-header">Your Stallions</h2>
               {data.stallions.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
                   {data.stallions
                     .filter(s => !stallionFilter || s.name === stallionFilter)
                     .map(stallion => (
