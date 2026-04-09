@@ -18,7 +18,7 @@ export default function BookingsPage() {
   const [reports, setReports] = useState<StallionBookingReport[]>([])
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [trackedStallions, setTrackedStallions] = useState<Set<string>>(new Set())
+  const [trackedStallions, setTrackedStallions] = useState<Map<string, string>>(new Map())
   const [orgThemes, setOrgThemes] = useState<OrgTheme[]>([])
   const { isAdmin, profile } = useAuth()
 
@@ -31,7 +31,7 @@ export default function BookingsPage() {
         if (bookingsData?.reports?.length) setReports(bookingsData.reports)
         if (bookingsData?.org_themes) setOrgThemes(bookingsData.org_themes)
         if (Array.isArray(stallionsData)) {
-          setTrackedStallions(new Set(stallionsData.map((s: { name: string }) => s.name)))
+          setTrackedStallions(new Map(stallionsData.map((s: { id: string; name: string }) => [s.name, s.id])))
         }
       })
       .catch(() => {})
@@ -286,7 +286,7 @@ export default function BookingsPage() {
                       <td className="px-4 py-2 font-semibold whitespace-nowrap" style={{ color: 'var(--org-primary)' }}>
                         {trackedStallions.has(row.stallion) ? (
                           <Link
-                            href={`/dashboard?stallion=${encodeURIComponent(row.stallion)}`}
+                            href={`/?stallion=${encodeURIComponent(trackedStallions.get(row.stallion)!)}`}
                             className="no-underline hover:underline"
                             style={{ color: 'inherit' }}
                           >
@@ -315,7 +315,7 @@ export default function BookingsPage() {
                   <div className="flex items-baseline justify-between gap-2">
                     {trackedStallions.has(row.stallion) ? (
                       <Link
-                        href={`/dashboard?stallion=${encodeURIComponent(row.stallion)}`}
+                        href={`/?stallion=${encodeURIComponent(trackedStallions.get(row.stallion)!)}`}
                         className="font-semibold text-sm no-underline hover:underline"
                         style={{ color: 'var(--org-primary)' }}
                       >
