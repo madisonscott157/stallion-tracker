@@ -21,10 +21,25 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-slate-50">
       <nav className="bg-slate-900 text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-1" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
-          <div className="flex flex-row items-baseline justify-between">
-            <h1 className="text-lg sm:text-xl font-semibold">Admin</h1>
-            <div className="flex flex-row items-baseline gap-3 sm:gap-4 text-sm">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
+          <div className="flex items-baseline justify-between gap-4">
+            <h1 className="text-lg font-semibold shrink-0">Admin</h1>
+            <div className="flex items-baseline gap-3 sm:gap-5">
+              {navItems.map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`text-sm border-b-2 pb-0.5 transition-colors ${
+                    pathname === item.href
+                      ? 'text-white font-medium border-white'
+                      : 'text-slate-400 hover:text-white border-transparent'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+            <div className="flex items-baseline gap-3 text-sm shrink-0">
               <Link
                 href="/"
                 className="text-slate-400 hover:text-white transition-colors"
@@ -38,21 +53,6 @@ export default function AdminLayout({
                 Logout
               </button>
             </div>
-          </div>
-          <div className="flex gap-4 sm:gap-6 mt-1">
-            {navItems.map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`text-sm pb-1 border-b-2 transition-colors ${
-                  pathname === item.href
-                    ? 'text-white font-medium border-white'
-                    : 'text-slate-400 hover:text-white border-transparent'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
           </div>
         </div>
       </nav>
