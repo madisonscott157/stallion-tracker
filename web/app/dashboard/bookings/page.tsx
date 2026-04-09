@@ -56,20 +56,10 @@ export default function BookingsPage() {
 
     const label = report.label || formatDate(report.report_date)
 
-    // Match org: first try label text (e.g. "Repole Bookings" → Repole Stable),
-    // then try report's organization_id, then fall back to user's own org
-    const labelLower = (report.label || '').toLowerCase()
-    const labelMatch = orgThemes.find(o => {
-      if (!o.name || !labelLower) return false
-      const nameLower = o.name.toLowerCase()
-      // Check both directions: label contains org name, or org name contains label word
-      if (labelLower.includes(nameLower)) return true
-      // Check if any word from the org name appears in the label (e.g. "Repole" from "Repole Stable")
-      return nameLower.split(/\s+/).some(word => word.length >= 3 && labelLower.includes(word))
-    })
+    // Match org by the report's organization_id, fall back to user's own org
     const idMatch = orgThemes.find(o => o.id === report.organization_id)
     const fallbackOrg = profile?.organization
-    const matchedOrg = labelMatch || idMatch || fallbackOrg
+    const matchedOrg = idMatch || fallbackOrg
 
     const primaryColor = matchedOrg?.primary_color || '#0f172a'
     const secondaryColor = matchedOrg?.secondary_color || '#64748b'
