@@ -63,11 +63,11 @@ export const ResultCard = memo(function ResultCard({ result, showSireName }: Res
       className={cn(
         'rounded-lg border px-2 sm:px-4 py-1.5 sm:py-2.5 card-hover',
         isWinner
-          ? 'bg-amber-50/60 border-gold/30 shadow-[0_1px_4px_rgba(212,175,55,0.15)]'
+          ? 'bg-amber-50/60 border-gold/30 shadow-[0_1px_4px_rgba(212,175,55,0.15)] card-hover-white'
           : isSecond
-          ? 'bg-slate-50/60 border-silver/30 shadow-[0_1px_4px_rgba(168,169,173,0.15)]'
+          ? 'bg-slate-50/60 border-silver/30 shadow-[0_1px_4px_rgba(168,169,173,0.15)] card-hover-white'
           : isThird
-          ? 'bg-orange-50/40 border-bronze/30 shadow-[0_1px_4px_rgba(205,127,50,0.15)]'
+          ? 'bg-orange-50/40 border-bronze/30 shadow-[0_1px_4px_rgba(205,127,50,0.15)] card-hover-white'
           : 'bg-white border-slate-200',
         borderClass
       )}

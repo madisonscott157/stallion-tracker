@@ -58,6 +58,9 @@ button[type="submit"],
 :root[data-white-secondary] .card-hover:hover {
   background-color: #f1f5f9;
 }
+.card-hover-white:hover {
+  background-color: #ffffff !important;
+}
 
 /* Empty state */
 .empty-state {
