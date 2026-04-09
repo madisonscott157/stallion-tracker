@@ -21,10 +21,10 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-slate-50">
       <nav className="bg-slate-900 text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
-          <div className="flex items-baseline justify-between gap-4">
-            <h1 className="text-lg font-semibold shrink-0">Admin</h1>
-            <div className="flex items-baseline gap-3 sm:gap-5">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-1.5 pt-1.5" style={{ paddingTop: 'max(0.375rem, env(safe-area-inset-top))' }}>
+          <div className="flex items-baseline justify-between">
+            <div className="flex items-baseline gap-4 sm:gap-5">
+              <h1 className="text-lg font-semibold shrink-0">Admin</h1>
               {navItems.map(item => (
                 <Link
                   key={item.href}
