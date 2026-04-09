@@ -42,15 +42,9 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
   return (
     <header className="sticky top-0 z-10 text-white px-3 sm:px-6 py-1.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.375rem, env(safe-area-inset-top))' }}>
       <div className="max-w-5xl mx-auto flex items-center justify-between">
-        {isBookingsPage ? (
-          <Link href="/dashboard" className="text-lg font-semibold tracking-wide truncate min-w-0 hover:opacity-80 transition-opacity" style={{ color: 'var(--org-secondary)' }}>
-            Dashboard
-          </Link>
-        ) : (
-          <h1 className="text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
-            {profile?.organization?.name || 'Progeny Tracker'}
-          </h1>
-        )}
+        <h1 className="text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
+          {profile?.organization?.name || 'Progeny Tracker'}
+        </h1>
 
         {/* Mobile nav */}
         <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
@@ -118,14 +112,16 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
               Admin
             </Link>
           )}
-          {hasBookings ? (
-            <Link href="/dashboard/bookings" className="hidden lg:inline-flex items-center hover:text-white transition-colors">
-              Stallion Bookings
-            </Link>
-          ) : (
-            <span className="hidden lg:inline-flex items-center">
-              {profile?.organization?.name || profile?.email}
-            </span>
+          {hasBookings && (
+            isBookingsPage ? (
+              <Link href="/dashboard" className="hidden lg:inline-flex items-center hover:text-white transition-colors">
+                Dashboard
+              </Link>
+            ) : (
+              <Link href="/dashboard/bookings" className="hidden lg:inline-flex items-center hover:text-white transition-colors">
+                Stallion Bookings
+              </Link>
+            )
           )}
           <button
             onClick={() => signOut()}
