@@ -59,16 +59,13 @@ export function Header({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </Link>
-            {/* Stallion selector (always visible) */}
+            {/* Stallion name + dropdown */}
             <StallionSelector
               value={stallionId}
               onChange={onStallionChange}
+              displayName={stallionName}
             />
-
-            {/* Title - hidden on mobile */}
-            <h1 className="hidden lg:block text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
-              {stallionName.toUpperCase()} <span className="font-normal text-white/70">| Stallion Tracker</span>
-            </h1>
+            <span className="hidden lg:inline font-normal text-white/70 text-lg">| Stallion Tracker</span>
 
             {/* Mobile nav links - all use identical wrapper styling for alignment */}
             <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
