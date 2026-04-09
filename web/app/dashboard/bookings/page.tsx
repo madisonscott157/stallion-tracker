@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
+import { DashboardHeader } from '@/components/DashboardHeader'
 import type { StallionBookingReport, BookingRow } from '@/lib/supabase'
 
 
@@ -183,19 +184,10 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="px-4 sm:px-6 py-4 sm:py-6 max-w-5xl mx-auto w-full">
-        {/* Back link */}
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors mb-4"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-          Back to Dashboard
-        </Link>
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      <DashboardHeader />
 
+      <main className="flex-1 px-4 sm:px-6 py-4 sm:py-6 max-w-5xl mx-auto w-full">
         <h1 className="section-header">Stallion Bookings</h1>
 
         {loading ? (
