@@ -233,11 +233,6 @@ export default function BookingsPage() {
                     </option>
                   ))}
                 </select>
-                {report?.label && (
-                  <span className="hidden sm:inline text-xs text-slate-400 truncate">
-                    {report.label}
-                  </span>
-                )}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -256,11 +251,6 @@ export default function BookingsPage() {
                   </a>
                 )}
               </div>
-            </div>
-
-            {/* Report date subheader */}
-            <div className="px-4 sm:px-5 py-2 bg-slate-50 border-b border-slate-100 text-xs text-slate-500">
-              Report date: {formatDate(report.report_date)}
             </div>
 
             {/* Desktop table */}
