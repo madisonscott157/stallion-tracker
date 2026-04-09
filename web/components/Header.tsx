@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { StallionSelector } from './StallionSelector'
@@ -24,7 +24,17 @@ export function Header({
 }: HeaderProps) {
   const { profile, signOut, isSigningOut, isAdmin, updateProfile } = useAuth()
   const [clmUpdating, setClmUpdating] = useState(false)
+  const [hasBookings, setHasBookings] = useState(false)
   const showClmToggle = profile?.organization?.allow_claiming_toggle !== false
+
+  useEffect(() => {
+    fetch('/api/bookings')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.reports?.length) setHasBookings(true)
+      })
+      .catch(() => {})
+  }, [])
 
   const handleClmToggle = async () => {
     if (clmUpdating) return
@@ -170,9 +180,15 @@ export function Header({
                   Admin
                 </Link>
               )}
-              <span className="hidden lg:inline-flex items-center">
-                {profile?.organization?.name || profile?.email}
-              </span>
+              {hasBookings ? (
+                <Link href="/dashboard/bookings" className="hidden lg:inline-flex items-center hover:text-white transition-colors">
+                  Stallion Bookings
+                </Link>
+              ) : (
+                <span className="hidden lg:inline-flex items-center">
+                  {profile?.organization?.name || profile?.email}
+                </span>
+              )}
               <button
                 onClick={() => signOut()}
                 disabled={isSigningOut}
