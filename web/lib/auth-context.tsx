@@ -34,6 +34,7 @@ interface AuthContextType {
   isLoading: boolean
   isSigningOut: boolean
   isAdmin: boolean
+  hasBookings: boolean
   allOrgsWithSilks: Organization[]
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [allOrgsWithSilks, setAllOrgsWithSilks] = useState<Organization[]>([])
+  const [hasBookings, setHasBookings] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const signOutRef = useRef(false)
 
@@ -117,6 +119,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (profile?.role === 'admin') {
             setAllOrgsWithSilks(orgs)
           }
+          // Check for bookings (non-blocking)
+          fetch('/api/bookings')
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+              if (!isCancelled && data?.reports?.length) setHasBookings(true)
+            })
+            .catch(() => {})
         }
       } catch (error: unknown) {
         if (error instanceof Error && error.name === 'AbortError') return
@@ -230,6 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       isSigningOut,
       isAdmin: profile?.role === 'admin',
+      hasBookings,
       allOrgsWithSilks,
       signIn,
       signOut,

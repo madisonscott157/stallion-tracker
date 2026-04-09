@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
@@ -10,21 +10,11 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
-  const { profile, signOut, isSigningOut, isAdmin, updateProfile } = useAuth()
+  const { profile, signOut, isSigningOut, isAdmin, hasBookings, updateProfile } = useAuth()
   const [clmUpdating, setClmUpdating] = useState(false)
-  const [hasBookings, setHasBookings] = useState(false)
   const showClmToggle = profile?.organization?.allow_claiming_toggle !== false
   const pathname = usePathname()
   const isBookingsPage = pathname === '/dashboard/bookings'
-
-  useEffect(() => {
-    fetch('/api/bookings')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.reports?.length) setHasBookings(true)
-      })
-      .catch(() => {})
-  }, [])
 
   const handleClmToggle = async () => {
     if (clmUpdating) return
