@@ -38,6 +38,23 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
 
         {/* Mobile nav */}
         <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
+          {hasBookings && (
+            isBookingsPage ? (
+              <Link
+                href="/dashboard"
+                className="text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity px-1"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/dashboard/bookings"
+                className="text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity px-1"
+              >
+                Bookings
+              </Link>
+            )
+          )}
           {profile && showClmToggle && (
             <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80">
               <input
@@ -104,11 +121,11 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
           )}
           {hasBookings && (
             isBookingsPage ? (
-              <Link href="/dashboard" className="hidden lg:inline-flex items-center hover:text-white transition-colors">
+              <Link href="/dashboard" className="inline-flex items-center hover:text-white transition-colors">
                 Dashboard
               </Link>
             ) : (
-              <Link href="/dashboard/bookings" className="hidden lg:inline-flex items-center hover:text-white transition-colors">
+              <Link href="/dashboard/bookings" className="inline-flex items-center hover:text-white transition-colors">
                 Stallion Bookings
               </Link>
             )
