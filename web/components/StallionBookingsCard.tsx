@@ -8,7 +8,7 @@ import type { StallionBookingReport, BookingRow } from '@/lib/supabase'
 const REPOLE_ORG_NAME = 'Repole Stable'
 
 export function StallionBookingsCard() {
-  const { profile, isAdmin } = useAuth()
+  const { profile, isAdmin, isLoading: authLoading } = useAuth()
   const [report, setReport] = useState<StallionBookingReport | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -16,6 +16,7 @@ export function StallionBookingsCard() {
   const hasAccess = isRepoleOrg || isAdmin
 
   useEffect(() => {
+    if (authLoading) return
     if (!hasAccess) {
       setLoading(false)
       return
@@ -27,9 +28,9 @@ export function StallionBookingsCard() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [hasAccess])
+  }, [authLoading, hasAccess])
 
-  if (!hasAccess || loading || !report) return null
+  if (authLoading || loading || !hasAccess || !report) return null
 
   const rows: BookingRow[] = report.data
 
