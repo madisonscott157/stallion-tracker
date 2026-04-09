@@ -1,7 +1,13 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { createClientComponentClient } from '@/lib/supabase'
 import type { StallionBookingReport, BookingRow } from '@/lib/supabase'
+
+interface Organization {
+  id: string
+  name: string
+}
 
 function parseBookingPaste(text: string): BookingRow[] {
   // Strip BOM if present
@@ -120,17 +126,20 @@ function BookingDataTable({ data }: { data: BookingRow[] }) {
 
 function ExpandedReport({
   report,
+  organizations,
   onUpdate,
   onDelete,
   onCollapse,
 }: {
   report: StallionBookingReport
-  onUpdate: (id: string, fields: { report_date?: string; label?: string; data?: BookingRow[] }) => Promise<boolean>
+  organizations: Organization[]
+  onUpdate: (id: string, fields: { report_date?: string; label?: string; data?: BookingRow[]; organization_id?: string }) => Promise<boolean>
   onDelete: (id: string) => void
   onCollapse: () => void
 }) {
   const [editDate, setEditDate] = useState(report.report_date)
   const [editLabel, setEditLabel] = useState(report.label || '')
+  const [editOrgId, setEditOrgId] = useState(report.organization_id)
   const [replacePaste, setReplacePaste] = useState('')
   const [replacePreview, setReplacePreview] = useState<BookingRow[]>([])
   const [updating, setUpdating] = useState(false)
@@ -147,15 +156,17 @@ function ExpandedReport({
   const hasChanges =
     editDate !== report.report_date ||
     editLabel !== (report.label || '') ||
+    editOrgId !== report.organization_id ||
     replacePreview.length > 0
 
   async function handleUpdate() {
     setUpdating(true)
     setLocalError('')
 
-    const fields: { report_date?: string; label?: string; data?: BookingRow[] } = {}
+    const fields: { report_date?: string; label?: string; data?: BookingRow[]; organization_id?: string } = {}
     if (editDate !== report.report_date) fields.report_date = editDate
     if (editLabel !== (report.label || '')) fields.label = editLabel.trim()
+    if (editOrgId !== report.organization_id) fields.organization_id = editOrgId
     if (replacePreview.length > 0) fields.data = replacePreview
 
     const success = await onUpdate(report.id, fields)
@@ -188,8 +199,20 @@ function ExpandedReport({
         </div>
       )}
 
-      {/* Editable date and label */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      {/* Editable org, date, and label */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div>
+          <label className="text-xs font-medium text-slate-500">Organization</label>
+          <select
+            value={editOrgId}
+            onChange={e => setEditOrgId(e.target.value)}
+            className="w-full mt-1 px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
+          >
+            {organizations.map(org => (
+              <option key={org.id} value={org.id}>{org.name}</option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className="text-xs font-medium text-slate-500">Report Date</label>
           <input
@@ -268,6 +291,7 @@ function ExpandedReport({
 
 export default function AdminBookingsPage() {
   const [reports, setReports] = useState<StallionBookingReport[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -277,12 +301,34 @@ export default function AdminBookingsPage() {
   // New report form state
   const [reportDate, setReportDate] = useState(() => new Date().toISOString().split('T')[0])
   const [label, setLabel] = useState('')
+  const [selectedOrgId, setSelectedOrgId] = useState('')
   const [pasteText, setPasteText] = useState('')
   const [preview, setPreview] = useState<BookingRow[]>([])
 
+  const supabase = createClientComponentClient()
+
   useEffect(() => {
     fetchReports()
+    fetchOrganizations()
   }, [])
+
+  async function fetchOrganizations() {
+    const { data, error: orgError } = await supabase
+      .from('organizations')
+      .select('id, name')
+      .order('name')
+    if (orgError) {
+      console.error('Failed to load organizations:', orgError.message)
+      return
+    }
+    if (data) {
+      setOrganizations(data)
+      // Default to first org if only one exists
+      if (data.length === 1) {
+        setSelectedOrgId(data[0].id)
+      }
+    }
+  }
 
   useEffect(() => {
     if (pasteText.trim()) {
@@ -308,6 +354,10 @@ export default function AdminBookingsPage() {
   }, [])
 
   async function handleSave() {
+    if (!selectedOrgId) {
+      setError('Please select an organization for this report.')
+      return
+    }
     if (preview.length === 0) {
       setError('No valid data to save. Paste tab-separated data first.')
       return
@@ -323,6 +373,7 @@ export default function AdminBookingsPage() {
           report_date: reportDate,
           label: label.trim() || undefined,
           data: preview,
+          organization_id: selectedOrgId,
         }),
       })
       const result = await res.json()
@@ -344,7 +395,7 @@ export default function AdminBookingsPage() {
 
   async function handleUpdate(
     id: string,
-    fields: { report_date?: string; label?: string; data?: BookingRow[] }
+    fields: { report_date?: string; label?: string; data?: BookingRow[]; organization_id?: string }
   ): Promise<boolean> {
     setError('')
 
@@ -425,7 +476,20 @@ export default function AdminBookingsPage() {
         <div className="mb-6 bg-white rounded-lg border border-slate-200 p-4 sm:p-5">
           <h3 className="text-sm font-semibold text-slate-900 mb-3">Create New Report</h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <div>
+              <label className="text-xs font-medium text-slate-500">Organization</label>
+              <select
+                value={selectedOrgId}
+                onChange={e => setSelectedOrgId(e.target.value)}
+                className="w-full mt-1 px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
+              >
+                <option value="">Select organization...</option>
+                {organizations.map(org => (
+                  <option key={org.id} value={org.id}>{org.name}</option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="text-xs font-medium text-slate-500">Report Date</label>
               <input
@@ -473,7 +537,7 @@ export default function AdminBookingsPage() {
 
           <button
             onClick={handleSave}
-            disabled={saving || preview.length === 0}
+            disabled={saving || preview.length === 0 || !selectedOrgId}
             className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? 'Saving...' : 'Save Report'}
@@ -493,6 +557,7 @@ export default function AdminBookingsPage() {
               <ExpandedReport
                 key={report.id}
                 report={report}
+                organizations={organizations}
                 onUpdate={handleUpdate}
                 onDelete={handleDelete}
                 onCollapse={() => setExpandedId(null)}
@@ -513,6 +578,8 @@ export default function AdminBookingsPage() {
                     )}
                   </div>
                   <div className="text-xs text-slate-400 mt-0.5">
+                    {organizations.find(o => o.id === report.organization_id)?.name || 'Unknown org'}
+                    {' \u00b7 '}
                     {report.data.length} stallion{report.data.length !== 1 ? 's' : ''} -- click to expand
                   </div>
                 </div>

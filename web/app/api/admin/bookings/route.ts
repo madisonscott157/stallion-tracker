@@ -84,7 +84,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { id, report_date, label, data } = body
+  const { id, report_date, label, data, organization_id } = body
 
   if (!id) {
     return NextResponse.json({ error: 'id is required' }, { status: 400 })
@@ -100,6 +100,9 @@ export async function PATCH(request: NextRequest) {
   }
   if (data) {
     updateData.data = data
+  }
+  if (organization_id) {
+    updateData.organization_id = organization_id
   }
 
   if (Object.keys(updateData).length === 0) {
