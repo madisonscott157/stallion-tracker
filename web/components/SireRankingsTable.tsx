@@ -150,7 +150,7 @@ export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
                     {ranking.graded_stakes_horses ?? '-'}
                   </td>
                   <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                    {ranking.total_earnings ? `$${ranking.total_earnings.toLocaleString()}` : '-'}
+                    {ranking.total_earnings ? `$${ranking.total_earnings.toLocaleString('en-US')}` : '-'}
                   </td>
                 </tr>
               )

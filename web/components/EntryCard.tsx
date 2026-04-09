@@ -110,7 +110,7 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
         {entry.purse && (
           <>
             <span className="text-slate-300">|</span>
-            <span>${entry.purse.toLocaleString()}</span>
+            <span>${entry.purse.toLocaleString('en-US')}</span>
           </>
         )}
         {distanceDisplay && (

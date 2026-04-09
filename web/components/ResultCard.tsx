@@ -134,7 +134,7 @@ export const ResultCard = memo(function ResultCard({ result, showSireName }: Res
         {result.purse && (
           <>
             <span className="text-slate-300">|</span>
-            <span>${result.purse.toLocaleString()}</span>
+            <span>${result.purse.toLocaleString('en-US')}</span>
           </>
         )}
         {result.distance && (

@@ -178,7 +178,7 @@ export default function AdminStallionsPage() {
                       <span className="text-sm text-slate-400">@ {stallion.stud_farm}</span>
                     )}
                     {stallion.stud_fee && (
-                      <span className="text-sm text-slate-400">${Number(stallion.stud_fee).toLocaleString()}</span>
+                      <span className="text-sm text-slate-400">${Number(stallion.stud_fee).toLocaleString('en-US')}</span>
                     )}
                   </div>
                   {(stallion.sire || stallion.dam) && (

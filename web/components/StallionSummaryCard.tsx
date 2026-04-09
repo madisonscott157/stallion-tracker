@@ -36,7 +36,7 @@ export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
         <div className="flex flex-wrap items-baseline gap-x-2 text-sm text-slate-500 mb-1 sm:mb-2">
           {stallion.stud_farm && <span>{stallion.stud_farm}</span>}
           {stallion.stud_farm && stallion.stud_fee && <span className="text-slate-300">|</span>}
-          {stallion.stud_fee && <span>${Number(stallion.stud_fee).toLocaleString()}</span>}
+          {stallion.stud_fee && <span>${Number(stallion.stud_fee).toLocaleString('en-US')}</span>}
         </div>
       )}
 

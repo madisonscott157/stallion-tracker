@@ -14,7 +14,7 @@ function formatCompactMoney(amount: number): string {
   if (amount >= 1000) {
     return `$${(amount / 1000).toFixed(0)}K`
   }
-  return `$${amount.toLocaleString()}`
+  return `$${amount.toLocaleString('en-US')}`
 }
 
 export function EquinelineSection({ stats, currentYear }: EquinelineSectionProps) {
@@ -206,25 +206,25 @@ export function EquinelineSection({ stats, currentYear }: EquinelineSectionProps
             <tr className="border-b border-slate-100">
               <td className="py-2 px-3 text-sm font-medium text-slate-700">Earnings</td>
               <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                ${(stats.lifetime_earnings ?? 0).toLocaleString()}
+                ${(stats.lifetime_earnings ?? 0).toLocaleString('en-US')}
               </td>
               <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                ${(stats.current_earnings ?? 0).toLocaleString()}
+                ${(stats.current_earnings ?? 0).toLocaleString('en-US')}
               </td>
               <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                ${(stats.current_2yo_earnings ?? 0).toLocaleString()}
+                ${(stats.current_2yo_earnings ?? 0).toLocaleString('en-US')}
               </td>
             </tr>
             <tr>
               <td className="py-2 px-3 text-sm font-medium text-slate-700">Avg/Starter</td>
               <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                ${(stats.lifetime_avg_earnings ?? 0).toLocaleString()}
+                ${(stats.lifetime_avg_earnings ?? 0).toLocaleString('en-US')}
               </td>
               <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                ${(stats.current_avg_earnings ?? 0).toLocaleString()}
+                ${(stats.current_avg_earnings ?? 0).toLocaleString('en-US')}
               </td>
               <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                ${(stats.current_2yo_avg_earnings ?? 0).toLocaleString()}
+                ${(stats.current_2yo_avg_earnings ?? 0).toLocaleString('en-US')}
               </td>
             </tr>
           </tbody>
@@ -241,13 +241,13 @@ export function EquinelineSection({ stats, currentYear }: EquinelineSectionProps
               {stats.chief_earner_name && (
                 <div className="flex flex-col sm:flex-row sm:justify-between text-sm gap-1">
                   <span className="font-medium text-slate-700">{stats.chief_earner_name}</span>
-                  <span className="text-slate-600">${(stats.chief_earner_amount ?? 0).toLocaleString()} <span className="text-slate-400">(Lifetime)</span></span>
+                  <span className="text-slate-600">${(stats.chief_earner_amount ?? 0).toLocaleString('en-US')} <span className="text-slate-400">(Lifetime)</span></span>
                 </div>
               )}
               {stats.current_top_earner_name && (
                 <div className="flex flex-col sm:flex-row sm:justify-between text-sm gap-1">
                   <span className="font-medium text-slate-700">{stats.current_top_earner_name}</span>
-                  <span className="text-slate-600">${(stats.current_top_earner_amount ?? 0).toLocaleString()} <span className="text-slate-400">({currentYear})</span></span>
+                  <span className="text-slate-600">${(stats.current_top_earner_amount ?? 0).toLocaleString('en-US')} <span className="text-slate-400">({currentYear})</span></span>
                 </div>
               )}
             </div>
