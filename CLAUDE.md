@@ -28,6 +28,7 @@ digest/      Python daily HTML digest email (Resend + Jinja2)
 - `stallions` — sires: name, YOB, pedigree, stud_fee (TEXT), URLs
 - `horses` — progeny records, auto-created by parser, FK to stallion
 - `entries` / `results` / `workouts` — racing data from parsed emails
+- `stallion_bookings` — JSONB booking reports per org (migration: `006_stallion_bookings.sql`)
 - `chart_data` — parsed Equibase chart PDFs
 - `sales_stats` / `sire_rankings` / `equineline_stats` — scraped stats
 - `email_log` — deduplication for processed emails
@@ -35,12 +36,12 @@ digest/      Python daily HTML digest email (Resend + Jinja2)
 RLS helper functions: `get_user_organization_id()`, `is_admin()`, `get_user_stallion_ids()`
 
 ## Web App Structure
-- `web/app/` — Next.js App Router pages (dashboard, login, admin/stallions)
-- `web/components/` — React components (DashboardHeader, EntryCard, ResultCard, etc.)
-- `web/lib/supabase.ts` — browser client + all TypeScript interfaces
+- `web/app/` — Next.js App Router pages (dashboard, login, admin/stallions, admin/bookings, dashboard/bookings)
+- `web/components/` — React components (DashboardHeader, EntryCard, ResultCard, StallionBookingsCard, etc.)
+- `web/lib/supabase.ts` — browser client + all TypeScript interfaces (BookingRow, StallionBookingReport, etc.)
 - `web/lib/supabase-server.ts` — server-side Supabase client
 - `web/lib/auth-context.tsx` — AuthProvider with user/session/isAdmin
-- `web/app/api/` — API routes (dashboard/summary, entries, results, workouts, stats, admin/*)
+- `web/app/api/` — API routes (dashboard/summary, entries, results, workouts, stats, bookings, admin/*)
 - `web/middleware.ts` — auth guard + admin role check
 
 ## Parser Structure
@@ -87,7 +88,10 @@ cd parser && ~/.fly/bin/fly deploy
 - **`items-baseline`** (not `items-center`) for header/nav flex alignment.
 - Silks icons use `translate-y-[3px]` for vertical centering with `items-baseline`.
 - Tailwind custom colors: `primary` (#0f172a navy), `accent` (#b45309 orange), `gold`/`silver`/`bronze` for finish positions.
+- Card hover uses `color-mix(in srgb, var(--org-secondary) 8%, #f1f5f9)` — slate-100 base ensures visibility even for orgs with white secondary color.
+- CSS variables `--org-primary` / `--org-secondary` set from user's org in auth-context.
 - Inter font, mobile-first responsive, PWA-enabled.
+- Default landing page is `/dashboard` (overview) for all users.
 
 ### Race Type Normalization
 AOC, MSW, MCL, ALW, CLM, STK — check AOC before CLM to avoid misclassification.
@@ -99,6 +103,14 @@ Dirt, Turf, AWT (Tapeta/Polytrack/synthetic all map to AWT).
 1. Add via Admin panel (`/admin/stallions`)
 2. Update `TRACKED_STALLIONS` in three places: local `.env`, Fly.io secrets, Vercel env vars
 3. Clear `email_log` and reprocess: `python3 main.py --once`
+
+### Stallion Bookings
+- Admin creates reports at `/admin/bookings` by pasting tab-separated Excel data
+- Dashboard card (`StallionBookingsCard`) self-gates via API — only shows if user's org has reports (RLS enforced)
+- Detail page at `/dashboard/bookings` with date dropdown, PDF export with org-specific colors/silks
+- PDF uses html2canvas + jsPDF (landscape A4, scale-to-fit). Known issue: html2canvas doesn't properly vertically center text in table cells.
+- Org theme matching for PDF: checks report label for org name words, then falls back to report's org_id, then user's org
+- Service role key needed for cross-org theme fetch: checks both `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_SERVICE_KEY`
 
 ### Environment Variables
 See `.env.example` for full list. Key vars: `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_ANON_KEY`, `TRACKED_STALLIONS`.
