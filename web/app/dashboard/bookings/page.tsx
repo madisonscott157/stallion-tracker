@@ -14,25 +14,15 @@ interface OrgTheme {
   silks_url: string | null
 }
 
-const REPOLE_ORG_NAME = 'Repole Stable'
-
 export default function BookingsPage() {
   const [reports, setReports] = useState<StallionBookingReport[]>([])
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [loading, setLoading] = useState(true)
   const [trackedStallions, setTrackedStallions] = useState<Set<string>>(new Set())
   const [orgThemes, setOrgThemes] = useState<OrgTheme[]>([])
-  const { isAdmin, profile, isLoading: authLoading } = useAuth()
-
-  const isRepoleOrg = profile?.organization?.name === REPOLE_ORG_NAME
-  const hasAccess = isRepoleOrg || isAdmin
+  const { isAdmin, profile } = useAuth()
 
   useEffect(() => {
-    if (authLoading) return
-    if (!hasAccess) {
-      setLoading(false)
-      return
-    }
     Promise.all([
       fetch('/api/bookings').then(r => r.ok ? r.json() : null),
       fetch('/api/stallions').then(r => r.ok ? r.json() : []),
@@ -46,7 +36,7 @@ export default function BookingsPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [authLoading, hasAccess])
+  }, [])
 
   const report = reports[selectedIdx] ?? null
   const rows: BookingRow[] = report?.data ?? []
@@ -208,11 +198,7 @@ export default function BookingsPage() {
 
         <h1 className="section-header">Stallion Bookings</h1>
 
-        {!authLoading && !hasAccess ? (
-          <div className="bg-white rounded-lg border border-slate-200 px-6 py-12 text-center text-sm text-slate-500">
-            You don&apos;t have access to stallion bookings.
-          </div>
-        ) : loading ? (
+        {loading ? (
           <div className="flex items-center justify-center py-20">
             <svg
               className="animate-spin h-6 w-6 text-slate-400"

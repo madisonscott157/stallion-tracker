@@ -2,25 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useAuth } from '@/lib/auth-context'
 import type { StallionBookingReport, BookingRow } from '@/lib/supabase'
 
-const REPOLE_ORG_NAME = 'Repole Stable'
-
 export function StallionBookingsCard() {
-  const { profile, isAdmin, isLoading: authLoading } = useAuth()
   const [report, setReport] = useState<StallionBookingReport | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const isRepoleOrg = profile?.organization?.name === REPOLE_ORG_NAME
-  const hasAccess = isRepoleOrg || isAdmin
-
   useEffect(() => {
-    if (authLoading) return
-    if (!hasAccess) {
-      setLoading(false)
-      return
-    }
     fetch('/api/bookings')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -28,9 +16,9 @@ export function StallionBookingsCard() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [authLoading, hasAccess])
+  }, [])
 
-  if (authLoading || loading || !hasAccess || !report) return null
+  if (loading || !report) return null
 
   const rows: BookingRow[] = report.data
 
