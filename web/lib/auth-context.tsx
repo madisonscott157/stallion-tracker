@@ -96,13 +96,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         document.documentElement.removeAttribute('data-white-secondary')
       }
-    } else {
-      // Default colors
+    } else if (!isLoading) {
+      // Default colors — only set after auth finishes loading to avoid flash
       document.documentElement.style.setProperty('--org-primary', '#0f172a')
       document.documentElement.style.setProperty('--org-secondary', '#64748b')
       document.documentElement.removeAttribute('data-white-secondary')
     }
-  }, [profile])
+  }, [profile, isLoading])
 
   useEffect(() => {
     let isCancelled = false

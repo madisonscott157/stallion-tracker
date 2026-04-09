@@ -10,7 +10,7 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
-  const { profile, signOut, isSigningOut, isAdmin, hasBookings, updateProfile } = useAuth()
+  const { profile, signOut, isSigningOut, isAdmin, hasBookings, updateProfile, isLoading } = useAuth()
   const [clmUpdating, setClmUpdating] = useState(false)
   const showClmToggle = profile?.organization?.allow_claiming_toggle !== false
   const pathname = usePathname()
@@ -33,7 +33,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
     <header className="sticky top-0 z-10 text-white px-3 sm:px-6 pb-0.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.125rem, env(safe-area-inset-top))' }}>
       <div className="max-w-5xl mx-auto flex items-baseline justify-between">
         <h1 className="text-base sm:text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
-          {profile?.organization?.name || 'Stallion Tracker'}
+          {profile?.organization?.name || (isLoading ? '\u00A0' : 'Stallion Tracker')}
         </h1>
 
         {/* Mobile nav */}

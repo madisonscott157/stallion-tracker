@@ -4,8 +4,8 @@
 
 :root {
   /* Organization theme colors (set dynamically via JS) */
-  --org-primary: #0f172a;
-  --org-secondary: #64748b;
+  --org-primary: transparent;
+  --org-secondary: transparent;
 }
 
 html {
