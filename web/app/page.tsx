@@ -49,9 +49,9 @@ function HomeContent() {
   const searchParams = useSearchParams()
   const stallionParam = searchParams.get('stallion')
 
-  // Redirect to dashboard if user has show_dashboard and no stallion param
+  // Always redirect to dashboard unless viewing a specific stallion
   useEffect(() => {
-    if (!authLoading && profile?.show_dashboard && !stallionParam) {
+    if (!authLoading && profile && !stallionParam) {
       router.replace('/dashboard')
     }
   }, [authLoading, profile, stallionParam, router])
