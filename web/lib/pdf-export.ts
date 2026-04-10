@@ -264,10 +264,6 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
     ? `<td style="vertical-align:top;text-align:right;width:60px;"><img src="${options.silksUrl}" style="height:50px;width:auto;object-fit:contain;" crossorigin="anonymous" /></td>`
     : ''
 
-  const orgLine = options.orgName
-    ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">Prepared for ${options.orgName}</div>`
-    : ''
-
   // Build the blocks array — each block is a <tr> or a header row
   const blocks: string[] = []
 
@@ -278,7 +274,6 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
         <td style="vertical-align:top;">
           <div style="font-size:22px;font-weight:700;color:#0f172a;line-height:1.3;letter-spacing:0.01em;">${data.stallionName.toUpperCase()} PROGENY REPORT</div>
           <div style="font-size:11px;color:#64748b;margin-top:3px;">${subtitle}</div>
-          ${orgLine}
         </td>
         ${silksHtml}
       </tr></table>
