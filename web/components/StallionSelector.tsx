@@ -63,7 +63,7 @@ export function StallionSelector({ value, onChange, displayName }: StallionSelec
   if (!canSwitch) {
     return (
       <span
-        className="text-base sm:text-lg font-semibold tracking-wide"
+        className="text-base sm:text-lg font-semibold tracking-wide truncate max-w-full"
         style={{ color: 'var(--org-secondary, #64748b)' }}
       >
         {(displayName || '').toUpperCase()}
@@ -72,14 +72,14 @@ export function StallionSelector({ value, onChange, displayName }: StallionSelec
   }
 
   return (
-    <div className="relative inline-flex items-baseline">
+    <div className="relative flex items-baseline min-w-0 max-w-full">
       <select
         value={value || ''}
         onChange={(e) => {
           const stallion = stallions.find(s => s.id === e.target.value)
           if (stallion) onChange(stallion.id, stallion.name)
         }}
-        className="appearance-none bg-transparent border-none text-base sm:text-lg font-semibold tracking-wide cursor-pointer focus:outline-none pr-5"
+        className="appearance-none bg-transparent border-none text-base sm:text-lg font-semibold tracking-wide cursor-pointer focus:outline-none pr-5 min-w-0 max-w-full"
         style={{ color: 'var(--org-secondary, #64748b)' }}
         aria-label="Switch stallion"
       >
