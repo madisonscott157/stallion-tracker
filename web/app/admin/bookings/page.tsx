@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { createClientComponentClient } from '@/lib/supabase'
 import { formatShortDate } from '@/lib/utils'
 import type { StallionBookingReport, BookingRow } from '@/lib/supabase'
 
@@ -433,29 +432,9 @@ export default function AdminBookingsPage() {
   const [pasteText, setPasteText] = useState('')
   const [preview, setPreview] = useState<BookingRow[]>([])
 
-  const supabase = createClientComponentClient()
-
   useEffect(() => {
-    Promise.all([fetchReports(), fetchOrganizations()]).finally(() => setIsLoading(false))
+    fetchReports().finally(() => setIsLoading(false))
   }, [])
-
-  async function fetchOrganizations() {
-    const { data, error: orgError } = await supabase
-      .from('organizations')
-      .select('id, name')
-      .order('name')
-    if (orgError) {
-      console.error('Failed to load organizations:', orgError.message)
-      return
-    }
-    if (data) {
-      setOrganizations(data)
-      // Default to first org if only one exists
-      if (data.length === 1) {
-        setSelectedOrgId(data[0].id)
-      }
-    }
-  }
 
   useEffect(() => {
     if (pasteText.trim()) {
@@ -471,6 +450,14 @@ export default function AdminBookingsPage() {
       if (res.ok) {
         const data = await res.json()
         setReports(data.reports || [])
+        // org_themes comes from the server via service-role key — always complete
+        if (Array.isArray(data.org_themes) && data.org_themes.length > 0) {
+          const orgs: Organization[] = data.org_themes
+            .map((o: { id: string; name: string }) => ({ id: o.id, name: o.name }))
+            .sort((a: Organization, b: Organization) => a.name.localeCompare(b.name))
+          setOrganizations(orgs)
+          if (orgs.length === 1) setSelectedOrgId(orgs[0].id)
+        }
       } else {
         setError('Failed to load reports')
       }
