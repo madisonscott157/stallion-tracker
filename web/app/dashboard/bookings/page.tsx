@@ -115,7 +115,16 @@ export default function BookingsPage() {
             ${silksHtml}
           </tr></table>
         </div>
-        <table style="width:100%;border-collapse:collapse;">
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+          <colgroup>
+            <col style="width:22%;" />
+            <col style="width:18%;" />
+            <col style="width:13%;" />
+            <col style="width:14%;" />
+            <col style="width:14%;" />
+            <col style="width:12%;" />
+            ${hasNotes ? '<col style="width:auto;" />' : ''}
+          </colgroup>
           <thead>
             <tr style="background:${primaryColor};">
               <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:left;">Stallion</th>
