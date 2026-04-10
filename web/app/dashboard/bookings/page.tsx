@@ -17,6 +17,38 @@ interface OrgTheme {
   silks_url: string | null
 }
 
+type SortCol = 'stallion' | 'farm' | 'stud_fee' | 'repole_interest' | 'mares_booked' | 'sold_since'
+type SortDir = 'asc' | 'desc'
+
+function parseStudFee(val: string | number): number {
+  const s = String(val).replace(/[$,]/g, '').trim()
+  const n = parseFloat(s)
+  return isNaN(n) ? -1 : n
+}
+
+function sortRows(rows: BookingRow[], col: SortCol, dir: SortDir): BookingRow[] {
+  const sorted = [...rows].sort((a, b) => {
+    let av: string | number
+    let bv: string | number
+
+    if (col === 'stud_fee') {
+      av = parseStudFee(a.stud_fee)
+      bv = parseStudFee(b.stud_fee)
+    } else if (col === 'mares_booked' || col === 'sold_since') {
+      av = typeof a[col] === 'number' ? a[col] as number : parseFloat(String(a[col])) || 0
+      bv = typeof b[col] === 'number' ? b[col] as number : parseFloat(String(b[col])) || 0
+    } else {
+      av = String(a[col] ?? '').toLowerCase()
+      bv = String(b[col] ?? '').toLowerCase()
+    }
+
+    if (av < bv) return -1
+    if (av > bv) return 1
+    return 0
+  })
+  return dir === 'desc' ? sorted.reverse() : sorted
+}
+
 export default function BookingsPage() {
   const [reports, setReports] = useState<StallionBookingReport[]>([])
   const [selectedIdx, setSelectedIdx] = useState(0)
@@ -24,6 +56,8 @@ export default function BookingsPage() {
   const [exporting, setExporting] = useState(false)
   const [trackedStallions, setTrackedStallions] = useState<Map<string, string>>(new Map())
   const [orgThemes, setOrgThemes] = useState<OrgTheme[]>([])
+  const [sortCol, setSortCol] = useState<SortCol | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
   const { isAdmin, profile } = useAuth()
 
   useEffect(() => {
@@ -42,8 +76,21 @@ export default function BookingsPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  // Reset sort when switching reports
+  useEffect(() => { setSortCol(null) }, [selectedIdx])
+
+  function handleSort(col: SortCol) {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortCol(col)
+      setSortDir('asc')
+    }
+  }
+
   const report = reports[selectedIdx] ?? null
-  const rows: BookingRow[] = report?.data ?? []
+  const rawRows: BookingRow[] = report?.data ?? []
+  const rows = sortCol ? sortRows(rawRows, sortCol, sortDir) : rawRows
   const hasNotes = rows.some(r => r.notes && r.notes.trim() !== '')
 
   async function handleExportPDF(): Promise<void> {
@@ -249,13 +296,36 @@ export default function BookingsPage() {
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 text-left">
-                    <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Stallion</th>
-                    <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Farm</th>
-                    <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">Stud Fee</th>
-                    <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">Equity</th>
-                    <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">Mares Booked</th>
-                    <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">Sold Since</th>
+                  <tr className="bg-slate-50 text-left select-none">
+                    {([
+                      { col: 'stallion' as SortCol,         label: 'Stallion',      align: 'left'   },
+                      { col: 'farm' as SortCol,             label: 'Farm',          align: 'left'   },
+                      { col: 'stud_fee' as SortCol,         label: 'Stud Fee',      align: 'right'  },
+                      { col: 'repole_interest' as SortCol,  label: 'Equity',        align: 'center' },
+                      { col: 'mares_booked' as SortCol,     label: 'Mares Booked',  align: 'center' },
+                      { col: 'sold_since' as SortCol,       label: 'Sold Since',    align: 'center' },
+                    ] as const).map(({ col, label, align }) => (
+                      <th
+                        key={col}
+                        onClick={() => handleSort(col)}
+                        className={`px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700 transition-colors ${
+                          align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : ''
+                        }`}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {align === 'right' && sortCol === col && (
+                            <span className="text-slate-400">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                          {label}
+                          {align !== 'right' && sortCol === col && (
+                            <span className="text-slate-400">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                          {sortCol !== col && (
+                            <span className="text-slate-300">↕</span>
+                          )}
+                        </span>
+                      </th>
+                    ))}
                     {hasNotes && (
                       <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Notes</th>
                     )}
