@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { StallionSelector } from './StallionSelector'
-import { ClmToggle } from './ClmToggle'
 import { Spinner } from './Spinner'
 
 interface HeaderProps {
@@ -12,7 +11,6 @@ interface HeaderProps {
   onStallionChange: (id: string, name: string) => void
   onExportPDF?: () => void
   isExporting?: boolean
-  onPreferenceChange?: () => void
 }
 
 export function Header({
@@ -21,7 +19,6 @@ export function Header({
   onStallionChange,
   onExportPDF,
   isExporting,
-  onPreferenceChange
 }: HeaderProps) {
   const { profile, signOut, isSigningOut, isAdmin, hasBookings } = useAuth()
 
@@ -137,9 +134,6 @@ export function Header({
             )}
 
             <div className="flex items-center gap-3 text-sm border-l border-white/20 pl-4" style={{ color: 'var(--org-secondary)' }}>
-              {onPreferenceChange && (
-                <ClmToggle onPreferenceChange={onPreferenceChange} className="opacity-80 hover:opacity-100 transition-opacity" />
-              )}
               {isAdmin && (
                 <Link
                   href="/admin"

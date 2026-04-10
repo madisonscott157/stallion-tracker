@@ -18,6 +18,7 @@ import { PullToRefresh } from '@/components/PullToRefresh'
 import { useAuth } from '@/lib/auth-context'
 import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineStats, Workout } from '@/lib/supabase'
 import { EmptyState } from '@/components/EmptyState'
+import { ClmToggle } from '@/components/ClmToggle'
 import type { ExportOptions, OrgWithSilks } from '@/lib/pdf-export'
 
 export default function Home() {
@@ -165,7 +166,6 @@ function HomeContent() {
         onStallionChange={handleStallionChange}
         onExportPDF={handleExportPDF}
         isExporting={isExporting}
-        onPreferenceChange={() => setFetchKey(k => k + 1)}
       />
 
       {rankings.length > 0 && (() => {
@@ -215,7 +215,14 @@ function HomeContent() {
               <div key="overview" className="tab-content-enter">
                 {/* Upcoming Entries */}
                 <section className="mb-6 sm:mb-8">
-                  <h2 className="section-header">Upcoming Entries</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming Entries</h2>
+                    <ClmToggle
+                      onPreferenceChange={() => setFetchKey(k => k + 1)}
+                      className="text-slate-500 hover:text-slate-700 transition-colors"
+                      checkboxClassName="accent-slate-600"
+                    />
+                  </div>
                   {entries.length > 0 ? (
                     <div className="card-stack">
                       {entries.map(entry => (
