@@ -52,6 +52,11 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     }
   }, [pulling, pullDistance, refreshing, onRefresh])
 
+  const handleTouchCancel = useCallback(() => {
+    setPulling(false)
+    setPullDistance(0)
+  }, [])
+
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -59,13 +64,15 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     el.addEventListener('touchstart', handleTouchStart, { passive: true })
     el.addEventListener('touchmove', handleTouchMove, { passive: true })
     el.addEventListener('touchend', handleTouchEnd)
+    el.addEventListener('touchcancel', handleTouchCancel)
 
     return () => {
       el.removeEventListener('touchstart', handleTouchStart)
       el.removeEventListener('touchmove', handleTouchMove)
       el.removeEventListener('touchend', handleTouchEnd)
+      el.removeEventListener('touchcancel', handleTouchCancel)
     }
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd])
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel])
 
   return (
     <div ref={containerRef}>
