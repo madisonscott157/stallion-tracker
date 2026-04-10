@@ -27,9 +27,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
-    const res = NextResponse.json(data || [])
-    res.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
-    return res
+    return NextResponse.json(data || [])
   } else {
     // Non-admin sees org-linked stallions
     if (!profile.organization_id) {

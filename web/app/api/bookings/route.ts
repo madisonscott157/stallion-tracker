@@ -59,11 +59,12 @@ export async function GET() {
     return NextResponse.json({ error: bookingsResult.error.message }, { status: 500 })
   }
 
+  // Must not be cached — response is user-scoped (different users see different reports)
+  // Browser HTTP cache keys on URL only, not cookies, so cached responses leak across users
   const response = NextResponse.json({
     reports: bookingsResult.data ?? [],
     org_themes: orgThemes,
   })
-  // Cache: fresh for 60 s, serve stale for up to 5 min while revalidating
-  response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=300')
+  response.headers.set('Cache-Control', 'no-store')
   return response
 }
