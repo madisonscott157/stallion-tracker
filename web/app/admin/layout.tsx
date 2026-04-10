@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
-import { Spinner } from '@/components/Spinner'
 
 export default function AdminLayout({
   children,
@@ -11,7 +10,7 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const { signOut, isLoading } = useAuth()
+  const { signOut } = useAuth()
 
   const navItems = [
     { href: '/admin', label: 'Users & Stables' },
@@ -58,11 +57,7 @@ export default function AdminLayout({
         </div>
       </nav>
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Spinner className="w-6 h-6 text-slate-600" />
-          </div>
-        ) : children}
+        {children}
       </main>
     </div>
   )
