@@ -23,7 +23,7 @@ export function Header({
   const { profile, signOut, isSigningOut, isAdmin, hasBookings } = useAuth()
 
   return (
-    <header className="sticky top-0 z-10 text-white px-3 sm:px-6 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.125rem, env(safe-area-inset-top))' }}>
+    <header className="sticky top-0 z-10 text-white pl-3 pr-1 sm:px-6 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.125rem, env(safe-area-inset-top))' }}>
       <div className="max-w-5xl mx-auto">
 
         {/* ── Mobile: single compact row, three zones ── */}
@@ -46,7 +46,7 @@ export function Header({
           </div>
 
           {/* Zone 3: icons — fixed right, all icon-only */}
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-0 shrink-0">
             {hasBookings && (
               <Link
                 href="/dashboard/bookings"
