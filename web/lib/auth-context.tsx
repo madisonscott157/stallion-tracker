@@ -107,6 +107,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isCancelled = false
 
+    const checkBookings = () => {
+      fetch('/api/bookings')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!isCancelled) setHasBookings(!!data?.reports?.length)
+        })
+        .catch(() => {})
+    }
+
+    const loadUserData = async (userId: string) => {
+      const [profile, orgs] = await Promise.all([
+        fetchProfile(userId),
+        fetchAllOrgsWithSilks(),
+      ])
+      if (isCancelled) return
+      setProfile(profile)
+      if (profile?.role === 'admin') {
+        setAllOrgsWithSilks(orgs)
+      } else {
+        setAllOrgsWithSilks([])
+      }
+      checkBookings()
+    }
+
     // Get initial session
     const initAuth = async () => {
       try {
@@ -117,22 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          const [profile, orgs] = await Promise.all([
-            fetchProfile(session.user.id),
-            fetchAllOrgsWithSilks(),
-          ])
-          if (isCancelled) return
-          setProfile(profile)
-          if (profile?.role === 'admin') {
-            setAllOrgsWithSilks(orgs)
-          }
-          // Check for bookings (non-blocking)
-          fetch('/api/bookings')
-            .then(r => r.ok ? r.json() : null)
-            .then(data => {
-              if (!isCancelled && data?.reports?.length) setHasBookings(true)
-            })
-            .catch(() => {})
+          await loadUserData(session.user.id)
         }
       } catch (error: unknown) {
         if (error instanceof Error && error.name === 'AbortError') return
@@ -158,26 +167,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'INITIAL_SESSION') return
+        if (signOutRef.current) return // Don't process events during signout
         try {
           if (isCancelled) return
           setSession(session)
           setUser(session?.user ?? null)
 
           if (session?.user) {
-            const [profile, orgs] = await Promise.all([
-              fetchProfile(session.user.id),
-              fetchAllOrgsWithSilks(),
-            ])
-            if (isCancelled) return
-            setProfile(profile)
-            if (profile?.role === 'admin') {
-              setAllOrgsWithSilks(orgs)
-            } else {
-              setAllOrgsWithSilks([])
-            }
+            await loadUserData(session.user.id)
           } else {
             setProfile(null)
             setAllOrgsWithSilks([])
+            setHasBookings(false)
           }
         } catch (error: unknown) {
           if (error instanceof Error && error.name === 'AbortError') return
@@ -203,25 +204,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (signOutRef.current) return
     signOutRef.current = true
     setIsSigningOut(true)
+
+    const clearAuth = () => {
+      document.cookie.split(';').forEach(c => {
+        const name = c.split('=')[0].trim()
+        if (name.startsWith('sb-')) {
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
+        }
+      })
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-')) localStorage.removeItem(key)
+      })
+    }
+
     try {
-      await supabase.auth.signOut({ scope: 'local' })
+      // Race signOut against a timeout — prevents hanging if token refresh
+      // is in-flight or Supabase client is stuck
+      await Promise.race([
+        supabase.auth.signOut({ scope: 'local' }),
+        new Promise(resolve => setTimeout(resolve, 3000)),
+      ])
     } catch {
       // Ignore — we force-clear below
     }
-    // Force-clear all Supabase cookies (chunked auth tokens included)
-    document.cookie.split(';').forEach(c => {
-      const name = c.split('=')[0].trim()
-      if (name.startsWith('sb-')) {
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
-      }
-    })
-    // Clear any localStorage remnants
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('sb-')) localStorage.removeItem(key)
-    })
+
+    // Clear auth state twice: once now, once after a tick to catch any
+    // cookies re-written by a racing token refresh
+    clearAuth()
     setUser(null)
     setProfile(null)
     setSession(null)
+    setHasBookings(false)
+    await new Promise(resolve => setTimeout(resolve, 100))
+    clearAuth()
+
     window.location.href = '/login'
   }
 

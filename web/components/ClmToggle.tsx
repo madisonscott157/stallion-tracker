@@ -13,9 +13,9 @@ interface ClmToggleProps {
 export function ClmToggle({ onPreferenceChange, className, checkboxClassName }: ClmToggleProps) {
   const { profile, updateProfile } = useAuth()
   const [updating, setUpdating] = useState(false)
-  const showToggle = profile?.organization?.allow_claiming_toggle !== false
+  const orgAllows = profile?.organization?.allow_claiming_toggle !== false
 
-  if (!profile || !showToggle) return null
+  if (!profile || !orgAllows || !profile.show_claiming_races) return null
 
   const handleToggle = async () => {
     if (updating) return
