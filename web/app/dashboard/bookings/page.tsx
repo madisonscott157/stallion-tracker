@@ -120,7 +120,7 @@ export default function BookingsPage() {
               <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:left;">Stallion</th>
               <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:left;">Farm</th>
               <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:right;">Stud Fee</th>
-              <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Repole</th>
+              <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Equity</th>
               <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Mares Booked</th>
               <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Sold Since</th>
               ${notesHeader}
@@ -236,7 +236,7 @@ export default function BookingsPage() {
                     <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Stallion</th>
                     <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Farm</th>
                     <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">Stud Fee</th>
-                    <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">Repole</th>
+                    <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">Equity</th>
                     <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">Mares Booked</th>
                     <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">Sold Since</th>
                     {hasNotes && (

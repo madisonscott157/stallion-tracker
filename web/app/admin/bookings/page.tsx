@@ -101,7 +101,7 @@ function BookingDataTable({ data }: { data: BookingRow[] }) {
             <th className="px-3 py-1.5 font-semibold text-slate-500">Stallion</th>
             <th className="px-3 py-1.5 font-semibold text-slate-500">Farm</th>
             <th className="px-3 py-1.5 font-semibold text-slate-500 text-right">Fee</th>
-            <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Repole</th>
+            <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Equity</th>
             <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Mares</th>
             <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Sold</th>
             <th className="px-3 py-1.5 font-semibold text-slate-500">Notes</th>
