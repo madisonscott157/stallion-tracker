@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClientComponentClient } from '@/lib/supabase'
+import { formatShortDate } from '@/lib/utils'
 import type { StallionBookingReport, BookingRow } from '@/lib/supabase'
 
 interface Organization {
@@ -436,10 +437,6 @@ export default function AdminBookingsPage() {
     }
   }
 
-  const formatDate = (d: string) => {
-    const [y, m, day] = d.split('-')
-    return `${parseInt(m)}/${parseInt(day)}/${y}`
-  }
 
   if (isLoading) {
     return (
@@ -571,7 +568,7 @@ export default function AdminBookingsPage() {
                 <div>
                   <div className="flex items-baseline gap-2">
                     <span className="font-medium text-slate-900">
-                      {formatDate(report.report_date)}
+                      {formatShortDate(report.report_date, true)}
                     </span>
                     {report.label && (
                       <span className="text-sm text-slate-500">{report.label}</span>

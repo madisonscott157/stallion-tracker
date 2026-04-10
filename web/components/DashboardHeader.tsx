@@ -1,33 +1,19 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
+import { ClmToggle } from './ClmToggle'
+import { Spinner } from './Spinner'
 
 interface DashboardHeaderProps {
   onPreferenceChange?: () => void
 }
 
 export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
-  const { profile, signOut, isSigningOut, isAdmin, hasBookings, updateProfile, isLoading } = useAuth()
-  const [clmUpdating, setClmUpdating] = useState(false)
-  const showClmToggle = profile?.organization?.allow_claiming_toggle !== false
+  const { profile, signOut, isSigningOut, isAdmin, hasBookings, isLoading } = useAuth()
   const pathname = usePathname()
   const isBookingsPage = pathname === '/dashboard/bookings'
-
-  const handleClmToggle = async () => {
-    if (clmUpdating) return
-    setClmUpdating(true)
-    try {
-      await updateProfile({ show_claiming_races: !profile?.show_claiming_races })
-      onPreferenceChange?.()
-    } catch (err) {
-      console.error('Failed to update CLM preference:', err)
-    } finally {
-      setClmUpdating(false)
-    }
-  }
 
   return (
     <header className="sticky top-0 z-10 text-white px-3 sm:px-6 pb-0.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.125rem, env(safe-area-inset-top))' }}>
@@ -76,10 +62,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
             aria-label="Logout"
           >
             {isSigningOut ? (
-              <svg className="w-4 h-4 animate-spin translate-y-[2px]" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
+              <Spinner className="w-4 h-4 translate-y-[2px]" />
             ) : (
               <svg className="w-4 h-4 translate-y-[2px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -90,17 +73,8 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
 
         {/* Desktop nav */}
         <div className="hidden sm:flex items-center gap-3 text-sm" style={{ color: 'var(--org-secondary)' }}>
-          {profile && showClmToggle && (
-            <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity">
-              <input
-                type="checkbox"
-                checked={profile.show_claiming_races}
-                onChange={handleClmToggle}
-                disabled={clmUpdating}
-                className="w-4 h-4 rounded accent-white"
-              />
-              CLM
-            </label>
+          {onPreferenceChange && (
+            <ClmToggle onPreferenceChange={onPreferenceChange} className="opacity-80 hover:opacity-100 transition-opacity" />
           )}
           {isAdmin && (
             <Link href="/admin" className="hover:text-white transition-colors inline-flex items-center">

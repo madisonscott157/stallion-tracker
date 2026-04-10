@@ -7,6 +7,7 @@ import { StallionSummaryCard } from '@/components/StallionSummaryCard'
 import { EntryCard } from '@/components/EntryCard'
 import { ResultCard } from '@/components/ResultCard'
 import { PullToRefresh } from '@/components/PullToRefresh'
+import { ClmToggle } from '@/components/ClmToggle'
 import { useAuth } from '@/lib/auth-context'
 import { EmptyState } from '@/components/EmptyState'
 import type { Entry, Result } from '@/lib/supabase'
@@ -26,40 +27,6 @@ interface DashboardData {
   stallions: StallionSummary[]
   recent_winners: Result[]
   recent_stakes: Result[]
-}
-
-function MobileClmToggle({ onPreferenceChange }: { onPreferenceChange: () => void }) {
-  const { profile, updateProfile } = useAuth()
-  const [updating, setUpdating] = useState(false)
-  const showToggle = profile?.organization?.allow_claiming_toggle !== false
-
-  if (!profile || !showToggle) return null
-
-  const handleToggle = async () => {
-    if (updating) return
-    setUpdating(true)
-    try {
-      await updateProfile({ show_claiming_races: !profile.show_claiming_races })
-      onPreferenceChange()
-    } catch (err) {
-      console.error('Failed to update CLM preference:', err)
-    } finally {
-      setUpdating(false)
-    }
-  }
-
-  return (
-    <label className="sm:hidden inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-500 uppercase tracking-wide">
-      <input
-        type="checkbox"
-        checked={profile.show_claiming_races}
-        onChange={handleToggle}
-        disabled={updating}
-        className="w-4 h-4 rounded accent-slate-600"
-      />
-      CLM
-    </label>
-  )
 }
 
 export default function DashboardPage() {
@@ -186,7 +153,7 @@ function DashboardContent() {
                   ))}
                 </select>
               )}
-              <MobileClmToggle onPreferenceChange={() => setFetchKey(k => k + 1)} />
+              <ClmToggle onPreferenceChange={() => setFetchKey(k => k + 1)} className="sm:hidden text-slate-500" checkboxClassName="accent-slate-600" />
             </div>
 
             {/* Stallion Summary Cards */}

@@ -55,6 +55,11 @@ export function formatDate(dateStr: string): string {
   })
 }
 
+export function formatShortDate(dateStr: string, fullYear = false): string {
+  const [y, m, day] = dateStr.split('-')
+  return `${parseInt(m)}/${parseInt(day)}/${fullYear ? y : y.slice(2)}`
+}
+
 export function isToday(dateStr: string): boolean {
   const date = new Date(dateStr + 'T00:00:00')
   const today = new Date()

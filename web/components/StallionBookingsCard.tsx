@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { formatShortDate } from '@/lib/utils'
 import type { StallionBookingReport, BookingRow } from '@/lib/supabase'
 
 export function StallionBookingsCard() {
@@ -22,11 +23,6 @@ export function StallionBookingsCard() {
 
   const rows: BookingRow[] = report.data
 
-  const formatDate = (d: string): string => {
-    const [y, m, day] = d.split('-')
-    return `${parseInt(m)}/${parseInt(day)}/${y.slice(2)}`
-  }
-
   const stallionCount = rows.length
   const totalMaresBooked = rows.reduce((sum, row) => {
     const val = typeof row.mares_booked === 'number' ? row.mares_booked : parseInt(String(row.mares_booked), 10)
@@ -34,8 +30,8 @@ export function StallionBookingsCard() {
   }, 0)
 
   const subtitle = report.label
-    ? `${formatDate(report.report_date)} \u2014 ${report.label}`
-    : formatDate(report.report_date)
+    ? `${formatShortDate(report.report_date)} \u2014 ${report.label}`
+    : formatShortDate(report.report_date)
 
   return (
     <Link
