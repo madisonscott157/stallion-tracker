@@ -106,6 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isCancelled = false
+    // Gate against concurrent loadUserData calls — onAuthStateChange doesn't await
+    // its handler, so rapid token-refresh events can stack up and thrash state
+    let isLoadingUserData = false
 
     const checkBookings = () => {
       fetch('/api/bookings')
@@ -117,17 +120,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const loadUserData = async (userId: string) => {
-      const [fetchedProfile, orgs] = await Promise.all([
-        fetchProfile(userId),
-        fetchAllOrgsWithSilks(),
-      ])
-      if (isCancelled) return
-      // Only update profile if fetch succeeded — don't wipe valid state on transient errors
-      if (fetchedProfile) {
-        setProfile(fetchedProfile)
-        setAllOrgsWithSilks(fetchedProfile.role === 'admin' ? orgs : [])
+      if (isLoadingUserData) return
+      isLoadingUserData = true
+      try {
+        const [fetchedProfile, orgs] = await Promise.all([
+          fetchProfile(userId),
+          fetchAllOrgsWithSilks(),
+        ])
+        if (isCancelled) return
+        // Only update profile if fetch succeeded — don't wipe valid state on transient errors
+        if (fetchedProfile) {
+          setProfile(fetchedProfile)
+          setAllOrgsWithSilks(fetchedProfile.role === 'admin' ? orgs : [])
+        }
+        checkBookings()
+      } finally {
+        isLoadingUserData = false
       }
-      checkBookings()
     }
 
     // Get initial session

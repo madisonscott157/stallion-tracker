@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { AuthProvider } from '@/lib/auth-context'
 import { ToastProvider } from '@/components/Toast'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -45,11 +46,13 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-slate-50">
-        <AuthProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )
