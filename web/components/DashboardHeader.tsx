@@ -16,8 +16,8 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
   const isBookingsPage = pathname === '/dashboard/bookings'
 
   return (
-    <header className="sticky top-0 z-10 text-white px-3 sm:px-6 pb-0.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.125rem, env(safe-area-inset-top))' }}>
-      <div className="max-w-5xl mx-auto flex items-baseline justify-between">
+    <header className="sticky top-0 z-10 text-white pb-0.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.125rem, env(safe-area-inset-top))' }}>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-baseline justify-between">
         <h1 className="text-base sm:text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
           {profile?.organization?.name || (isLoading ? '\u00A0' : 'Stallion Tracker')}
         </h1>
