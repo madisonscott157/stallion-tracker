@@ -34,7 +34,7 @@ export function Header({
           {/* Zone 1: back arrow — fixed left */}
           <Link
             href="/dashboard"
-            className="shrink-0 p-0.5 hover:text-white transition-colors"
+            className="shrink-0 flex items-center p-0.5 hover:text-white transition-colors"
             title="Back to Dashboard"
             aria-label="Back to Dashboard"
           >
@@ -44,7 +44,7 @@ export function Header({
           </Link>
 
           {/* Zone 2: stallion name — takes all remaining space, centered */}
-          <div className="flex-1 flex justify-center min-w-0 overflow-hidden">
+          <div className="flex-1 flex items-center justify-center min-w-0">
             <StallionSelector value={stallionId} onChange={onStallionChange} displayName={stallionName} />
           </div>
 

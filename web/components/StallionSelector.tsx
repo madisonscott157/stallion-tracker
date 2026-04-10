@@ -72,7 +72,7 @@ export function StallionSelector({ value, onChange, displayName }: StallionSelec
   }
 
   return (
-    <div className="relative flex items-baseline min-w-0 max-w-full">
+    <div className="relative flex items-center min-w-0 max-w-full">
       <select
         value={value || ''}
         onChange={(e) => {
