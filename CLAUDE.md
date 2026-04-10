@@ -105,6 +105,15 @@ cd parser && ~/.fly/bin/fly deploy
 - Bookings link on mobile uses a bookmark SVG icon (no text) to avoid crowding the stallion name
 - Desktop nav "Stallion Bookings" link must be `inline-flex` (not `hidden lg:inline-flex`) to appear on iPad (sm breakpoint)
 
+### Mobile dashboard header (DashboardHeader.tsx)
+- **NEVER use `items-baseline` on a flex row that mixes text elements with icon-only elements.** CSS aligns icon-only flex items (SVG buttons with no text) by their *bottom margin edge* to the shared baseline — this causes icons to extend above the row's top boundary and inflates the row height unpredictably.
+- **Pattern:** separate the mobile layout into an explicit `sm:hidden` row with `items-center`, and a `hidden sm:flex` desktop row. Mirror `Header.tsx`'s two-div structure exactly.
+- Mobile row: `flex sm:hidden items-center justify-between gap-2 pb-0.5` — `items-center` centers all children as boxes, no baseline tricks
+- Icon `<Link>` elements inside the mobile row must have `inline-flex items-center` — same rule as Header.tsx
+- Compact button padding: `p-0.5` (not `p-1`) on icon buttons — saves ~4px of row height
+- Horizontal padding (`px-4 sm:px-6`) goes on the `<header>` element; inner `max-w-5xl mx-auto` div has no horizontal padding
+- Desktop row: `hidden sm:flex items-baseline justify-between` — `items-baseline` is fine on desktop where all items are text links
+
 ### CLM toggle placement
 - On individual stallion pages (`/app/page.tsx`), the CLM toggle lives in the page content — not the header
 - Rendered in a `flex items-center justify-between mb-4` wrapper alongside the "Upcoming Entries" `<h2>`
@@ -119,7 +128,7 @@ cd parser && ~/.fly/bin/fly deploy
 - Uses `@supabase/ssr` (not the older `auth-helpers-nextjs`).
 
 ### UI Conventions
-- **`items-baseline`** (not `items-center`) for header/nav flex alignment.
+- **`items-baseline`** for header/nav flex rows where all children are text elements (aligns text baselines). Use `items-center` instead when mixing text with icon-only elements — see DashboardHeader note above.
 - Silks icons use `translate-y-[3px]` for vertical centering with `items-baseline`.
 - Tailwind custom colors: `primary` (#0f172a navy), `accent` (#b45309 orange), `gold`/`silver`/`bronze` for finish positions.
 - Card hover uses `color-mix(in srgb, var(--org-secondary) 8%, #f1f5f9)` — slate-100 base ensures visibility even for orgs with white secondary color.
