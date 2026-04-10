@@ -510,7 +510,7 @@ export default function AdminBookingsPage() {
         setPreview([])
         setLabel('')
         setShowForm(false)
-        fetchReports()
+        await fetchReports()
       }
     } catch {
       setError('Save failed unexpectedly')
@@ -555,7 +555,7 @@ export default function AdminBookingsPage() {
         setError(`Delete failed: ${data.error}`)
       } else {
         if (expandedId === id) setExpandedId(null)
-        fetchReports()
+        await fetchReports()
       }
     } catch {
       setError('Delete failed unexpectedly')
