@@ -17,13 +17,13 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
 
   return (
     <header className="sticky top-0 z-10 text-white px-3 sm:px-6 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.125rem, env(safe-area-inset-top))' }}>
-      <div className="max-w-5xl mx-auto flex items-center sm:items-baseline justify-between pb-0.5 sm:pb-0">
+      <div className="max-w-5xl mx-auto flex items-baseline justify-between pb-0.5 sm:pb-0">
         <h1 className="text-base sm:text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
           {profile?.organization?.name || (isLoading ? '\u00A0' : 'Stallion Tracker')}
         </h1>
 
         {/* Mobile nav */}
-        <div className="flex sm:hidden items-center gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
+        <div className="flex sm:hidden items-baseline gap-1 shrink-0" style={{ color: 'var(--org-secondary)' }}>
           {hasBookings && (
             isBookingsPage ? (
               <Link
