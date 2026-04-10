@@ -22,9 +22,7 @@ export function StallionSelector({ value, onChange, displayName }: StallionSelec
   const searchParams = useSearchParams()
   const stallionParam = searchParams.get('stallion')
   const hasFetched = useRef(false)
-  const selectRef = useRef<HTMLSelectElement>(null)
 
-  // Fetch stallion list on mount via API (auth handled server-side by cookies)
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
@@ -45,7 +43,6 @@ export function StallionSelector({ value, onChange, displayName }: StallionSelec
     fetchStallions()
   }, [])
 
-  // Effect 2: Auto-select stallion when list loads or URL param changes
   useEffect(() => {
     if (stallions.length === 0) return
 
@@ -63,40 +60,44 @@ export function StallionSelector({ value, onChange, displayName }: StallionSelec
 
   const canSwitch = stallions.length > 1 || isAdmin
 
-  return (
-    <button
-      className="flex items-baseline gap-1 group"
-      style={{ color: 'var(--org-secondary)' }}
-      onClick={() => canSwitch && selectRef.current?.showPicker()}
-      aria-label="Switch stallion"
-    >
-      <span className="text-base sm:text-lg font-semibold tracking-wide truncate">
+  if (!canSwitch) {
+    return (
+      <span
+        className="text-base sm:text-lg font-semibold tracking-wide"
+        style={{ color: 'var(--org-secondary, #64748b)' }}
+      >
         {(displayName || '').toUpperCase()}
       </span>
-      {canSwitch && (
-        <svg className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity shrink-0 translate-y-[-1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-        </svg>
-      )}
-      {canSwitch && (
-        <select
-          ref={selectRef}
-          value={value || ''}
-          onChange={(e) => {
-            const stallion = stallions.find(s => s.id === e.target.value)
-            if (stallion) onChange(stallion.id, stallion.name)
-          }}
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden="true"
-        >
-          {stallions.map(s => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      )}
-    </button>
+    )
+  }
+
+  return (
+    <div className="relative inline-flex items-baseline">
+      <select
+        value={value || ''}
+        onChange={(e) => {
+          const stallion = stallions.find(s => s.id === e.target.value)
+          if (stallion) onChange(stallion.id, stallion.name)
+        }}
+        className="appearance-none bg-transparent border-none text-base sm:text-lg font-semibold tracking-wide cursor-pointer focus:outline-none pr-5"
+        style={{ color: 'var(--org-secondary, #64748b)' }}
+        aria-label="Switch stallion"
+      >
+        {stallions.map(s => (
+          <option key={s.id} value={s.id} className="text-slate-900 bg-white">
+            {s.name.toUpperCase()}
+          </option>
+        ))}
+      </select>
+      <svg
+        className="w-3 h-3 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none opacity-60"
+        style={{ color: 'var(--org-secondary, #64748b)' }}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
   )
 }

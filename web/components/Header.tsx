@@ -44,9 +44,9 @@ export function Header({
       <div className="max-w-5xl mx-auto">
         {/* Mobile: Two rows */}
         {/* Desktop: Single row */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-3">
           {/* Row 1 on mobile / Left side on desktop */}
-          <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
+          <div className="flex items-baseline justify-between sm:justify-start gap-2 sm:gap-3">
             {/* Back to dashboard link */}
             <Link
               href="/dashboard"
@@ -55,7 +55,7 @@ export function Header({
               title="Back to Dashboard"
               aria-label="Back to Dashboard"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 translate-y-[2px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </Link>
