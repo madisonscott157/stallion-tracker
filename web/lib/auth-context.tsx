@@ -117,16 +117,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const loadUserData = async (userId: string) => {
-      const [profile, orgs] = await Promise.all([
+      const [fetchedProfile, orgs] = await Promise.all([
         fetchProfile(userId),
         fetchAllOrgsWithSilks(),
       ])
       if (isCancelled) return
-      setProfile(profile)
-      if (profile?.role === 'admin') {
-        setAllOrgsWithSilks(orgs)
-      } else {
-        setAllOrgsWithSilks([])
+      // Only update profile if fetch succeeded — don't wipe valid state on transient errors
+      if (fetchedProfile) {
+        setProfile(fetchedProfile)
+        setAllOrgsWithSilks(fetchedProfile.role === 'admin' ? orgs : [])
       }
       checkBookings()
     }
@@ -175,7 +174,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (session?.user) {
             await loadUserData(session.user.id)
-          } else {
+          } else if (event === 'SIGNED_OUT') {
+            // Only clear profile on an explicit sign-out — not on token refresh
+            // or other transient null-session events that would wipe the header
             setProfile(null)
             setAllOrgsWithSilks([])
             setHasBookings(false)
