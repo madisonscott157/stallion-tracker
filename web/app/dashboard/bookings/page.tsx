@@ -51,7 +51,8 @@ export default function BookingsPage() {
     const html2canvas = (await import('html2canvas')).default
     const { jsPDF } = await import('jspdf')
 
-    const label = report.label || formatShortDate(report.report_date)
+    const dateStr = formatShortDate(report.report_date)
+    const label = report.label ? `${report.label} - ${dateStr}` : dateStr
 
     // Match org by the report's organization_id, fall back to user's own org
     const idMatch = orgThemes.find(o => o.id === report.organization_id)
