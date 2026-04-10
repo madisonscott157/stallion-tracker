@@ -446,7 +446,7 @@ export default function AdminBookingsPage() {
 
   const fetchReports = useCallback(async () => {
     try {
-      const res = await fetch('/api/bookings')
+      const res = await fetch('/api/bookings', { cache: 'no-store' })
       if (res.ok) {
         const data = await res.json()
         setReports(data.reports || [])
