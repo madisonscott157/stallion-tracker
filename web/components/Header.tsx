@@ -149,7 +149,7 @@ export function Header({
                 </Link>
               )}
               {hasBookings ? (
-                <Link href="/dashboard/bookings" className="hidden lg:inline-flex items-center hover:text-white transition-colors">
+                <Link href="/dashboard/bookings" className="inline-flex items-center hover:text-white transition-colors">
                   Stallion Bookings
                 </Link>
               ) : (
