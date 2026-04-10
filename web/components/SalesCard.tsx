@@ -58,20 +58,20 @@ function MobileSalesCard({ sales }: SalesCardProps) {
     : null
 
   return (
-    <div className="border-b border-slate-100 last:border-0 py-3 px-3">
-      <div className="flex items-center justify-between mb-2">
+    <div className="border-b border-slate-100 last:border-0 py-2 px-3">
+      <div className="flex items-center justify-between mb-1">
         <span className="font-medium text-slate-700">{saleTypeLabel}</span>
         <span className="text-sm text-slate-500">
           {sales.number_sold ?? '-'}/{sales.through_ring ?? '-'} sold
           {sellThrough && <span className="text-slate-400 ml-1">({sellThrough}%)</span>}
         </span>
       </div>
-      <div className="grid grid-cols-3 gap-2 text-sm">
+      <div className="grid grid-cols-3 gap-1 text-sm">
         <div className="text-center">
           <div className="text-slate-400 text-xs">Avg</div>
           <div className="font-medium text-slate-900">
             {sales.average_price ? formatMoney(sales.average_price) : '-'}
-            {sales.average_rank && <span className="text-slate-400 text-xs block">#{sales.average_rank}</span>}
+            {sales.average_rank && <span className="text-slate-400 text-xs ml-1">#{sales.average_rank}</span>}
           </div>
         </div>
         <div className="text-center">
