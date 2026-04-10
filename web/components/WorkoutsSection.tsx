@@ -40,9 +40,9 @@ export function WorkoutsSection({ workouts: allWorkouts }: WorkoutsSectionProps)
   }, [allWorkouts, trackFilter])
 
   return (
-    <section className="mb-8 border-t border-slate-200 pt-8">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="section-header mb-0">Recent Workouts</h2>
+    <section className="mb-6 sm:mb-8">
+      <div className="flex items-baseline justify-between mb-4">
+        <h2 className="section-header !mb-0">Recent Workouts</h2>
         <select
           value={trackFilter}
           onChange={e => setTrackFilter(e.target.value)}

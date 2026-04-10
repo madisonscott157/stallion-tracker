@@ -172,7 +172,7 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
 
       {/* Row 4: Trainer, Jockey */}
       {(entry.trainer || entry.jockey) && (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 -mt-0.5 sm:mt-1 text-xs sm:text-sm text-slate-400 sm:text-slate-500">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 -mt-0.5 sm:mt-1 text-sm text-slate-500">
           {entry.trainer && <span>T: {entry.trainer}</span>}
           {entry.jockey && (
             <>

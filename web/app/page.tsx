@@ -158,7 +158,7 @@ function HomeContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-slate-50">
       <Header
         stallionName={stallion}
         stallionId={stallionId}
@@ -318,7 +318,7 @@ function HomeContent() {
               <span
                 className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-200"
                 style={{
-                  backgroundColor: 'var(--org-secondary)',
+                  backgroundColor: 'var(--org-secondary, #64748b)',
                   height: '3px',
                   opacity: activeTab === tab ? 1 : 0,
                   transform: activeTab === tab ? 'scaleX(1)' : 'scaleX(0)',

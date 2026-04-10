@@ -112,7 +112,7 @@ export function SalesTable({ salesByYear, year }: SalesTableProps) {
       {/* Desktop: Table layout */}
       <table className="hidden sm:table w-full">
         <thead>
-          <tr className="text-xs text-slate-500 uppercase tracking-wide border-b border-slate-100">
+          <tr className="text-xs text-slate-500 uppercase tracking-wide border-b border-slate-100 bg-slate-50">
             <th className="py-2 px-4 text-center font-medium">Type</th>
             <th className="py-2 px-2 text-center font-medium">Sold</th>
             <th className="py-2 px-2 text-center font-medium">Avg</th>

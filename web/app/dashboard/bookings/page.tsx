@@ -290,7 +290,7 @@ export default function BookingsPage() {
             {/* Mobile card layout */}
             <div className="sm:hidden divide-y divide-slate-100">
               {rows.map((row, i) => (
-                <div key={i} className="px-4 py-3">
+                <div key={i} className="px-4 py-3 card-hover">
                   <div className="flex items-baseline justify-between gap-2">
                     {trackedStallions.has(row.stallion) ? (
                       <Link

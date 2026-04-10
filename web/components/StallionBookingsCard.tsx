@@ -40,18 +40,18 @@ export function StallionBookingsCard() {
   return (
     <Link
       href="/dashboard/bookings"
-      className="block bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-300 hover:shadow-sm transition-all card-hover"
+      className="block bg-white border border-slate-200 rounded-lg px-3 py-2.5 sm:p-4 hover:border-slate-300 hover:shadow-sm transition-all card-hover"
     >
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="font-semibold text-lg" style={{ color: 'var(--org-primary)' }}>Stallion Bookings</h3>
-        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-base sm:text-lg" style={{ color: 'var(--org-primary)' }}>Stallion Bookings</h3>
+        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </div>
 
-      <div className="text-sm text-slate-500 mb-3">{subtitle}</div>
+      <div className="text-sm text-slate-500 mb-1 sm:mb-2">{subtitle}</div>
 
-      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+      <div className="flex flex-wrap items-baseline gap-3 sm:gap-4 text-sm text-slate-500">
         <div>
           <span className="font-medium text-slate-700">{stallionCount}</span> stallions
         </div>

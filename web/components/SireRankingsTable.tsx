@@ -29,7 +29,7 @@ export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
         {sortedRankings.map(ranking => {
           const listLabel = getListLabel(ranking.list_type)
           return (
-            <div key={ranking.id} className="bg-white rounded-lg border border-slate-200 p-3">
+            <div key={ranking.id} className="bg-white rounded-lg border border-slate-200 p-3 card-hover">
               <div className="flex items-baseline justify-between mb-2">
                 <div className="flex items-baseline gap-2">
                   <span className="text-sm font-medium text-slate-600">{ranking.year}</span>

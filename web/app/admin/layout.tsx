@@ -22,14 +22,14 @@ export default function AdminLayout({
     <div className="min-h-screen bg-slate-50">
       <nav className="bg-slate-900 text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-1.5 pt-1.5" style={{ paddingTop: 'max(0.375rem, env(safe-area-inset-top))' }}>
-          <div className="flex items-baseline justify-between">
-            <div className="flex items-baseline gap-4 sm:gap-5">
-              <h1 className="text-lg font-semibold shrink-0">Admin</h1>
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="flex items-baseline gap-2 sm:gap-5 overflow-x-auto">
+              <h1 className="text-base sm:text-lg font-semibold shrink-0">Admin</h1>
               {navItems.map(item => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`text-sm border-b-2 pb-0.5 transition-colors ${
+                  className={`text-xs sm:text-sm whitespace-nowrap border-b-2 pb-0.5 transition-colors ${
                     pathname === item.href
                       ? 'text-white font-medium border-white'
                       : 'text-slate-400 hover:text-white border-transparent'

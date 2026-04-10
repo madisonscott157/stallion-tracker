@@ -22,7 +22,7 @@ export function EquinelineSection({ stats, currentYear }: EquinelineSectionProps
     <>
       {/* Career Summary */}
       <h2 className="section-header mt-8">Career Summary</h2>
-      <div className="bg-white rounded-lg border border-slate-200 p-4 mb-4">
+      <div className="bg-white rounded-lg border border-slate-200 p-4 mb-4 card-hover">
         <div className="flex flex-wrap justify-center gap-x-4 sm:gap-x-6 gap-y-2 text-sm">
           <span className="text-slate-600"><span className="font-semibold text-slate-900">{stats.crops ?? 0}</span> crops</span>
           <span className="text-slate-300">|</span>
@@ -47,7 +47,7 @@ export function EquinelineSection({ stats, currentYear }: EquinelineSectionProps
       {/* Mobile layout */}
       <div className="sm:hidden space-y-3 mb-1">
         {/* Lifetime */}
-        <div className="bg-white rounded-lg border border-slate-200 p-3">
+        <div className="bg-white rounded-lg border border-slate-200 p-3 card-hover">
           <div className="text-xs text-slate-500 uppercase font-medium mb-2">Lifetime</div>
           <div className="grid grid-cols-3 gap-2 text-sm">
             <div className="text-center">
@@ -79,7 +79,7 @@ export function EquinelineSection({ stats, currentYear }: EquinelineSectionProps
         </div>
 
         {/* Current Year */}
-        <div className="bg-white rounded-lg border border-slate-200 p-3">
+        <div className="bg-white rounded-lg border border-slate-200 p-3 card-hover">
           <div className="text-xs text-slate-500 uppercase font-medium mb-2">{currentYear}</div>
           <div className="grid grid-cols-3 gap-2 text-sm">
             <div className="text-center">
@@ -111,7 +111,7 @@ export function EquinelineSection({ stats, currentYear }: EquinelineSectionProps
         </div>
 
         {/* 2YOs */}
-        <div className="bg-white rounded-lg border border-slate-200 p-3">
+        <div className="bg-white rounded-lg border border-slate-200 p-3 card-hover">
           <div className="text-xs text-slate-500 uppercase font-medium mb-2">2YOs</div>
           <div className="grid grid-cols-3 gap-2 text-sm">
             <div className="text-center">
@@ -236,7 +236,7 @@ export function EquinelineSection({ stats, currentYear }: EquinelineSectionProps
       {(stats.chief_earner_name || stats.current_top_earner_name) && (
         <>
           <h2 className="section-header">Top Earners</h2>
-          <div className="bg-white rounded-lg border border-slate-200 p-3 sm:p-4">
+          <div className="bg-white rounded-lg border border-slate-200 p-3 sm:p-4 card-hover">
             <div className="space-y-2">
               {stats.chief_earner_name && (
                 <div className="flex flex-col sm:flex-row sm:justify-between text-sm gap-1">

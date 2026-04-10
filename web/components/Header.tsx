@@ -40,7 +40,7 @@ export function Header({
   }
 
   return (
-    <header className="sticky top-0 z-10 text-white px-3 sm:px-6 py-1.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.375rem, env(safe-area-inset-top))' }}>
+    <header className="sticky top-0 z-10 text-white px-3 sm:px-6 pb-0.5 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.125rem, env(safe-area-inset-top))' }}>
       <div className="max-w-5xl mx-auto">
         {/* Mobile: Two rows */}
         {/* Desktop: Single row */}
