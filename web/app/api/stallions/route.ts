@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
-    return NextResponse.json(data || [])
+    const res = NextResponse.json(data || [])
+    res.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
+    return res
   } else {
     // Non-admin sees org-linked stallions
     if (!profile.organization_id) {
@@ -48,6 +50,8 @@ export async function GET(request: NextRequest) {
       .filter(Boolean)
       .sort((a: any, b: any) => a.name.localeCompare(b.name))
 
-    return NextResponse.json(stallions)
+    const res = NextResponse.json(stallions)
+    res.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
+    return res
   }
 }
