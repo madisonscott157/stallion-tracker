@@ -32,12 +32,8 @@ export interface ExportData {
   userOrgSilksUrl?: string | null
 }
 
-function badge(text: string, bgColor: string): string {
-  return `<span style="background:${bgColor};color:#fff;font-size:10px;font-weight:600;padding:2px 5px;border-radius:3px;margin-right:6px;letter-spacing:0.02em;display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;">${text}</span>`
-}
-
 function pipe(): string {
-  return `<span style="color:#cbd5e1;margin:0 6px;">|</span>`
+  return `<span style="color:#cbd5e1;margin:0 4px;">|</span>`
 }
 
 function getSilksForOwner(
@@ -49,7 +45,6 @@ function getSilksForOwner(
 ): string[] {
   if (!owner) return []
 
-  // For admins: return ALL matching org silks
   if (isAdmin && orgsWithSilks.length > 0) {
     const matchingSilks: string[] = []
     for (const org of orgsWithSilks) {
@@ -60,7 +55,6 @@ function getSilksForOwner(
     return matchingSilks
   }
 
-  // For regular users: only return their org's silks if they're one of the owners
   if (userOrgName && userOrgSilksUrl && owner.includes(userOrgName)) {
     return [userOrgSilksUrl]
   }
@@ -83,36 +77,24 @@ interface BuildRowOptions {
   userOrgSilksUrl?: string | null
 }
 
+// Shared table row cell styles
+const cellDate = `vertical-align:top;width:52px;padding:6px 8px 6px 0;white-space:nowrap;font-size:12px;font-weight:600;color:#475569;`
+const cellPos = `vertical-align:top;width:32px;padding:6px 4px 6px 0;white-space:nowrap;font-size:12px;text-align:center;`
+const cellMain = `vertical-align:top;padding:6px 4px;`
+const cellRight = `vertical-align:top;text-align:right;white-space:nowrap;padding:6px 0 6px 8px;font-size:12px;color:#475569;`
+
 function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   const { orgsWithSilks = [], isAdmin, userOrgName, userOrgSilksUrl } = options
   const isWin = r.finish_position === 1
-  const is2nd = r.finish_position === 2
-  const is3rd = r.finish_position === 3
-  const isG1 = r.stakes_grade === 'G1'
-  const isG2 = r.stakes_grade === 'G2'
   const isStakes = r.is_stakes
 
-  // Border color
-  let borderColor = 'transparent'
-  if (isWin || isG1) borderColor = '#b8860b'
-  else if (is2nd || isG2) borderColor = '#94a3b8'
-  else if (is3rd) borderColor = '#a0622a'
-  else if (r.stakes_grade) borderColor = '#b45309'
-  else if (isStakes) borderColor = '#0f172a'
-
-  // Row background tint
-  let rowBg = '#ffffff'
-  let rowBorder = '#e2e8f0'
-  if (isWin) { rowBg = 'rgba(255,251,235,0.6)'; rowBorder = 'rgba(212,175,55,0.3)' }
-  else if (is2nd) { rowBg = 'rgba(248,250,252,0.6)'; rowBorder = 'rgba(168,169,173,0.3)' }
-  else if (is3rd) { rowBg = 'rgba(255,247,237,0.4)'; rowBorder = 'rgba(205,127,50,0.3)' }
-
-  // Position badge
-  let pos = ''
-  if (isWin) pos = badge('WIN', '#d4af37')
-  else if (is2nd) pos = badge('2nd', '#a8a9ad')
-  else if (is3rd) pos = badge('3rd', '#cd7f32')
-  else pos = `<span style="color:#64748b;font-size:13px;">${formatOrdinal(r.finish_position)}</span> `
+  // Position text
+  let posText: string
+  let posStyle = 'color:#64748b;font-weight:500;'
+  if (isWin) { posText = '1st'; posStyle = 'color:#b8860b;font-weight:700;' }
+  else if (r.finish_position === 2) { posText = '2nd'; posStyle = 'color:#64748b;font-weight:600;' }
+  else if (r.finish_position === 3) { posText = '3rd'; posStyle = 'color:#a0622a;font-weight:600;' }
+  else { posText = formatOrdinal(r.finish_position); posStyle = 'color:#94a3b8;' }
 
   const nameText = r.horse_name || 'Unknown'
   const name = r.horse_profile_url
@@ -120,67 +102,43 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
     : nameText
   const desc = formatHorseDescription(r.horse_sex || null, r.horse_yob || null)
   const ownerSilks = getSilksForOwner(r.owner, orgsWithSilks, isAdmin, userOrgName, userOrgSilksUrl)
-  const raceInfo = [r.race_type, r.purse ? `$${r.purse.toLocaleString()}` : null, formatDistance(r.distance || null) || null].filter(Boolean).join(' | ')
-
   const track = formatTrack(r.track)
   const dateStr = formatDate(r.race_date)
 
-  // Right side items (without date)
-  const rightParts = [`${track} R${r.race_number}`]
-  if (r.chart_url) rightParts.push(`<a href="${r.chart_url}" style="color:#0f172a;">Chart</a>`)
-  if (r.replay_url) rightParts.push(`<a href="${r.replay_url}" style="color:#0f172a;">Replay</a>`)
+  // Race details
+  const raceParts = [r.race_type, r.purse ? `$${r.purse.toLocaleString('en-US')}` : null, formatDistance(r.distance || null) || null].filter(Boolean).join(` ${pipe()} `)
+  const nameWeight = isWin ? 'font-weight:700;' : 'font-weight:600;'
 
-  // Stakes row
-  let stakesRow = ''
+  // Sub-details
+  let subLine = ''
   const stakesName = isStakes && r.race_name ? cleanRaceName(r.race_name.replace(/^STAKES\s*/i, '').trim()) : null
   if (r.stakes_grade || stakesName) {
-    let gradeBadge = ''
-    if (r.stakes_grade) {
-      const gc = isG1 ? '#d4af37' : isG2 ? '#a8a9ad' : '#b45309'
-      gradeBadge = badge(r.stakes_grade, gc)
-    }
-    const nameColor = isG1 ? '#b8860b' : isG2 ? '#94a3b8' : r.stakes_grade ? '#b45309' : '#0f172a'
-    const nameWeight = isWin && isStakes ? 'font-weight:700;' : 'font-weight:500;'
-    const sn = stakesName ? `<span style="color:${nameColor};${nameWeight}">${stakesName}</span>` : ''
-    const margin = isWin && r.win_margin ? `${pipe()}<span style="color:#15803d;font-weight:500;">Won by ${r.win_margin}</span>` : ''
-    stakesRow = `<div style="margin-top:2px;font-size:13px;margin-left:68px;">${gradeBadge}${sn}${margin}</div>`
+    const parts: string[] = []
+    if (r.stakes_grade) parts.push(`<span style="font-weight:700;color:#475569;">${r.stakes_grade}</span>`)
+    if (stakesName) parts.push(`<span style="font-weight:500;color:#334155;">${stakesName}</span>`)
+    if (isWin && r.win_margin) parts.push(`<span style="color:#15803d;font-weight:500;">Won by ${r.win_margin}</span>`)
+    subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${parts.join(' — ')}</div>`
+  } else if (isWin && r.win_margin) {
+    subLine = `<div style="font-size:11px;margin-top:1px;color:#15803d;font-weight:500;">Won by ${r.win_margin}</div>`
   }
-
-  // Win margin for non-stakes
-  let winRow = ''
-  if (isWin && r.win_margin && !isStakes) {
-    winRow = `<div style="margin-top:2px;font-size:13px;color:#15803d;font-weight:500;margin-left:68px;">Won by ${r.win_margin}</div>`
-  }
-
-  const raceInfoStyle = isWin && isStakes ? 'font-weight:600;color:#334155;' : 'color:#64748b;'
 
   return `
-    <div style="border:1px solid ${rowBorder};border-left:4px solid ${borderColor};border-radius:6px;padding:7px 12px;margin-bottom:5px;font-size:13px;line-height:1.5;background:${rowBg};">
-      <table style="width:100%;border-collapse:collapse;"><tr>
-        <td style="vertical-align:baseline;width:56px;padding-right:12px;white-space:nowrap;">
-          <span style="font-size:12px;font-weight:600;color:#475569;">${dateStr}</span>
-        </td>
-        <td style="vertical-align:baseline;">
-          ${pos}<span style="font-size:14px;font-weight:600;color:#0f172a;">${name}</span>
-          ${desc ? `<span style="color:#94a3b8;margin-left:4px;">${desc}</span>` : ''}${ownerSilks.length > 0 ? silksImgs(ownerSilks) : ''}
-          ${raceInfo ? `${pipe()}<span style="${raceInfoStyle}font-size:13px;">${raceInfo}</span>` : ''}
-        </td>
-        <td style="vertical-align:baseline;text-align:right;white-space:nowrap;color:#475569;font-size:13px;">
-          ${rightParts.join(`${pipe()}`)}
-        </td>
-      </tr></table>
-      ${stakesRow}${winRow}
-    </div>`
+    <tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="${cellDate}">${dateStr}</td>
+      <td style="${cellPos}"><span style="${posStyle}font-size:12px;">${posText}</span></td>
+      <td style="${cellMain}">
+        <span style="font-size:13px;${nameWeight}color:#0f172a;">${name}</span>${desc ? `<span style="color:#94a3b8;font-size:12px;margin-left:4px;">${desc}</span>` : ''}${ownerSilks.length > 0 ? silksImgs(ownerSilks) : ''}
+        ${raceParts ? `<span style="font-size:12px;color:#64748b;margin-left:6px;">${raceParts}</span>` : ''}
+        ${subLine}
+      </td>
+      <td style="${cellRight}">${track} R${r.race_number}</td>
+    </tr>`
 }
 
 function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
-  if (e.scratched) return '' // skip scratched
+  if (e.scratched) return ''
 
   const { orgsWithSilks = [], isAdmin, userOrgName, userOrgSilksUrl } = options
-
-  let borderColor = 'transparent'
-  if (e.stakes_grade) borderColor = '#b45309'
-  else if (e.is_stakes) borderColor = '#0f172a'
 
   const nameText = e.horse_name || `${e.horse_yob || ''} ${e.horse_dam || 'Unknown'}`.trim()
   const name = e.horse_profile_url
@@ -192,52 +150,44 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
   const dateStr = formatDate(e.race_date)
   const distDisplay = formatDistance(e.distance || null)
 
-  const raceDetails = [e.race_type, e.purse ? `$${e.purse.toLocaleString()}` : null, distDisplay || null, e.surface].filter(Boolean).join(' | ')
+  const raceParts = [e.race_type, e.purse ? `$${e.purse.toLocaleString('en-US')}` : null, distDisplay || null].filter(Boolean).join(` ${pipe()} `)
 
-  // Right side items (without date)
+  // Time + track info
   const rightParts = [`${track} R${e.race_number}`]
-  if (e.post_time) rightParts.push(`${e.post_time} ${e.timezone}`)
-  if (e.entries_url) rightParts.push(`<a href="${e.entries_url}" style="color:#0f172a;">Entries</a>`)
+  if (e.post_time) rightParts.push(`${e.post_time}`)
 
+  // Stakes sub-line
   const stakesName = e.is_stakes && e.race_name ? cleanRaceName(e.race_name.replace(/^STAKES\s*/i, '').trim()) : null
-  let stakesRow = ''
+  let subLine = ''
   if (e.stakes_grade || stakesName) {
-    let gradeBadge = ''
-    if (e.stakes_grade) gradeBadge = badge(e.stakes_grade, '#b45309')
-    const sn = stakesName ? `<span style="font-weight:500;">${stakesName}</span>` : ''
-    stakesRow = `<div style="margin-top:1px;font-size:13px;margin-left:68px;">${gradeBadge}${sn}${raceDetails ? `${pipe()}${raceDetails}` : ''}</div>`
+    const parts: string[] = []
+    if (e.stakes_grade) parts.push(`<span style="font-weight:700;color:#475569;">${e.stakes_grade}</span>`)
+    if (stakesName) parts.push(`<span style="font-weight:500;color:#334155;">${stakesName}</span>`)
+    subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${parts.join(' — ')}</div>`
   }
 
-  const row2 = !stakesRow && raceDetails ? `<div style="margin-top:1px;font-size:13px;color:#64748b;margin-left:68px;">${raceDetails}</div>` : ''
-
-  // Trainer/Jockey row
+  // Trainer/Jockey
   const connections: string[] = []
   if (e.trainer) connections.push(`T: ${e.trainer}`)
   if (e.jockey) connections.push(`J: ${e.jockey}`)
-  const connectionsRow = connections.length > 0
-    ? `<div style="margin-top:1px;font-size:12px;color:#64748b;margin-left:68px;">${connections.join(`${pipe()}`)}</div>`
+  const connectionsLine = connections.length > 0
+    ? `<div style="font-size:11px;margin-top:1px;color:#94a3b8;">${connections.join(`${pipe()}`)}</div>`
     : ''
 
   return `
-    <div style="border:1px solid #e2e8f0;border-left:4px solid ${borderColor};border-radius:6px;padding:7px 12px;margin-bottom:5px;font-size:13px;line-height:1.5;">
-      <table style="width:100%;border-collapse:collapse;"><tr>
-        <td style="vertical-align:baseline;width:56px;padding-right:12px;white-space:nowrap;">
-          <span style="font-size:12px;font-weight:600;color:#475569;">${dateStr}</span>
-        </td>
-        <td style="vertical-align:baseline;">
-          <span style="font-size:14px;font-weight:600;color:#0f172a;">${name}</span>
-          ${desc ? `<span style="color:#94a3b8;margin-left:4px;">${desc}</span>` : ''}${ownerSilks.length > 0 ? silksImgs(ownerSilks) : ''}
-        </td>
-        <td style="vertical-align:baseline;text-align:right;white-space:nowrap;color:#475569;font-size:13px;">
-          ${rightParts.join(`${pipe()}`)}
-        </td>
-      </tr></table>
-      ${stakesRow}${row2}${connectionsRow}
-    </div>`
+    <tr style="border-bottom:1px solid #e2e8f0;">
+      <td style="${cellDate}">${dateStr}</td>
+      <td style="${cellMain}" colspan="2">
+        <span style="font-size:13px;font-weight:600;color:#0f172a;">${name}</span>${desc ? `<span style="color:#94a3b8;font-size:12px;margin-left:4px;">${desc}</span>` : ''}${ownerSilks.length > 0 ? silksImgs(ownerSilks) : ''}
+        ${raceParts ? `<span style="font-size:12px;color:#64748b;margin-left:6px;">${raceParts}</span>` : ''}
+        ${subLine}${connectionsLine}
+      </td>
+      <td style="${cellRight}">${rightParts.join(` ${pipe()} `)}</td>
+    </tr>`
 }
 
 function sectionHeader(text: string): string {
-  return `<div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 6px 0;padding-top:10px;border-top:1px solid #e2e8f0;">${text}</div>`
+  return `<tr><td colspan="4" style="padding:16px 0 6px 0;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #334155;">${text}</td></tr>`
 }
 
 function buildSummarySection(results: Result[], entries: Entry[]): string {
@@ -250,23 +200,25 @@ function buildSummarySection(results: Result[], entries: Entry[]): string {
   const totalEntries = entries.length
 
   const cell = (label: string, value: string) =>
-    `<td style="padding:4px 12px 4px 0;vertical-align:top;">
-      <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">${label}</div>
-      <div style="font-size:15px;font-weight:700;color:#0f172a;">${value}</div>
+    `<td style="padding:6px 14px 6px 0;vertical-align:top;">
+      <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:1px;">${label}</div>
+      <div style="font-size:16px;font-weight:700;color:#0f172a;">${value}</div>
     </td>`
 
   return `
-    <div style="margin-bottom:14px;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
-      <table style="border-collapse:collapse;width:100%;"><tr>
-        ${cell('Results', String(totalResults))}
-        ${cell('Winners', String(winners))}
-        ${cell('Win %', `${winPct}%`)}
-        ${cell('SW', String(stakesWinners))}
-        ${cell('GSW', String(gradedStakesWinners))}
-        ${cell('Purses', `$${totalPurses.toLocaleString()}`)}
-        ${cell('Entries', String(totalEntries))}
-      </tr></table>
-    </div>`
+    <tr><td colspan="4" style="padding:0 0 12px 0;">
+      <div style="padding:8px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;">
+        <table style="border-collapse:collapse;width:100%;"><tr>
+          ${cell('Results', String(totalResults))}
+          ${cell('Winners', String(winners))}
+          ${cell('Win %', `${winPct}%`)}
+          ${cell('SW', String(stakesWinners))}
+          ${cell('GSW', String(gradedStakesWinners))}
+          ${cell('Purses', `$${totalPurses.toLocaleString('en-US')}`)}
+          ${cell('Entries', String(totalEntries))}
+        </tr></table>
+      </div>
+    </td></tr>`
 }
 
 export async function exportDashboardToPDF(data: ExportData): Promise<void> {
@@ -295,14 +247,19 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
 
   // Build subtitle
   let subtitle = `${date} at ${time}`
-  if (exportType === 'entries') subtitle += ' | Entries Only'
-  else if (exportType === 'results') subtitle += ' | Results Only'
-  else if (exportType === 'stakes') subtitle += ' | Stakes Only'
+  if (exportType === 'entries') subtitle += ' — Entries Only'
+  else if (exportType === 'results') subtitle += ' — Results Only'
+  else if (exportType === 'stakes') subtitle += ' — Stakes Only'
 
-  // Build HTML blocks as individual elements for per-page layout
-  const blocks: string[] = []
+  // Build row options
+  const rowOptions: BuildRowOptions = {
+    orgsWithSilks: data.orgsWithSilks || [],
+    isAdmin: data.isAdmin,
+    userOrgName: data.userOrgName,
+    userOrgSilksUrl: data.userOrgSilksUrl,
+  }
 
-  // Header block
+  // Build all rows as table rows in a single table
   const silksHtml = options.silksUrl
     ? `<td style="vertical-align:top;text-align:right;width:60px;"><img src="${options.silksUrl}" style="height:50px;width:auto;object-fit:contain;" crossorigin="anonymous" /></td>`
     : ''
@@ -311,8 +268,12 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
     ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">Prepared for ${options.orgName}</div>`
     : ''
 
+  // Build the blocks array — each block is a <tr> or a header row
+  const blocks: string[] = []
+
+  // Header block (outside the table)
   blocks.push(`
-    <div style="border-bottom:2px solid #0f172a;padding-bottom:8px;margin-bottom:10px;">
+    <div style="border-bottom:2px solid #0f172a;padding-bottom:8px;margin-bottom:6px;">
       <table style="width:100%;border-collapse:collapse;"><tr>
         <td style="vertical-align:top;">
           <div style="font-size:22px;font-weight:700;color:#0f172a;line-height:1.3;letter-spacing:0.01em;">${data.stallionName.toUpperCase()} PROGENY REPORT</div>
@@ -323,33 +284,31 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
       </tr></table>
     </div>`)
 
-  // Summary stats block
-  blocks.push(buildSummarySection(filteredResults, filteredEntries))
+  // We'll wrap everything in a table, but we need to handle blocks individually for pagination
+  // So we build an array of "row groups" that can be measured individually
 
-  // Build row options
-  const rowOptions: BuildRowOptions = {
-    orgsWithSilks: data.orgsWithSilks || [],
-    isAdmin: data.isAdmin,
-    userOrgName: data.userOrgName,
-    userOrgSilksUrl: data.userOrgSilksUrl,
-  }
+  // Summary stats (wrapped in table row)
+  const summaryHtml = buildSummarySection(filteredResults, filteredEntries)
 
-  // Entries section
+  // Build all content as individual blocks for pagination
+  // Block type: 'header-div' for the header, 'table-row' for table rows
+  const tableRows: string[] = []
+  tableRows.push(summaryHtml)
+
   if (filteredEntries.length > 0) {
-    blocks.push(sectionHeader('Upcoming Entries'))
+    tableRows.push(sectionHeader('Upcoming Entries'))
     filteredEntries.forEach(e => {
       const row = buildEntryRow(e, rowOptions)
-      if (row) blocks.push(row)
+      if (row) tableRows.push(row)
     })
   }
 
-  // Results section
   if (filteredResults.length > 0) {
-    blocks.push(sectionHeader('Recent Results'))
-    filteredResults.forEach(r => { blocks.push(buildResultRow(r, rowOptions)) })
+    tableRows.push(sectionHeader('Recent Results'))
+    filteredResults.forEach(r => { tableRows.push(buildResultRow(r, rowOptions)) })
   }
 
-  // Measure each block's height by rendering them individually
+  // Measure each block's height
   const measureWrapper = document.createElement('div')
   measureWrapper.style.cssText = `
     position:absolute;left:-9999px;top:0;width:800px;background:#fff;
@@ -357,59 +316,67 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
   `
   document.body.appendChild(measureWrapper)
 
-  const blockHeights: number[] = []
-  for (const block of blocks) {
+  // Measure header block
+  const headerEl = document.createElement('div')
+  headerEl.innerHTML = blocks[0]
+  measureWrapper.appendChild(headerEl)
+  const headerHeight = headerEl.offsetHeight
+  measureWrapper.removeChild(headerEl)
+
+  // Measure each table row by wrapping it in a table
+  const rowHeights: number[] = []
+  for (const row of tableRows) {
     const el = document.createElement('div')
-    el.innerHTML = block
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse;">${row}</table>`
     measureWrapper.appendChild(el)
-    blockHeights.push(el.offsetHeight)
+    rowHeights.push(el.offsetHeight)
     measureWrapper.removeChild(el)
   }
   document.body.removeChild(measureWrapper)
 
-  // Group blocks into pages
+  // Group into pages
   const pageWidth = 210
   const pageHeight = 297
   const leftMargin = 4
   const rightMargin = 3
   const topPadding = 20
-  const bottomMargin = 12 // space for page numbers
+  const bottomMargin = 12
   const usableWidth = pageWidth - leftMargin - rightMargin
   const scaleFactor = usableWidth / 800
   const usableHeightPx = (pageHeight - topPadding * scaleFactor - bottomMargin) / scaleFactor
 
-  const pages: number[][] = [] // each page is array of block indices
-  let currentPage: number[] = []
-  let currentHeightPx = 0
+  // Page structure: first page has header + rows, subsequent pages have only rows
+  interface PageContent { headerHtml?: string; rowIndices: number[] }
+  const pages: PageContent[] = []
+  let currentPage: PageContent = { headerHtml: blocks[0], rowIndices: [] }
+  let currentHeightPx = headerHeight
 
-  for (let i = 0; i < blocks.length; i++) {
-    const blockH = blockHeights[i]
-    const isHeader = blocks[i].includes('text-transform:uppercase;letter-spacing')
+  for (let i = 0; i < tableRows.length; i++) {
+    const rowH = rowHeights[i]
+    const isSection = tableRows[i].includes('text-transform:uppercase;letter-spacing')
 
-    // Check if adding this block exceeds page height
-    if (currentPage.length > 0 && currentHeightPx + blockH > usableHeightPx) {
+    if (currentPage.rowIndices.length > 0 && currentHeightPx + rowH > usableHeightPx) {
       pages.push(currentPage)
-      currentPage = []
+      currentPage = { rowIndices: [] }
       currentHeightPx = 0
     }
 
-    // Prevent orphaned section headers: if this is a section header and
-    // adding it + the next block won't fit, push both to next page
-    if (isHeader && i + 1 < blocks.length) {
-      const nextH = blockHeights[i + 1]
-      if (currentPage.length > 0 && currentHeightPx + blockH + nextH > usableHeightPx) {
+    // Anti-orphan: section header + next row must fit together
+    if (isSection && i + 1 < tableRows.length) {
+      const nextH = rowHeights[i + 1]
+      if (currentPage.rowIndices.length > 0 && currentHeightPx + rowH + nextH > usableHeightPx) {
         pages.push(currentPage)
-        currentPage = []
+        currentPage = { rowIndices: [] }
         currentHeightPx = 0
       }
     }
 
-    currentPage.push(i)
-    currentHeightPx += blockH
+    currentPage.rowIndices.push(i)
+    currentHeightPx += rowH
   }
-  if (currentPage.length > 0) pages.push(currentPage)
+  if (currentPage.rowIndices.length > 0) pages.push(currentPage)
 
-  // Render each page separately
+  // Render each page
   const pdf = new jsPDF('p', 'mm', 'a4')
   interface LinkInfo { url: string; x: number; y: number; width: number; height: number; page: number }
   const allLinks: LinkInfo[] = []
@@ -417,16 +384,24 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
   for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
     if (pageIdx > 0) pdf.addPage()
 
-    const pageBlocks = pages[pageIdx]
+    const page = pages[pageIdx]
     const pageWrapper = document.createElement('div')
     pageWrapper.style.cssText = `
       position:absolute;left:-9999px;top:0;width:800px;background:#fff;
       padding:20px 28px 20px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;
     `
-    pageWrapper.innerHTML = pageBlocks.map(bi => blocks[bi]).join('')
+
+    let html = ''
+    if (page.headerHtml) html += page.headerHtml
+    if (page.rowIndices.length > 0) {
+      html += `<table style="width:100%;border-collapse:collapse;">`
+      html += page.rowIndices.map(ri => tableRows[ri]).join('')
+      html += `</table>`
+    }
+    pageWrapper.innerHTML = html
     document.body.appendChild(pageWrapper)
 
-    // Collect link positions for this page
+    // Collect link positions
     const wrapperRect = pageWrapper.getBoundingClientRect()
     pageWrapper.querySelectorAll('a[href]').forEach(anchor => {
       const a = anchor as HTMLAnchorElement
@@ -460,7 +435,7 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
   for (let i = 1; i <= totalPages; i++) {
     pdf.setPage(i)
     pdf.setFontSize(8)
-    pdf.setTextColor(148, 163, 184) // slate-400
+    pdf.setTextColor(148, 163, 184)
     pdf.text(`Page ${i} of ${totalPages}`, pageWidth - rightMargin - 2, pageHeight - 5, { align: 'right' })
   }
 
