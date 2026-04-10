@@ -21,6 +21,7 @@ export default function BookingsPage() {
   const [reports, setReports] = useState<StallionBookingReport[]>([])
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
   const [trackedStallions, setTrackedStallions] = useState<Map<string, string>>(new Map())
   const [orgThemes, setOrgThemes] = useState<OrgTheme[]>([])
   const { isAdmin, profile } = useAuth()
@@ -46,7 +47,8 @@ export default function BookingsPage() {
   const hasNotes = rows.some(r => r.notes && r.notes.trim() !== '')
 
   async function handleExportPDF(): Promise<void> {
-    if (!report) return
+    if (!report || exporting) return
+    setExporting(true)
 
     const html2canvas = (await import('html2canvas')).default
     const { jsPDF } = await import('jspdf')
@@ -145,39 +147,43 @@ export default function BookingsPage() {
     wrapper.innerHTML = html
     document.body.appendChild(wrapper)
 
-    const canvas = await html2canvas(wrapper.firstElementChild as HTMLElement, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      width: renderWidth,
-      windowWidth: renderWidth,
-    })
+    try {
+      const canvas = await html2canvas(wrapper.firstElementChild as HTMLElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        width: renderWidth,
+        windowWidth: renderWidth,
+      })
 
-    document.body.removeChild(wrapper)
+      // Scale to fit on one landscape A4 page
+      const pdf = new jsPDF('l', 'mm', 'a4')
+      const pageWidth = 297
+      const pageHeight = 210
+      const margin = 6
+      const usableWidth = pageWidth - margin * 2
+      const usableHeight = pageHeight - margin * 2
 
-    // Scale to fit on one landscape A4 page
-    const pdf = new jsPDF('l', 'mm', 'a4')
-    const pageWidth = 297
-    const pageHeight = 210
-    const margin = 6
-    const usableWidth = pageWidth - margin * 2
-    const usableHeight = pageHeight - margin * 2
+      // Calculate scale to fit both width and height
+      const scaleW = usableWidth / (canvas.width / 2) // /2 because scale:2
+      const scaleH = usableHeight / (canvas.height / 2)
+      const scale = Math.min(scaleW, scaleH)
 
-    // Calculate scale to fit both width and height
-    const scaleW = usableWidth / (canvas.width / 2) // /2 because scale:2
-    const scaleH = usableHeight / (canvas.height / 2)
-    const scale = Math.min(scaleW, scaleH)
+      const imgW = (canvas.width / 2) * scale
+      const imgH = (canvas.height / 2) * scale
 
-    const imgW = (canvas.width / 2) * scale
-    const imgH = (canvas.height / 2) * scale
+      // Center horizontally
+      const xOffset = margin + (usableWidth - imgW) / 2
 
-    // Center horizontally
-    const xOffset = margin + (usableWidth - imgW) / 2
-
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', xOffset, margin, imgW, imgH)
-
-    pdf.save(`stallion-bookings-${report.report_date}.pdf`)
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', xOffset, margin, imgW, imgH)
+      pdf.save(`stallion-bookings-${report.report_date}.pdf`)
+    } catch (err) {
+      console.error('PDF export failed:', err)
+    } finally {
+      document.body.removeChild(wrapper)
+      setExporting(false)
+    }
   }
 
   return (
@@ -222,10 +228,11 @@ export default function BookingsPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleExportPDF}
-                  className="text-xs text-slate-500 hover:text-slate-700 transition-colors px-2 py-1 rounded border border-slate-200 hover:border-slate-300"
+                  disabled={exporting}
+                  className="text-xs text-slate-500 hover:text-slate-700 transition-colors px-2 py-1 rounded border border-slate-200 hover:border-slate-300 disabled:opacity-50"
                   title="Export PDF"
                 >
-                  PDF
+                  {exporting ? 'Exporting...' : 'PDF'}
                 </button>
                 {isAdmin && (
                   <a
@@ -304,7 +311,7 @@ export default function BookingsPage() {
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
                     <span>{row.farm}</span>
-                    <span className="text-slate-600">{row.repole_interest}</span>
+                    {row.repole_interest && <span className="text-slate-600">Equity: {row.repole_interest}</span>}
                   </div>
                   <div className="flex gap-4 mt-1 text-xs text-slate-400">
                     <span>Mares: {row.mares_booked}</span>

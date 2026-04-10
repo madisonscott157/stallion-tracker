@@ -128,8 +128,7 @@ export function ExportModal({ isOpen, onClose, onExport, isExporting }: ExportMo
               </div>
             </div>
           )}
-
-                  </div>
+        </div>
 
         {/* Actions */}
         <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
