@@ -77,6 +77,40 @@ cd parser && ~/.fly/bin/fly deploy
 # Scrapers — GitHub Actions daily cron, or manual trigger via Actions tab
 ```
 
+## Auth & Session
+
+### Logout
+- `signOut()` in `auth-context.tsx` uses a `signOutRef` guard to prevent double-calls
+- `supabase.auth.signOut()` is raced against a 3-second timeout via `Promise.race` — prevents hangs when a token refresh is in-flight
+- Auth cookies (`sb-*`) are cleared twice with a 100ms gap to catch any cookies re-written by a racing token refresh
+- `onAuthStateChange` skips all events while `signOutRef.current` is true — prevents state thrashing mid-logout
+
+### Bookings visibility on login
+- `loadUserData()` and `checkBookings()` are extracted as shared helpers inside the auth `useEffect`
+- Both `initAuth()` and `onAuthStateChange` call `loadUserData()` — ensures `hasBookings` is set immediately on login, not just on page refresh
+- `hasBookings` is reset to `false` on signout and when session clears
+
+### CLM toggle visibility
+- `ClmToggle` gates visibility on both `organization.allow_claiming_toggle !== false` (org-level) AND `profile.show_claiming_races` (per-user)
+- Admin per-user CLM checkbox controls whether the toggle appears at all for that user
+- Toggle is admin-controlled: if admin unchecks CLM, the user cannot see or re-enable it themselves
+
+## UI Conventions (continued)
+
+### Mobile stallion header (Header.tsx)
+- Single compact row, three flex zones: `[← back]` | `[flex-1 stallion name centered]` | `[bookmark icon · PDF · logout]`
+- Zone 1 `<Link>` and all icon `<Link>` elements in zone 3 must have `inline-flex items-center` — `<a>` tags are inline by default and their SVG children sit at the text baseline without it
+- Zone 2 wrapper needs `flex items-center justify-center` (not just `justify-center`) to vertically center the selector
+- `StallionSelector` outer div uses `flex items-center` (not `items-baseline`) so it respects the row's vertical centering
+- Bookings link on mobile uses a bookmark SVG icon (no text) to avoid crowding the stallion name
+- Desktop nav "Stallion Bookings" link must be `inline-flex` (not `hidden lg:inline-flex`) to appear on iPad (sm breakpoint)
+
+### CLM toggle placement
+- On individual stallion pages (`/app/page.tsx`), the CLM toggle lives in the page content — not the header
+- Rendered in a `flex items-center justify-between mb-4` wrapper alongside the "Upcoming Entries" `<h2>`
+- Uses `checkboxClassName="accent-slate-600"` (not `accent-white`) since it's on a light background
+- `Header` component no longer accepts or uses `onPreferenceChange` prop
+
 ## Critical Conventions
 
 ### Supabase Gotchas
