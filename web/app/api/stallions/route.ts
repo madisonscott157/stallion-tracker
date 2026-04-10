@@ -48,8 +48,6 @@ export async function GET(request: NextRequest) {
       .filter(Boolean)
       .sort((a: any, b: any) => a.name.localeCompare(b.name))
 
-    const res = NextResponse.json(stallions)
-    res.headers.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600')
-    return res
+    return NextResponse.json(stallions)
   }
 }
