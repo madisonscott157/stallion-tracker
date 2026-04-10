@@ -92,6 +92,7 @@ function parseNumericField(value: string): number | string {
   return value
 }
 
+// Read-only table — used for paste previews
 function BookingDataTable({ data }: { data: BookingRow[] }) {
   return (
     <div className="overflow-x-auto border border-slate-200 rounded-md">
@@ -125,6 +126,110 @@ function BookingDataTable({ data }: { data: BookingRow[] }) {
   )
 }
 
+// Editable row type — numeric fields stored as strings for clean input handling
+interface EditableRow {
+  stallion: string
+  farm: string
+  stud_fee: string
+  repole_interest: string
+  mares_booked: string
+  sold_since: string
+  notes: string
+}
+
+function toEditableRows(rows: BookingRow[]): EditableRow[] {
+  return rows.map(r => ({
+    stallion: String(r.stallion ?? ''),
+    farm: String(r.farm ?? ''),
+    stud_fee: String(r.stud_fee ?? ''),
+    repole_interest: String(r.repole_interest ?? ''),
+    mares_booked: String(r.mares_booked ?? ''),
+    sold_since: String(r.sold_since ?? ''),
+    notes: String(r.notes ?? ''),
+  }))
+}
+
+function fromEditableRows(rows: EditableRow[]): BookingRow[] {
+  return rows.map(r => ({
+    stallion: r.stallion,
+    farm: r.farm,
+    stud_fee: r.stud_fee,
+    repole_interest: r.repole_interest,
+    mares_booked: parseNumericField(r.mares_booked),
+    sold_since: parseNumericField(r.sold_since),
+    notes: r.notes,
+  }))
+}
+
+const EDITABLE_COLS: { key: keyof EditableRow; label: string; align: 'left' | 'right' | 'center'; width: string }[] = [
+  { key: 'stallion',         label: 'Stallion', align: 'left',   width: '20%' },
+  { key: 'farm',             label: 'Farm',     align: 'left',   width: '17%' },
+  { key: 'stud_fee',        label: 'Fee',       align: 'right',  width: '11%' },
+  { key: 'repole_interest', label: 'Equity',    align: 'center', width: '10%' },
+  { key: 'mares_booked',   label: 'Mares',      align: 'center', width: '9%'  },
+  { key: 'sold_since',     label: 'Sold',       align: 'center', width: '9%'  },
+  { key: 'notes',           label: 'Notes',     align: 'left',   width: 'auto'},
+]
+
+function EditableBookingTable({
+  rows,
+  onChange,
+}: {
+  rows: EditableRow[]
+  onChange: (rows: EditableRow[]) => void
+}) {
+  function updateCell(rowIndex: number, field: keyof EditableRow, value: string) {
+    const updated = rows.map((row, i) =>
+      i === rowIndex ? { ...row, [field]: value } : row
+    )
+    onChange(updated)
+  }
+
+  return (
+    <div className="overflow-x-auto border border-slate-200 rounded-md">
+      <table className="w-full text-xs" style={{ tableLayout: 'fixed' }}>
+        <colgroup>
+          {EDITABLE_COLS.map(c => (
+            <col key={c.key} style={{ width: c.width }} />
+          ))}
+        </colgroup>
+        <thead>
+          <tr className="bg-slate-50 text-left border-b border-slate-200">
+            {EDITABLE_COLS.map(c => (
+              <th
+                key={c.key}
+                className={`px-2 py-1.5 font-semibold text-slate-500 ${
+                  c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : ''
+                }`}
+              >
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className="border-t border-slate-100 hover:bg-slate-50/50">
+              {EDITABLE_COLS.map(c => (
+                <td key={c.key} className="p-0">
+                  <input
+                    type="text"
+                    value={row[c.key]}
+                    onChange={e => updateCell(i, c.key, e.target.value)}
+                    className={`w-full px-2 py-1.5 bg-transparent focus:bg-blue-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-400 text-xs ${
+                      c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : ''
+                    } ${c.key === 'stallion' ? 'font-medium text-slate-900' : 'text-slate-600'}`}
+                  />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function ExpandedReport({
   report,
   organizations,
@@ -141,6 +246,7 @@ function ExpandedReport({
   const [editDate, setEditDate] = useState(report.report_date)
   const [editLabel, setEditLabel] = useState(report.label || '')
   const [editOrgId, setEditOrgId] = useState(report.organization_id)
+  const [editableRows, setEditableRows] = useState<EditableRow[]>(() => toEditableRows(report.data))
   const [replacePaste, setReplacePaste] = useState('')
   const [replacePreview, setReplacePreview] = useState<BookingRow[]>([])
   const [updating, setUpdating] = useState(false)
@@ -154,11 +260,14 @@ function ExpandedReport({
     }
   }, [replacePaste])
 
+  const rowsModified = JSON.stringify(editableRows) !== JSON.stringify(toEditableRows(report.data))
+
   const hasChanges =
     editDate !== report.report_date ||
     editLabel !== (report.label || '') ||
     editOrgId !== report.organization_id ||
-    replacePreview.length > 0
+    replacePreview.length > 0 ||
+    rowsModified
 
   async function handleUpdate() {
     setUpdating(true)
@@ -168,7 +277,12 @@ function ExpandedReport({
     if (editDate !== report.report_date) fields.report_date = editDate
     if (editLabel !== (report.label || '')) fields.label = editLabel.trim()
     if (editOrgId !== report.organization_id) fields.organization_id = editOrgId
-    if (replacePreview.length > 0) fields.data = replacePreview
+    // Paste data takes priority; inline edits used only when no paste override
+    if (replacePreview.length > 0) {
+      fields.data = replacePreview
+    } else if (rowsModified) {
+      fields.data = fromEditableRows(editableRows)
+    }
 
     const success = await onUpdate(report.id, fields)
     if (success) {
@@ -235,12 +349,25 @@ function ExpandedReport({
         </div>
       </div>
 
-      {/* Current data table */}
+      {/* Current data table — inline editable */}
       <div className="mb-4">
-        <div className="text-xs font-medium text-slate-500 mb-2">
-          Current Data ({report.data.length} stallion{report.data.length !== 1 ? 's' : ''})
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs font-medium text-slate-500">
+            Current Data ({editableRows.length} stallion{editableRows.length !== 1 ? 's' : ''})
+            {rowsModified && !replacePreview.length && (
+              <span className="ml-2 text-blue-600">· unsaved changes</span>
+            )}
+          </div>
+          {rowsModified && !replacePreview.length && (
+            <button
+              onClick={() => setEditableRows(toEditableRows(report.data))}
+              className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Reset
+            </button>
+          )}
         </div>
-        <BookingDataTable data={report.data} />
+        <EditableBookingTable rows={editableRows} onChange={setEditableRows} />
       </div>
 
       {/* Replacement paste area */}
@@ -309,8 +436,7 @@ export default function AdminBookingsPage() {
   const supabase = createClientComponentClient()
 
   useEffect(() => {
-    fetchReports()
-    fetchOrganizations()
+    Promise.all([fetchReports(), fetchOrganizations()]).finally(() => setIsLoading(false))
   }, [])
 
   async function fetchOrganizations() {
@@ -351,7 +477,6 @@ export default function AdminBookingsPage() {
     } catch {
       setError('Failed to load reports')
     }
-    setIsLoading(false)
   }, [])
 
   async function handleSave() {
