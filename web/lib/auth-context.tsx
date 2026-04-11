@@ -106,9 +106,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isCancelled = false
-    // Gate against concurrent loadUserData calls — onAuthStateChange doesn't await
-    // its handler, so rapid token-refresh events can stack up and thrash state
+    // Coalescing mutex: prevents concurrent loadUserData calls (which would thrash state)
+    // while ensuring blocked callers still get a retry once the active load finishes.
+    // If a call arrives while one is in-flight, we record the userId and run it
+    // exactly once in the finally block — so no event is silently dropped.
     let isLoadingUserData = false
+    let pendingUserId: string | null = null
 
     const checkBookings = () => {
       fetch('/api/bookings')
@@ -120,8 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const loadUserData = async (userId: string) => {
-      if (isLoadingUserData) return
+      if (isLoadingUserData) {
+        pendingUserId = userId // queue a retry; will fire when active load finishes
+        return
+      }
       isLoadingUserData = true
+      pendingUserId = null
       try {
         const [fetchedProfile, orgs] = await Promise.all([
           fetchProfile(userId),
@@ -136,6 +143,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         checkBookings()
       } finally {
         isLoadingUserData = false
+        // Run the queued retry (if any) — handles the case where a TOKEN_REFRESHED
+        // event arrived while the initial load was in-flight and would otherwise be lost
+        if (pendingUserId && !isCancelled) {
+          const id = pendingUserId
+          pendingUserId = null
+          loadUserData(id)
+        }
       }
     }
 
