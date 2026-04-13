@@ -144,7 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .catch(() => {})
     }
 
-    const loadUserData = async (userId: string) => {
+    // isRetry=true suppresses the one-shot background retry so it can never self-reschedule
+    const loadUserData = async (userId: string, isRetry = false) => {
       if (isLoadingUserData) {
         pendingUserId = userId // queue a retry; will fire when active load finishes
         return
@@ -164,10 +165,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(prev => (prev?.organization && !fetchedProfile.organization) ? prev : fetchedProfile)
           setAllOrgsWithSilks(fetchedProfile.role === 'admin' ? orgs : [])
 
-          // If org data is still missing after the fetch (JWT stale, RLS timing), schedule
-          // one background retry — by then the session is fully established.
-          if (fetchedProfile.organization_id && !fetchedProfile.organization) {
-            setTimeout(() => { if (!isCancelled) loadUserData(userId) }, 1500)
+          // If org data is still missing, schedule one background retry (isRetry=true prevents
+          // the retry from rescheduling itself, avoiding an infinite loop).
+          if (fetchedProfile.organization_id && !fetchedProfile.organization && !isRetry) {
+            setTimeout(() => { if (!isCancelled) loadUserData(userId, true) }, 1500)
           }
         }
         checkBookings()
