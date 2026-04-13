@@ -206,13 +206,13 @@ export default function BookingsPage() {
       type ColDef = { key: ColKey; label: string; align: 'left' | 'right' | 'center'; relWidth: number; w: number }
 
       const allColDefs: Omit<ColDef, 'w'>[] = [
-        { key: 'stallion',        label: 'Stallion',     align: 'left',   relWidth: 28 },
-        { key: 'farm',            label: 'Farm',         align: 'left',   relWidth: 20 },
-        { key: 'stud_fee',        label: 'Stud Fee',     align: 'right',  relWidth: 20 },
-        { key: 'repole_interest', label: 'Equity',       align: 'center', relWidth: 20 },
-        { key: 'mares_booked',    label: 'Mares Booked', align: 'center', relWidth: 20 },
-        { key: 'sold_since',      label: 'Sold Since',   align: 'center', relWidth: 20 },
-        { key: 'notes',           label: 'Notes',        align: 'left',   relWidth: 38 },
+        { key: 'stallion',        label: 'Stallion',     align: 'left',   relWidth: 26 },
+        { key: 'farm',            label: 'Farm',         align: 'left',   relWidth: 14 },
+        { key: 'stud_fee',        label: 'Stud Fee',     align: 'right',  relWidth: 22 },
+        { key: 'repole_interest', label: 'Equity',       align: 'center', relWidth: 22 },
+        { key: 'mares_booked',    label: 'Mares Booked', align: 'center', relWidth: 22 },
+        { key: 'sold_since',      label: 'Sold Since',   align: 'center', relWidth: 22 },
+        { key: 'notes',           label: 'Notes',        align: 'left',   relWidth: 36 },
       ]
 
       const activeColDefs = allColDefs.filter(c => hasCol[c.key])
