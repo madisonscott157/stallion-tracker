@@ -223,7 +223,7 @@ export default function BookingsPage() {
       // ── Row height: fit everything on one page ──
       const headerH = 10
       const remainingH = pageH - margin - y - headerH - 2
-      const rowH = Math.max(8, Math.min(16, remainingH / Math.max(rows.length, 1)))
+      const rowH = Math.max(6.5, Math.min(10, remainingH / Math.max(rows.length, 1)))
 
       // ── Table header row ──
       pdf.setFillColor(pr, pg, pb)
