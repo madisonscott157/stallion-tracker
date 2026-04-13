@@ -213,7 +213,7 @@ export default function BookingsPage() {
 
     try {
       const canvas = await html2canvas(wrapper.firstElementChild as HTMLElement, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
@@ -229,8 +229,8 @@ export default function BookingsPage() {
       const usableWidth = pageWidth - margin * 2
       const usableHeight = pageHeight - margin * 2
 
-      const scaleW = usableWidth / (canvas.width / 2)
-      const scaleH = usableHeight / (canvas.height / 2)
+      const scaleW = usableWidth / (canvas.width / 3)
+      const scaleH = usableHeight / (canvas.height / 3)
       const scale = Math.min(scaleW, scaleH)
 
       const imgW = (canvas.width / 2) * scale
