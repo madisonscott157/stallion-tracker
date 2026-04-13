@@ -9,6 +9,26 @@ interface Organization {
   name: string
 }
 
+// Maps flexible column header names to BookingRow field names
+const COLUMN_ALIASES: Record<string, keyof BookingRow> = {
+  'stallion':           'stallion',
+  'farm':               'farm',
+  'fee':                'stud_fee',
+  'stud fee':           'stud_fee',
+  'stud_fee':           'stud_fee',
+  'equity':             'repole_interest',
+  'repole interest':    'repole_interest',
+  'repole_interest':    'repole_interest',
+  'interest':           'repole_interest',
+  'mares':              'mares_booked',
+  'mares booked':       'mares_booked',
+  'mares_booked':       'mares_booked',
+  'sold':               'sold_since',
+  'sold since':         'sold_since',
+  'sold_since':         'sold_since',
+  'notes':              'notes',
+}
+
 function parseBookingPaste(text: string): BookingRow[] {
   // Strip BOM if present
   let cleaned = text.startsWith('\uFEFF') ? text.slice(1) : text
@@ -17,39 +37,56 @@ function parseBookingPaste(text: string): BookingRow[] {
   const lines = cleaned.split(/\r?\n/)
 
   const rows: BookingRow[] = []
+  // colIndexMap: built from the header row when detected; maps field → column index
+  let colIndexMap: Partial<Record<keyof BookingRow, number>> | null = null
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim()
     if (line.length === 0) continue
 
-    // Skip header row if first column matches "stallion" case-insensitive
-    const firstTab = line.indexOf('\t')
-    const firstCol = firstTab >= 0 ? line.slice(0, firstTab).trim() : line.trim()
-    if (firstCol.toLowerCase() === 'stallion') continue
-
-    // Parse tab-separated fields, handling quoted fields
     const cols = parseTabFields(line)
+    const firstCol = cols[0]?.trim().toLowerCase() || ''
+
+    // Detect header row by first column being "stallion"
+    if (firstCol === 'stallion') {
+      colIndexMap = {}
+      cols.forEach((col, idx) => {
+        const key = COLUMN_ALIASES[col.trim().toLowerCase()]
+        if (key) colIndexMap![key] = idx
+      })
+      continue
+    }
 
     if (!cols[0]?.trim()) continue
 
-    const stallion = cols[0]?.trim() || ''
-    const stud_fee = cols[1]?.trim() || ''
-    const repole_interest = cols[2]?.trim() || ''
-    const mares_booked_raw = cols[3]?.trim() || ''
-    const sold_since_raw = cols[4]?.trim() || ''
-    const farm = cols[5]?.trim() || ''
-    // Handle 6-column paste (no notes) — fill notes as empty string
-    const notes = cols[6]?.trim() || ''
-
-    rows.push({
-      stallion,
-      stud_fee,
-      repole_interest,
-      mares_booked: parseNumericField(mares_booked_raw),
-      sold_since: parseNumericField(sold_since_raw),
-      farm,
-      notes,
-    } satisfies BookingRow)
+    if (colIndexMap) {
+      // Header-aware: columns can be in any order; omitted columns stay blank
+      const get = (field: keyof BookingRow): string => {
+        const idx = colIndexMap![field]
+        return idx !== undefined ? (cols[idx]?.trim() || '') : ''
+      }
+      rows.push({
+        stallion:        get('stallion'),
+        farm:            get('farm'),
+        stud_fee:        get('stud_fee'),
+        repole_interest: get('repole_interest'),
+        mares_booked:    parseNumericField(get('mares_booked')),
+        sold_since:      parseNumericField(get('sold_since')),
+        notes:           get('notes'),
+      } satisfies BookingRow)
+    } else {
+      // Fallback: no header row detected — use legacy fixed-position mapping
+      // Expected order: Stallion, Stud Fee, Repole Interest, Mares Booked, Sold Since, Farm, Notes
+      rows.push({
+        stallion:        cols[0]?.trim() || '',
+        stud_fee:        cols[1]?.trim() || '',
+        repole_interest: cols[2]?.trim() || '',
+        mares_booked:    parseNumericField(cols[3]?.trim() || ''),
+        sold_since:      parseNumericField(cols[4]?.trim() || ''),
+        farm:            cols[5]?.trim() || '',
+        notes:           cols[6]?.trim() || '',
+      } satisfies BookingRow)
+    }
   }
 
   return rows
@@ -91,32 +128,44 @@ function parseNumericField(value: string): number | string {
   return value
 }
 
-// Read-only table — used for paste previews
+function isBlank(val: string | number | null | undefined): boolean {
+  return val === null || val === undefined || String(val).trim() === ''
+}
+
+// Read-only table — used for paste previews; hides columns with no data
 function BookingDataTable({ data }: { data: BookingRow[] }) {
+  const hasCol = {
+    farm:            data.some(r => !isBlank(r.farm)),
+    stud_fee:        data.some(r => !isBlank(r.stud_fee)),
+    repole_interest: data.some(r => !isBlank(r.repole_interest)),
+    mares_booked:    data.some(r => !isBlank(r.mares_booked)),
+    sold_since:      data.some(r => !isBlank(r.sold_since)),
+    notes:           data.some(r => !isBlank(r.notes)),
+  }
   return (
     <div className="overflow-x-auto border border-slate-200 rounded-md">
       <table className="w-full text-xs">
         <thead>
           <tr className="bg-slate-50 text-left">
             <th className="px-3 py-1.5 font-semibold text-slate-500">Stallion</th>
-            <th className="px-3 py-1.5 font-semibold text-slate-500">Farm</th>
-            <th className="px-3 py-1.5 font-semibold text-slate-500 text-right">Fee</th>
-            <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Equity</th>
-            <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Mares</th>
-            <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Sold</th>
-            <th className="px-3 py-1.5 font-semibold text-slate-500">Notes</th>
+            {hasCol.farm            && <th className="px-3 py-1.5 font-semibold text-slate-500">Farm</th>}
+            {hasCol.stud_fee        && <th className="px-3 py-1.5 font-semibold text-slate-500 text-right">Fee</th>}
+            {hasCol.repole_interest && <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Equity</th>}
+            {hasCol.mares_booked    && <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Mares</th>}
+            {hasCol.sold_since      && <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Sold</th>}
+            {hasCol.notes           && <th className="px-3 py-1.5 font-semibold text-slate-500">Notes</th>}
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
             <tr key={i} className="border-t border-slate-100">
               <td className="px-3 py-1.5 font-medium text-slate-900">{row.stallion}</td>
-              <td className="px-3 py-1.5 text-slate-600">{row.farm}</td>
-              <td className="px-3 py-1.5 text-slate-600 text-right">{row.stud_fee}</td>
-              <td className="px-3 py-1.5 text-slate-600 text-center">{row.repole_interest}</td>
-              <td className="px-3 py-1.5 text-slate-600 text-center">{row.mares_booked}</td>
-              <td className="px-3 py-1.5 text-slate-600 text-center">{row.sold_since}</td>
-              <td className="px-3 py-1.5 text-slate-500">{row.notes}</td>
+              {hasCol.farm            && <td className="px-3 py-1.5 text-slate-600">{row.farm}</td>}
+              {hasCol.stud_fee        && <td className="px-3 py-1.5 text-slate-600 text-right">{row.stud_fee}</td>}
+              {hasCol.repole_interest && <td className="px-3 py-1.5 text-slate-600 text-center">{row.repole_interest}</td>}
+              {hasCol.mares_booked    && <td className="px-3 py-1.5 text-slate-600 text-center">{row.mares_booked}</td>}
+              {hasCol.sold_since      && <td className="px-3 py-1.5 text-slate-600 text-center">{row.sold_since}</td>}
+              {hasCol.notes           && <td className="px-3 py-1.5 text-slate-500">{row.notes}</td>}
             </tr>
           ))}
         </tbody>
@@ -382,7 +431,7 @@ function ExpandedReport({
           className="w-full mt-1 px-3 py-2 text-sm border border-slate-300 rounded-md font-mono focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
         <p className="text-xs text-slate-400 mt-1">
-          Columns: Stallion, Stud Fee, Repole Interest, Mares Booked, Sold Since, Farm, Notes (optional)
+          Include a header row — columns can be in any order, and you can omit columns you don&apos;t have. Recognized: Stallion, Farm, Fee, Equity, Mares, Sold, Notes
         </p>
       </div>
 
@@ -630,7 +679,7 @@ export default function AdminBookingsPage() {
               className="w-full mt-1 px-3 py-2 text-sm border border-slate-300 rounded-md font-mono focus:outline-none focus:ring-2 focus:ring-slate-400"
             />
             <p className="text-xs text-slate-400 mt-1">
-              Columns: Stallion, Stud Fee, Repole Interest, Mares Booked, Sold Since, Farm, Notes (optional)
+              Include a header row — columns can be in any order, and you can omit columns you don&apos;t have. Recognized: Stallion, Farm, Fee, Equity, Mares, Sold, Notes
             </p>
           </div>
 
