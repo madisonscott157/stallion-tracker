@@ -121,128 +121,193 @@ export default function BookingsPage() {
     if (!report || exporting) return
     setExporting(true)
 
-    const html2canvas = (await import('html2canvas')).default
-    const { jsPDF } = await import('jspdf')
-
-    const dateStr = formatShortDate(report.report_date)
-    const label = report.label ? `${report.label} - ${dateStr}` : dateStr
-
-    // Match org by the report's organization_id, fall back to user's own org
-    const idMatch = orgThemes.find(o => o.id === report.organization_id)
-    const fallbackOrg = profile?.organization
-    const matchedOrg = idMatch || fallbackOrg
-
-    const primaryColor = matchedOrg?.primary_color || '#0f172a'
-    const secondaryColor = matchedOrg?.secondary_color || '#64748b'
-    const silksUrl = matchedOrg?.silks_url || null
-
-    // Use absolute positioning + transform to vertically center text,
-    // because html2canvas has a known bug with vertical-align on table cells
-    const rh = 32
-    const cellBase = `position:relative;height:${rh}px;padding:0;border-bottom:1px solid #e2e8f0;`
-    const centered = `position:absolute;top:50%;transform:translateY(-50%);`
-
-    const cell = (text: string, align: string, extra: string, bg: string) => {
-      const left = align === 'right' ? '' : `left:12px;`
-      const right = align === 'right' ? `right:12px;` : ''
-      const textAlign = align === 'center' ? `left:0;right:0;text-align:center;` : `${left}${right}`
-      return `<td style="${cellBase}background:${bg};"><span style="${centered}${textAlign}white-space:nowrap;${extra}">${text}</span></td>`
+    const hexToRgb = (hex: string): [number, number, number] => {
+      const c = hex.replace('#', '')
+      const r = parseInt(c.substring(0, 2), 16)
+      const g = parseInt(c.substring(2, 4), 16)
+      const b = parseInt(c.substring(4, 6), 16)
+      return [isNaN(r) ? 0 : r, isNaN(g) ? 0 : g, isNaN(b) ? 0 : b]
     }
 
-    // Build PDF column list from active columns only
-    type PdfColDef = { label: string; align: string; width: string; renderCell: (row: BookingRow, bg: string) => string }
-    const pdfCols: PdfColDef[] = [
-      { label: 'Stallion', align: 'left', width: '22%',
-        renderCell: (row, bg) => cell(row.stallion, 'left', `font-size:14px;font-weight:600;color:${primaryColor};`, bg) },
-      ...(hasCol.farm ? [{ label: 'Farm', align: 'left', width: '18%',
-        renderCell: (row: BookingRow, bg: string) => cell(row.farm, 'left', `font-size:13px;color:#475569;`, bg) }] : []),
-      ...(hasCol.stud_fee ? [{ label: 'Stud Fee', align: 'right', width: '13%',
-        renderCell: (row: BookingRow, bg: string) => cell(row.stud_fee, 'right', `font-size:13px;color:#475569;`, bg) }] : []),
-      ...(hasCol.repole_interest ? [{ label: 'Equity', align: 'center', width: '14%',
-        renderCell: (row: BookingRow, bg: string) => cell(row.repole_interest, 'center', `font-size:13px;color:#475569;`, bg) }] : []),
-      ...(hasCol.mares_booked ? [{ label: 'Mares Booked', align: 'center', width: '14%',
-        renderCell: (row: BookingRow, bg: string) => cell(String(row.mares_booked), 'center', `font-size:13px;color:#475569;`, bg) }] : []),
-      ...(hasCol.sold_since ? [{ label: 'Sold Since', align: 'center', width: '12%',
-        renderCell: (row: BookingRow, bg: string) => cell(String(row.sold_since), 'center', `font-size:13px;color:#475569;`, bg) }] : []),
-      ...(hasCol.notes ? [{ label: 'Notes', align: 'left', width: 'auto',
-        renderCell: (row: BookingRow, bg: string) => cell(row.notes || '', 'left', `font-size:13px;color:#475569;white-space:normal;`, bg) }] : []),
-    ]
-
-    const colgroup = pdfCols.map(c => `<col style="width:${c.width};" />`).join('\n')
-    const headerCells = pdfCols.map(c => {
-      const ta = c.align === 'center' ? 'center' : c.align === 'right' ? 'right' : 'left'
-      return `<th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:${ta};">${c.label}</th>`
-    }).join('\n')
-
-    let tableRows = ''
-    rows.forEach((row, i) => {
-      const bg = i % 2 === 0 ? '#ffffff' : '#f8fafc'
-      tableRows += `<tr>${pdfCols.map(c => c.renderCell(row, bg)).join('')}</tr>`
-    })
-
-    const renderWidth = hasCol.notes ? 1100 : 900
-
-    const silksHtml = silksUrl
-      ? `<td style="vertical-align:middle;text-align:right;width:60px;"><img src="${silksUrl}" style="height:45px;width:auto;object-fit:contain;" crossorigin="anonymous" /></td>`
-      : ''
-
-    const html = `
-      <div style="padding:24px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;width:${renderWidth}px;background:#fff;">
-        <div style="border-bottom:3px solid ${primaryColor};padding-bottom:10px;margin-bottom:16px;">
-          <table style="width:100%;border-collapse:collapse;"><tr>
-            <td style="vertical-align:top;">
-              <div style="font-size:22px;font-weight:700;letter-spacing:0.01em;color:${primaryColor};">STALLION BOOKINGS</div>
-              <div style="font-size:13px;color:${secondaryColor};margin-top:3px;">${label}</div>
-            </td>
-            ${silksHtml}
-          </tr></table>
-        </div>
-        <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
-          <colgroup>${colgroup}</colgroup>
-          <thead>
-            <tr style="background:${primaryColor};">${headerCells}</tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-      </div>`
-
-    const wrapper = document.createElement('div')
-    wrapper.style.cssText = 'position:absolute;left:-9999px;top:0;'
-    wrapper.innerHTML = html
-    document.body.appendChild(wrapper)
-
     try {
-      const canvas = await html2canvas(wrapper.firstElementChild as HTMLElement, {
-        scale: 3,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        width: renderWidth,
-        windowWidth: renderWidth,
+      const { jsPDF } = await import('jspdf')
+
+      const dateStr = formatShortDate(report.report_date)
+      const label = report.label ? `${report.label} - ${dateStr}` : dateStr
+
+      // Match org by the report's organization_id, fall back to user's own org
+      const idMatch = orgThemes.find(o => o.id === report.organization_id)
+      const fallbackOrg = profile?.organization
+      const matchedOrg = idMatch || fallbackOrg
+
+      const primaryColor = matchedOrg?.primary_color || '#0f172a'
+      const secondaryColor = matchedOrg?.secondary_color || '#64748b'
+      const silksUrl = matchedOrg?.silks_url || null
+
+      const [pr, pg, pb] = hexToRgb(primaryColor)
+      const [sr, sg, sb] = hexToRgb(secondaryColor)
+
+      // Load silks image via canvas so we get a dataURL without CORS issues
+      let silksDataUrl: string | null = null
+      if (silksUrl) {
+        silksDataUrl = await new Promise<string | null>(resolve => {
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            canvas.width = img.naturalWidth
+            canvas.height = img.naturalHeight
+            const ctx = canvas.getContext('2d')
+            if (!ctx) { resolve(null); return }
+            ctx.drawImage(img, 0, 0)
+            resolve(canvas.toDataURL('image/png'))
+          }
+          img.onerror = () => resolve(null)
+          img.src = silksUrl
+        })
+      }
+
+      const pdf = new jsPDF('l', 'mm', 'a4')
+      const pageW = 297
+      const pageH = 210
+      const margin = 8
+      const usableW = pageW - margin * 2
+
+      // ── Header section ──
+      let y = margin
+
+      const silksDisplayH = 16
+      const silksDisplayW = silksDisplayH * 0.75
+
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(18)
+      pdf.setTextColor(pr, pg, pb)
+      pdf.text('STALLION BOOKINGS', margin, y + 7)
+
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(10)
+      pdf.setTextColor(sr, sg, sb)
+      pdf.text(label, margin, y + 14)
+
+      if (silksDataUrl) {
+        pdf.addImage(silksDataUrl, 'PNG', pageW - margin - silksDisplayW, y, silksDisplayW, silksDisplayH)
+      }
+
+      y += 20
+
+      // Divider
+      pdf.setDrawColor(pr, pg, pb)
+      pdf.setLineWidth(0.6)
+      pdf.line(margin, y, pageW - margin, y)
+      y += 5
+
+      // ── Column definitions ──
+      type ColKey = 'stallion' | 'farm' | 'stud_fee' | 'repole_interest' | 'mares_booked' | 'sold_since' | 'notes'
+      type ColDef = { key: ColKey; label: string; align: 'left' | 'right' | 'center'; relWidth: number; w: number }
+
+      const allColDefs: Omit<ColDef, 'w'>[] = [
+        { key: 'stallion',        label: 'Stallion',     align: 'left',   relWidth: 50 },
+        { key: 'farm',            label: 'Farm',         align: 'left',   relWidth: 40 },
+        { key: 'stud_fee',        label: 'Stud Fee',     align: 'right',  relWidth: 28 },
+        { key: 'repole_interest', label: 'Equity',       align: 'center', relWidth: 25 },
+        { key: 'mares_booked',    label: 'Mares Booked', align: 'center', relWidth: 28 },
+        { key: 'sold_since',      label: 'Sold Since',   align: 'center', relWidth: 25 },
+        { key: 'notes',           label: 'Notes',        align: 'left',   relWidth: 60 },
+      ]
+
+      const activeColDefs = allColDefs.filter(c => hasCol[c.key])
+      const totalRelW = activeColDefs.reduce((s, c) => s + c.relWidth, 0)
+      const colScale = usableW / totalRelW
+      const cols: ColDef[] = activeColDefs.map(c => ({ ...c, w: c.relWidth * colScale }))
+
+      // ── Row height: fit everything on one page ──
+      const headerH = 8
+      const remainingH = pageH - margin - y - headerH - 2
+      const rowH = Math.max(5.5, Math.min(9, remainingH / Math.max(rows.length, 1)))
+
+      // ── Table header row ──
+      pdf.setFillColor(pr, pg, pb)
+      pdf.rect(margin, y, usableW, headerH, 'F')
+
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(7.5)
+      pdf.setTextColor(255, 255, 255)
+
+      let x = margin
+      for (const col of cols) {
+        const textY = y + headerH / 2
+        const lbl = col.label.toUpperCase()
+        if (col.align === 'left') {
+          pdf.text(lbl, x + 2.5, textY, { baseline: 'middle' })
+        } else if (col.align === 'right') {
+          pdf.text(lbl, x + col.w - 2.5, textY, { baseline: 'middle', align: 'right' })
+        } else {
+          pdf.text(lbl, x + col.w / 2, textY, { baseline: 'middle', align: 'center' })
+        }
+        x += col.w
+      }
+
+      y += headerH
+
+      // ── Data rows ──
+      rows.forEach((row, i) => {
+        if (i % 2 === 1) {
+          pdf.setFillColor(248, 250, 252)
+          pdf.rect(margin, y, usableW, rowH, 'F')
+        }
+
+        // Row divider
+        pdf.setDrawColor(226, 232, 240)
+        pdf.setLineWidth(0.15)
+        pdf.line(margin, y + rowH, margin + usableW, y + rowH)
+
+        let x = margin
+        for (const col of cols) {
+          let text = ''
+          switch (col.key) {
+            case 'stallion':        text = row.stallion; break
+            case 'farm':            text = row.farm || ''; break
+            case 'stud_fee':        text = String(row.stud_fee || ''); break
+            case 'repole_interest': text = String(row.repole_interest || ''); break
+            case 'mares_booked':    text = String(row.mares_booked ?? ''); break
+            case 'sold_since':      text = String(row.sold_since ?? ''); break
+            case 'notes':           text = row.notes || ''; break
+          }
+
+          const textY = y + rowH / 2
+          const maxW = col.w - 5
+
+          if (col.key === 'stallion') {
+            pdf.setFont('helvetica', 'bold')
+            pdf.setFontSize(9)
+            pdf.setTextColor(pr, pg, pb)
+          } else {
+            pdf.setFont('helvetica', 'normal')
+            pdf.setFontSize(8.5)
+            pdf.setTextColor(71, 85, 105)
+          }
+
+          // Truncate to one line to preserve row height
+          const truncated = pdf.splitTextToSize(text, maxW)[0] ?? ''
+
+          if (col.align === 'left') {
+            pdf.text(truncated, x + 2.5, textY, { baseline: 'middle' })
+          } else if (col.align === 'right') {
+            pdf.text(truncated, x + col.w - 2.5, textY, { baseline: 'middle', align: 'right' })
+          } else {
+            pdf.text(truncated, x + col.w / 2, textY, { baseline: 'middle', align: 'center' })
+          }
+
+          x += col.w
+        }
+
+        y += rowH
       })
 
-      // Scale to fit on one landscape A4 page
-      const pdf = new jsPDF('l', 'mm', 'a4')
-      const pageWidth = 297
-      const pageHeight = 210
-      const margin = 6
-      const usableWidth = pageWidth - margin * 2
-      const usableHeight = pageHeight - margin * 2
-
-      const scaleW = usableWidth / (canvas.width / 3)
-      const scaleH = usableHeight / (canvas.height / 3)
-      const scale = Math.min(scaleW, scaleH)
-
-      const imgW = (canvas.width / 3) * scale
-      const imgH = (canvas.height / 3) * scale
-      const xOffset = margin + (usableWidth - imgW) / 2
-
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', xOffset, margin, imgW, imgH)
       pdf.save(`stallion-bookings-${report.report_date}.pdf`)
     } catch (err) {
       console.error('PDF export failed:', err)
     } finally {
-      document.body.removeChild(wrapper)
       setExporting(false)
     }
   }
