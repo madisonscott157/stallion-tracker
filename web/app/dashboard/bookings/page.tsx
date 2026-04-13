@@ -180,14 +180,14 @@ export default function BookingsPage() {
       const silksDisplayW = silksDisplayH * 0.75
 
       pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(18)
+      pdf.setFontSize(22)
       pdf.setTextColor(pr, pg, pb)
-      pdf.text('STALLION BOOKINGS', margin, y + 7)
+      pdf.text('STALLION BOOKINGS', margin, y + 8)
 
       pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(10)
+      pdf.setFontSize(11)
       pdf.setTextColor(sr, sg, sb)
-      pdf.text(label, margin, y + 14)
+      pdf.text(label, margin, y + 16)
 
       if (silksDataUrl) {
         pdf.addImage(silksDataUrl, 'PNG', pageW - margin - silksDisplayW, y, silksDisplayW, silksDisplayH)
@@ -206,13 +206,13 @@ export default function BookingsPage() {
       type ColDef = { key: ColKey; label: string; align: 'left' | 'right' | 'center'; relWidth: number; w: number }
 
       const allColDefs: Omit<ColDef, 'w'>[] = [
-        { key: 'stallion',        label: 'Stallion',     align: 'left',   relWidth: 50 },
-        { key: 'farm',            label: 'Farm',         align: 'left',   relWidth: 40 },
-        { key: 'stud_fee',        label: 'Stud Fee',     align: 'right',  relWidth: 28 },
-        { key: 'repole_interest', label: 'Equity',       align: 'center', relWidth: 25 },
-        { key: 'mares_booked',    label: 'Mares Booked', align: 'center', relWidth: 28 },
-        { key: 'sold_since',      label: 'Sold Since',   align: 'center', relWidth: 25 },
-        { key: 'notes',           label: 'Notes',        align: 'left',   relWidth: 60 },
+        { key: 'stallion',        label: 'Stallion',     align: 'left',   relWidth: 30 },
+        { key: 'farm',            label: 'Farm',         align: 'left',   relWidth: 25 },
+        { key: 'stud_fee',        label: 'Stud Fee',     align: 'right',  relWidth: 20 },
+        { key: 'repole_interest', label: 'Equity',       align: 'center', relWidth: 20 },
+        { key: 'mares_booked',    label: 'Mares Booked', align: 'center', relWidth: 20 },
+        { key: 'sold_since',      label: 'Sold Since',   align: 'center', relWidth: 20 },
+        { key: 'notes',           label: 'Notes',        align: 'left',   relWidth: 40 },
       ]
 
       const activeColDefs = allColDefs.filter(c => hasCol[c.key])
@@ -221,16 +221,16 @@ export default function BookingsPage() {
       const cols: ColDef[] = activeColDefs.map(c => ({ ...c, w: c.relWidth * colScale }))
 
       // ── Row height: fit everything on one page ──
-      const headerH = 8
+      const headerH = 10
       const remainingH = pageH - margin - y - headerH - 2
-      const rowH = Math.max(5.5, Math.min(9, remainingH / Math.max(rows.length, 1)))
+      const rowH = Math.max(8, Math.min(16, remainingH / Math.max(rows.length, 1)))
 
       // ── Table header row ──
       pdf.setFillColor(pr, pg, pb)
       pdf.rect(margin, y, usableW, headerH, 'F')
 
       pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(7.5)
+      pdf.setFontSize(9)
       pdf.setTextColor(255, 255, 255)
 
       let x = margin
@@ -279,11 +279,11 @@ export default function BookingsPage() {
 
           if (col.key === 'stallion') {
             pdf.setFont('helvetica', 'bold')
-            pdf.setFontSize(9)
+            pdf.setFontSize(11)
             pdf.setTextColor(pr, pg, pb)
           } else {
             pdf.setFont('helvetica', 'normal')
-            pdf.setFontSize(8.5)
+            pdf.setFontSize(10.5)
             pdf.setTextColor(71, 85, 105)
           }
 
