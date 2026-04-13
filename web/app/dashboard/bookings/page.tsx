@@ -20,6 +20,10 @@ interface OrgTheme {
 type SortCol = 'stallion' | 'farm' | 'stud_fee' | 'repole_interest' | 'mares_booked' | 'sold_since'
 type SortDir = 'asc' | 'desc'
 
+function isBlank(val: string | number | null | undefined): boolean {
+  return val === null || val === undefined || String(val).trim() === ''
+}
+
 function parseStudFee(val: string | number): number {
   const s = String(val).replace(/[$,]/g, '').trim()
   const n = parseFloat(s)
@@ -91,7 +95,27 @@ export default function BookingsPage() {
   const report = reports[selectedIdx] ?? null
   const rawRows: BookingRow[] = report?.data ?? []
   const rows = sortCol ? sortRows(rawRows, sortCol, sortDir) : rawRows
-  const hasNotes = rows.some(r => r.notes && r.notes.trim() !== '')
+
+  // Compute which columns have at least one non-blank value — omit empty columns entirely
+  const hasCol = {
+    stallion:        true, // always show
+    farm:            rawRows.some(r => !isBlank(r.farm)),
+    stud_fee:        rawRows.some(r => !isBlank(r.stud_fee)),
+    repole_interest: rawRows.some(r => !isBlank(r.repole_interest)),
+    mares_booked:    rawRows.some(r => !isBlank(r.mares_booked)),
+    sold_since:      rawRows.some(r => !isBlank(r.sold_since)),
+    notes:           rawRows.some(r => !isBlank(r.notes)),
+  }
+
+  // Sortable column definitions — filtered to only active columns
+  const sortableCols = ([
+    { col: 'stallion' as SortCol,        label: 'Stallion',     align: 'left'   as const },
+    { col: 'farm' as SortCol,            label: 'Farm',         align: 'left'   as const },
+    { col: 'stud_fee' as SortCol,        label: 'Stud Fee',     align: 'right'  as const },
+    { col: 'repole_interest' as SortCol, label: 'Equity',       align: 'center' as const },
+    { col: 'mares_booked' as SortCol,    label: 'Mares Booked', align: 'center' as const },
+    { col: 'sold_since' as SortCol,      label: 'Sold Since',   align: 'center' as const },
+  ] as const).filter(({ col }) => hasCol[col])
 
   async function handleExportPDF(): Promise<void> {
     if (!report || exporting) return
@@ -125,33 +149,42 @@ export default function BookingsPage() {
       return `<td style="${cellBase}background:${bg};"><span style="${centered}${textAlign}white-space:nowrap;${extra}">${text}</span></td>`
     }
 
+    // Build PDF column list from active columns only
+    type PdfColDef = { label: string; align: string; width: string; renderCell: (row: BookingRow, bg: string) => string }
+    const pdfCols: PdfColDef[] = [
+      { label: 'Stallion', align: 'left', width: '22%',
+        renderCell: (row, bg) => cell(row.stallion, 'left', `font-size:14px;font-weight:600;color:${primaryColor};`, bg) },
+      ...(hasCol.farm ? [{ label: 'Farm', align: 'left', width: '18%',
+        renderCell: (row: BookingRow, bg: string) => cell(row.farm, 'left', `font-size:13px;color:#475569;`, bg) }] : []),
+      ...(hasCol.stud_fee ? [{ label: 'Stud Fee', align: 'right', width: '13%',
+        renderCell: (row: BookingRow, bg: string) => cell(row.stud_fee, 'right', `font-size:13px;color:#475569;`, bg) }] : []),
+      ...(hasCol.repole_interest ? [{ label: 'Equity', align: 'center', width: '14%',
+        renderCell: (row: BookingRow, bg: string) => cell(row.repole_interest, 'center', `font-size:13px;color:#475569;`, bg) }] : []),
+      ...(hasCol.mares_booked ? [{ label: 'Mares Booked', align: 'center', width: '14%',
+        renderCell: (row: BookingRow, bg: string) => cell(String(row.mares_booked), 'center', `font-size:13px;color:#475569;`, bg) }] : []),
+      ...(hasCol.sold_since ? [{ label: 'Sold Since', align: 'center', width: '12%',
+        renderCell: (row: BookingRow, bg: string) => cell(String(row.sold_since), 'center', `font-size:13px;color:#475569;`, bg) }] : []),
+      ...(hasCol.notes ? [{ label: 'Notes', align: 'left', width: 'auto',
+        renderCell: (row: BookingRow, bg: string) => cell(row.notes || '', 'left', `font-size:13px;color:#475569;white-space:normal;`, bg) }] : []),
+    ]
+
+    const colgroup = pdfCols.map(c => `<col style="width:${c.width};" />`).join('\n')
+    const headerCells = pdfCols.map(c => {
+      const ta = c.align === 'center' ? 'center' : c.align === 'right' ? 'right' : 'left'
+      return `<th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:${ta};">${c.label}</th>`
+    }).join('\n')
+
     let tableRows = ''
     rows.forEach((row, i) => {
       const bg = i % 2 === 0 ? '#ffffff' : '#f8fafc'
-      const notesCell = hasNotes
-        ? cell(row.notes || '', 'left', `font-size:13px;color:#475569;white-space:normal;`, bg)
-        : ''
-      tableRows += `
-        <tr>
-          ${cell(row.stallion, 'left', `font-size:14px;font-weight:600;color:${primaryColor};`, bg)}
-          ${cell(row.farm, 'left', `font-size:13px;color:#475569;`, bg)}
-          ${cell(row.stud_fee, 'right', `font-size:13px;color:#475569;`, bg)}
-          ${cell(row.repole_interest, 'center', `font-size:13px;color:#475569;`, bg)}
-          ${cell(String(row.mares_booked), 'center', `font-size:13px;color:#475569;`, bg)}
-          ${cell(String(row.sold_since), 'center', `font-size:13px;color:#475569;`, bg)}
-          ${notesCell}
-        </tr>`
+      tableRows += `<tr>${pdfCols.map(c => c.renderCell(row, bg)).join('')}</tr>`
     })
 
-    const notesHeader = hasNotes
-      ? `<th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:left;">Notes</th>`
-      : ''
+    const renderWidth = hasCol.notes ? 1100 : 900
 
     const silksHtml = silksUrl
       ? `<td style="vertical-align:middle;text-align:right;width:60px;"><img src="${silksUrl}" style="height:45px;width:auto;object-fit:contain;" crossorigin="anonymous" /></td>`
       : ''
-
-    const renderWidth = hasNotes ? 1100 : 900
 
     const html = `
       <div style="padding:24px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;width:${renderWidth}px;background:#fff;">
@@ -165,25 +198,9 @@ export default function BookingsPage() {
           </tr></table>
         </div>
         <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
-          <colgroup>
-            <col style="width:22%;" />
-            <col style="width:18%;" />
-            <col style="width:13%;" />
-            <col style="width:14%;" />
-            <col style="width:14%;" />
-            <col style="width:12%;" />
-            ${hasNotes ? '<col style="width:auto;" />' : ''}
-          </colgroup>
+          <colgroup>${colgroup}</colgroup>
           <thead>
-            <tr style="background:${primaryColor};">
-              <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:left;">Stallion</th>
-              <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:left;">Farm</th>
-              <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:right;">Stud Fee</th>
-              <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Equity</th>
-              <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Mares Booked</th>
-              <th style="padding:8px 12px;border-bottom:2px solid ${secondaryColor};font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Sold Since</th>
-              ${notesHeader}
-            </tr>
+            <tr style="background:${primaryColor};">${headerCells}</tr>
           </thead>
           <tbody>${tableRows}</tbody>
         </table>
@@ -212,15 +229,12 @@ export default function BookingsPage() {
       const usableWidth = pageWidth - margin * 2
       const usableHeight = pageHeight - margin * 2
 
-      // Calculate scale to fit both width and height
-      const scaleW = usableWidth / (canvas.width / 2) // /2 because scale:2
+      const scaleW = usableWidth / (canvas.width / 2)
       const scaleH = usableHeight / (canvas.height / 2)
       const scale = Math.min(scaleW, scaleH)
 
       const imgW = (canvas.width / 2) * scale
       const imgH = (canvas.height / 2) * scale
-
-      // Center horizontally
       const xOffset = margin + (usableWidth - imgW) / 2
 
       pdf.addImage(canvas.toDataURL('image/png'), 'PNG', xOffset, margin, imgW, imgH)
@@ -233,6 +247,10 @@ export default function BookingsPage() {
     }
   }
 
+  const maresTotal = hasCol.mares_booked
+    ? rows.reduce((sum, r) => { const n = parseInt(String(r.mares_booked), 10); return sum + (isNaN(n) ? 0 : n) }, 0)
+    : null
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <DashboardHeader />
@@ -242,7 +260,8 @@ export default function BookingsPage() {
           <h1 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mt-2 sm:mt-3">Stallion Bookings</h1>
           {report && (
             <span className="text-xs text-slate-400">
-              {rows.length} stallions &middot; {rows.reduce((sum, r) => { const n = parseInt(String(r.mares_booked), 10); return sum + (isNaN(n) ? 0 : n) }, 0)} mares booked
+              {rows.length} stallions
+              {maresTotal !== null && <> &middot; {maresTotal} mares booked</>}
             </span>
           )}
         </div>
@@ -297,14 +316,7 @@ export default function BookingsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-left select-none">
-                    {([
-                      { col: 'stallion' as SortCol,         label: 'Stallion',      align: 'left'   },
-                      { col: 'farm' as SortCol,             label: 'Farm',          align: 'left'   },
-                      { col: 'stud_fee' as SortCol,         label: 'Stud Fee',      align: 'right'  },
-                      { col: 'repole_interest' as SortCol,  label: 'Equity',        align: 'center' },
-                      { col: 'mares_booked' as SortCol,     label: 'Mares Booked',  align: 'center' },
-                      { col: 'sold_since' as SortCol,       label: 'Sold Since',    align: 'center' },
-                    ] as const).map(({ col, label, align }) => (
+                    {sortableCols.map(({ col, label, align }) => (
                       <th
                         key={col}
                         onClick={() => handleSort(col)}
@@ -326,7 +338,7 @@ export default function BookingsPage() {
                         </span>
                       </th>
                     ))}
-                    {hasNotes && (
+                    {hasCol.notes && (
                       <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Notes</th>
                     )}
                   </tr>
@@ -334,6 +346,7 @@ export default function BookingsPage() {
                 <tbody>
                   {rows.map((row, i) => (
                     <tr key={i} className="border-t border-slate-100 card-hover">
+                      {/* Stallion — always shown */}
                       <td className="px-4 py-2 font-semibold whitespace-nowrap" style={{ color: 'var(--org-primary)' }}>
                         {trackedStallions.has(row.stallion) ? (
                           <Link
@@ -345,14 +358,12 @@ export default function BookingsPage() {
                           </Link>
                         ) : row.stallion}
                       </td>
-                      <td className="px-4 py-2 text-slate-600 whitespace-nowrap">{row.farm}</td>
-                      <td className="px-4 py-2 text-slate-600 text-right whitespace-nowrap">{row.stud_fee}</td>
-                      <td className="px-4 py-2 text-slate-600 text-center">{row.repole_interest}</td>
-                      <td className="px-4 py-2 text-slate-600 text-center">{row.mares_booked}</td>
-                      <td className="px-4 py-2 text-slate-600 text-center">{row.sold_since}</td>
-                      {hasNotes && (
-                        <td className="px-4 py-2 text-slate-500 text-xs max-w-[200px] truncate">{row.notes}</td>
-                      )}
+                      {hasCol.farm            && <td className="px-4 py-2 text-slate-600 whitespace-nowrap">{row.farm}</td>}
+                      {hasCol.stud_fee        && <td className="px-4 py-2 text-slate-600 text-right whitespace-nowrap">{row.stud_fee}</td>}
+                      {hasCol.repole_interest && <td className="px-4 py-2 text-slate-600 text-center">{row.repole_interest}</td>}
+                      {hasCol.mares_booked    && <td className="px-4 py-2 text-slate-600 text-center">{row.mares_booked}</td>}
+                      {hasCol.sold_since      && <td className="px-4 py-2 text-slate-600 text-center">{row.sold_since}</td>}
+                      {hasCol.notes           && <td className="px-4 py-2 text-slate-500 text-xs max-w-[200px] truncate">{row.notes}</td>}
                     </tr>
                   ))}
                 </tbody>
@@ -377,17 +388,23 @@ export default function BookingsPage() {
                         {row.stallion}
                       </span>
                     )}
-                    <span className="text-xs text-slate-500">{row.stud_fee}</span>
+                    {hasCol.stud_fee && <span className="text-xs text-slate-500">{row.stud_fee}</span>}
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                    <span>{row.farm}</span>
-                    {row.repole_interest && <span className="text-slate-600">Equity: {row.repole_interest}</span>}
-                  </div>
-                  <div className="flex gap-4 mt-1 text-xs text-slate-400">
-                    <span>Mares: {row.mares_booked}</span>
-                    <span>Sold: {row.sold_since}</span>
-                  </div>
-                  {hasNotes && row.notes && (
+                  {(hasCol.farm || hasCol.repole_interest) && (
+                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                      {hasCol.farm && <span>{row.farm}</span>}
+                      {hasCol.repole_interest && row.repole_interest && (
+                        <span className="text-slate-600">Equity: {row.repole_interest}</span>
+                      )}
+                    </div>
+                  )}
+                  {(hasCol.mares_booked || hasCol.sold_since) && (
+                    <div className="flex gap-4 mt-1 text-xs text-slate-400">
+                      {hasCol.mares_booked && <span>Mares: {row.mares_booked}</span>}
+                      {hasCol.sold_since   && <span>Sold: {row.sold_since}</span>}
+                    </div>
+                  )}
+                  {hasCol.notes && row.notes && (
                     <div className="mt-1 text-xs text-slate-400 truncate">{row.notes}</div>
                   )}
                 </div>
