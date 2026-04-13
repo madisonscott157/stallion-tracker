@@ -56,19 +56,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = createClientComponentClient()
 
   const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
-    const { data, error } = await supabase
+    const runQuery = () => supabase
       .from('users')
-      .select(`
-        *,
-        organization:organizations(*)
-      `)
+      .select(`*, organization:organizations(*)`)
       .eq('auth_id', userId)
       .single()
+
+    const { data, error } = await runQuery()
 
     if (error) {
       console.error('Error fetching profile:', error)
       return null
     }
+
+    // If organization_id is set but the join returned null, the JWT was momentarily stale
+    // and RLS blocked the organizations read. Retry once after a short delay.
+    if (data.organization_id && !data.organization) {
+      await new Promise(resolve => setTimeout(resolve, 500))
+      const { data: retryData, error: retryError } = await runQuery()
+      if (retryError) {
+        console.error('Error fetching profile (retry):', retryError)
+        return null
+      }
+      // If retry still has no org, return null so caller preserves any existing good state
+      if (!retryData.organization) return null
+      return retryData as UserProfile
+    }
+
     return data as UserProfile
   }
 
