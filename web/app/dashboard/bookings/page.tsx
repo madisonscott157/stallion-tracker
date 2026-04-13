@@ -149,8 +149,9 @@ export default function BookingsPage() {
 
       // Load silks image via canvas so we get a dataURL without CORS issues
       let silksDataUrl: string | null = null
+      let silksAspect = 1
       if (silksUrl) {
-        silksDataUrl = await new Promise<string | null>(resolve => {
+        const result = await new Promise<{ dataUrl: string; aspect: number } | null>(resolve => {
           const img = new Image()
           img.crossOrigin = 'anonymous'
           img.onload = () => {
@@ -160,11 +161,15 @@ export default function BookingsPage() {
             const ctx = canvas.getContext('2d')
             if (!ctx) { resolve(null); return }
             ctx.drawImage(img, 0, 0)
-            resolve(canvas.toDataURL('image/png'))
+            resolve({ dataUrl: canvas.toDataURL('image/png'), aspect: img.naturalWidth / img.naturalHeight })
           }
           img.onerror = () => resolve(null)
           img.src = silksUrl
         })
+        if (result) {
+          silksDataUrl = result.dataUrl
+          silksAspect = result.aspect
+        }
       }
 
       const pdf = new jsPDF('l', 'mm', 'a4')
@@ -177,7 +182,7 @@ export default function BookingsPage() {
       let y = margin
 
       const silksDisplayH = 16
-      const silksDisplayW = silksDisplayH * 0.75
+      const silksDisplayW = silksDisplayH * silksAspect
 
       pdf.setFont('helvetica', 'bold')
       pdf.setFontSize(22)
