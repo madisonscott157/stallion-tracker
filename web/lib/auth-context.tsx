@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // If organization_id is set but the join returned null, the JWT was momentarily stale
     // and RLS blocked the organizations read. Retry once after a short delay.
     if (data.organization_id && !data.organization) {
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise(resolve => setTimeout(resolve, 150))
       const { data: retryData, error: retryError } = await runQuery()
       if (retryError) {
         console.error('Error fetching profile (retry):', retryError)

@@ -1,23 +1,25 @@
 import { NextResponse } from 'next/server'
-import { requireAuth, isAuthError, getUserPreferences } from '@/lib/api-auth'
+import { requireAuth, isAuthError } from '@/lib/api-auth'
 
 export async function GET() {
   const auth = await requireAuth()
   if (isAuthError(auth)) return auth
   const { supabase, userId } = auth
 
-  const prefs = await getUserPreferences(supabase, userId)
-
-  // Get user profile for org-based stallion scoping
-  const { data: profile } = await supabase
+  // Single query for both prefs and profile — avoids two roundtrips to the same table
+  const { data: userRow } = await supabase
     .from('users')
-    .select('role, organization_id')
+    .select('role, organization_id, show_claiming_races, organizations(allow_claiming_toggle)')
     .eq('auth_id', userId)
     .single()
 
-  if (!profile) {
+  if (!userRow) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
+
+  const orgAllowsToggle = (userRow.organizations as any)?.allow_claiming_toggle ?? true
+  const prefs = { show_claiming_races: orgAllowsToggle ? (userRow.show_claiming_races ?? true) : false }
+  const profile = userRow
 
   // 1. Fetch visible stallions (same logic as /api/stallions)
   let stallionList: { id: string; name: string; stud_farm: string | null; stud_fee: string | null }[] = []
