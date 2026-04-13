@@ -135,9 +135,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fetchAllOrgsWithSilks(),
         ])
         if (isCancelled) return
-        // Only update profile if fetch succeeded — don't wipe valid state on transient errors
+        // Only update profile if fetch succeeded — don't wipe valid state on transient errors.
+        // Also guard against a stale-JWT race on TOKEN_REFRESHED: if the org join returned null
+        // but the current profile already has org data, keep the good data.
         if (fetchedProfile) {
-          setProfile(fetchedProfile)
+          setProfile(prev => (prev?.organization && !fetchedProfile.organization) ? prev : fetchedProfile)
           setAllOrgsWithSilks(fetchedProfile.role === 'admin' ? orgs : [])
         }
         checkBookings()
