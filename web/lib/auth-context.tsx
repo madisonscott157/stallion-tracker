@@ -52,6 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [hasBookings, setHasBookings] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const signOutRef = useRef(false)
+  // Tracks whether org colors have been successfully applied this session.
+  // Once set, we never overwrite with defaults — profile can be transiently null
+  // during back-navigation / token refresh without resetting the header colors.
+  const hasAppliedOrgColors = useRef(false)
 
   const supabase = createClientComponentClient()
 
@@ -102,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Apply org theme colors as CSS variables
   useEffect(() => {
     if (profile?.organization) {
+      hasAppliedOrgColors.current = true
       document.documentElement.style.setProperty('--org-primary', profile.organization.primary_color)
       document.documentElement.style.setProperty('--org-secondary', profile.organization.secondary_color)
       const sec = profile.organization.secondary_color?.toLowerCase().replace(/\s/g, '')
@@ -110,8 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         document.documentElement.removeAttribute('data-white-secondary')
       }
-    } else if (!isLoading) {
-      // Default colors — only set after auth finishes loading to avoid flash
+    } else if (!isLoading && !hasAppliedOrgColors.current) {
+      // Only set defaults if org colors were never applied this session.
+      // Once org colors are set, we keep them — profile can be transiently null
+      // during back-navigation or token refresh without resetting the header.
+      // (Sign-out does a full page reload, so the ref resets naturally.)
       document.documentElement.style.setProperty('--org-primary', '#0f172a')
       document.documentElement.style.setProperty('--org-secondary', '#64748b')
       document.documentElement.removeAttribute('data-white-secondary')
