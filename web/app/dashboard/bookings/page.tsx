@@ -233,8 +233,8 @@ export default function BookingsPage() {
       const scaleH = usableHeight / (canvas.height / 3)
       const scale = Math.min(scaleW, scaleH)
 
-      const imgW = (canvas.width / 2) * scale
-      const imgH = (canvas.height / 2) * scale
+      const imgW = (canvas.width / 3) * scale
+      const imgH = (canvas.height / 3) * scale
       const xOffset = margin + (usableWidth - imgW) / 2
 
       pdf.addImage(canvas.toDataURL('image/png'), 'PNG', xOffset, margin, imgW, imgH)
