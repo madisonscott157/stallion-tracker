@@ -60,31 +60,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = createClientComponentClient()
 
   const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
-    const runQuery = () => supabase
+    const { data, error } = await supabase
       .from('users')
       .select(`*, organization:organizations(*)`)
       .eq('auth_id', userId)
       .single()
 
-    const { data, error } = await runQuery()
-
-    if (error) {
+    if (error || !data) {
       console.error('Error fetching profile:', error)
       return null
     }
 
-    // If organization_id is set but the join returned null, the JWT was momentarily stale
-    // and RLS blocked the organizations read. Retry once after a short delay.
+    // If the org join came back null despite an organization_id being set, the RLS
+    // evaluation may have run with a stale JWT. Try fetching the org directly — a
+    // simple eq() query evaluates RLS differently than an embedded join and is more
+    // reliable immediately after login.
     if (data.organization_id && !data.organization) {
-      await new Promise(resolve => setTimeout(resolve, 150))
-      const { data: retryData, error: retryError } = await runQuery()
-      if (retryError) {
-        console.error('Error fetching profile (retry):', retryError)
-        return null
-      }
-      // If retry still has no org, return null so caller preserves any existing good state
-      if (!retryData.organization) return null
-      return retryData as UserProfile
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', data.organization_id)
+        .single()
+      // Return the profile with whatever org data we got.
+      // Returning a partial profile (null org) is always better than returning null —
+      // a null return from here means the caller never calls setProfile at all.
+      return { ...data, organization: orgData ?? null } as UserProfile
     }
 
     return data as UserProfile
@@ -163,6 +163,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (fetchedProfile) {
           setProfile(prev => (prev?.organization && !fetchedProfile.organization) ? prev : fetchedProfile)
           setAllOrgsWithSilks(fetchedProfile.role === 'admin' ? orgs : [])
+
+          // If org data is still missing after the fetch (JWT stale, RLS timing), schedule
+          // one background retry — by then the session is fully established.
+          if (fetchedProfile.organization_id && !fetchedProfile.organization) {
+            setTimeout(() => { if (!isCancelled) loadUserData(userId) }, 1500)
+          }
         }
         checkBookings()
       } finally {
