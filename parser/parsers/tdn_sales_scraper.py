@@ -254,7 +254,10 @@ def scrape_stallion_sales(sire_name: str, years: Optional[List[int]] = None, sir
 
     if years is None:
         current_year = datetime.now().year
-        years = list(range(2020, current_year + 1))
+        # Start at 2010 to backfill older data for established stallions
+        # (e.g. Twirling Candy stood from 2011, Lope de Vega has 2019 sales).
+        # Empty years are handled silently by fetch_and_parse_tdn_page.
+        years = list(range(2010, current_year + 1))
 
     results = []
     driver = None
