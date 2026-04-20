@@ -31,14 +31,16 @@ from parsers.equineline_stats_scraper import scrape_equineline_stats, extract_st
 
 load_dotenv()
 
-# Stallion first crop year - used to calculate which sire list to scrape
+# Stallion first crop year - used to calculate which sire list to scrape.
+# Established stallions (not in this map) get the 'general' Leading Sires list.
 # crop_number = current_year - first_crop_year + 1
 STALLION_FIRST_CROP_YEAR = {
-    'mckinzie': 2024,      # 2024=freshman, 2025=2nd crop, 2026=3rd crop
-    'olympiad': 2026,      # first foals 2024, first runners 2026
+    'mckinzie': 2024,         # 2024=freshman, 2025=2nd, 2026=3rd
+    'olympiad': 2026,         # first foals 2024, first runners 2026
     'idol': 2026,
     'life is good': 2026,
     'mo donegal': 2026,
+    'hello youmzain': 2024,   # 2024=freshman, 2025=2nd, 2026=3rd
 }
 
 CROP_LIST_TYPES = {
@@ -48,14 +50,55 @@ CROP_LIST_TYPES = {
     4: 'fourth_crop',
 }
 
+# Per-stallion TDN region override. Default is 'na' (North America). TDN indexes
+# foreign-bred sires under their region's nao= filter.
+STALLION_TDN_REGION = {
+    'lope de vega': 'eu',
+    'hello youmzain': 'fr',
+}
 
-def get_stallion_crop_list(sire_name: str, year: int) -> str | None:
-    """Get the appropriate crop list type for a stallion in a given year."""
-    first_crop = STALLION_FIRST_CROP_YEAR.get(sire_name.lower())
-    if not first_crop:
-        return None
-    crop_num = year - first_crop + 1
-    return CROP_LIST_TYPES.get(crop_num)
+# Explicit historical (list_type, stats_year) tuples to backfill for a stallion,
+# in addition to the default current-year scrape selected by get_scrape_plan().
+# Duplicates with the default plan are removed before scraping.
+STALLION_HISTORICAL_SCRAPES = {
+    # Hello Youmzain: backfill his freshman (2024) and 2nd-crop (2025) years;
+    # current year's third-crop is added by the default plan.
+    'hello youmzain': [('freshman', 2024), ('second_crop', 2025)],
+    # Lope de Vega: EU Leading Sires every year from 2020 onward.
+    'lope de vega':   [('general', y) for y in range(2020, datetime.now().year + 1)],
+}
+
+
+def get_scrape_plan(sire_name: str) -> list[tuple[str, int]]:
+    """Return the (list_type, stats_year) scrape plan for a stallion.
+
+    - Young stallions (in STALLION_FIRST_CROP_YEAR) get their current crop list.
+    - Established stallions get the 'general' Leading Sires list for the current year.
+    - Historical overrides in STALLION_HISTORICAL_SCRAPES are added on top.
+    """
+    name_lower = sire_name.lower()
+    current_year = datetime.now().year
+    plan: list[tuple[str, int]] = []
+
+    first_crop = STALLION_FIRST_CROP_YEAR.get(name_lower)
+    if first_crop:
+        crop_num = current_year - first_crop + 1
+        crop_list = CROP_LIST_TYPES.get(crop_num)
+        if crop_list:
+            plan.append((crop_list, current_year))
+    else:
+        plan.append(('general', current_year))
+
+    plan.extend(STALLION_HISTORICAL_SCRAPES.get(name_lower, []))
+
+    # Deduplicate while preserving order
+    seen = set()
+    unique = []
+    for item in plan:
+        if item not in seen:
+            seen.add(item)
+            unique.append(item)
+    return unique
 
 
 def scrape_all_stallions(db: Database):
@@ -106,23 +149,21 @@ def scrape_all_stallions(db: Database):
             print(f"  Error scraping sales for {sire_name}: {e}")
             errors += 1
 
-        # Scrape sire rankings - only the correct crop list for current year
+        # Scrape sire rankings per the per-stallion scrape plan
         try:
-            current_year = datetime.now().year
-            crop_list = get_stallion_crop_list(sire_name, current_year)
+            region = STALLION_TDN_REGION.get(sire_name.lower(), 'na')
+            plan = get_scrape_plan(sire_name)
 
-            if crop_list:
-                print(f"\n  Scraping sire rankings ({crop_list} for {current_year})...")
-                ranking_data = scrape_stallion_rankings(sire_name, current_year, [crop_list])
+            for list_type, stats_year in plan:
+                type_label = LIST_TYPES.get(list_type, {}).get('label', list_type)
+                print(f"\n  Scraping sire rankings ({type_label} {stats_year}, region={region})...")
+                ranking_data = scrape_stallion_rankings(sire_name, stats_year, [list_type], region=region)
 
                 for data in ranking_data:
                     result_id = db.upsert_sire_ranking(stallion_id, data)
                     if result_id:
                         ranking_records += 1
-                        type_label = LIST_TYPES.get(data.list_type, {}).get('label', data.list_type)
                         print(f"    Stored: {data.year} {type_label} - Rank #{data.rank}")
-            else:
-                print(f"\n  No crop year configured for {sire_name} - skipping sire rankings")
 
         except Exception as e:
             print(f"  Error scraping rankings for {sire_name}: {e}")

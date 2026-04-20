@@ -25,7 +25,7 @@ from bs4 import BeautifulSoup
 class SireRankingData:
     """Sire ranking data from TDN sire list."""
     year: int
-    list_type: str  # 'ytd', 'freshman', 'second_crop', 'third_crop', 'general'
+    list_type: str  # 'ytd', 'freshman', 'second_crop', 'third_crop', 'fourth_crop', 'general'
     sire_name: str
     rank: Optional[int] = None
     starters: Optional[int] = None
@@ -47,51 +47,44 @@ class SireRankingData:
     source_url: Optional[str] = None
 
 
-# List type configurations
+# List type configurations - srt22 differs by list type (1=rank, 9=earnings)
 LIST_TYPES = {
-    'ytd': {
-        'label': 'Year-to-Date',
-        'crops': '0',
-    },
-    'freshman': {
-        'label': 'Freshman Sires',
-        'crops': '1',
-    },
-    'second_crop': {
-        'label': 'Second-Crop Sires',
-        'crops': '2',
-    },
-    'third_crop': {
-        'label': 'Third-Crop Sires',
-        'crops': '3',
-    },
-    'fourth_crop': {
-        'label': 'Fourth-Crop Sires',
-        'crops': '4',
-    },
+    'ytd':          {'label': 'Year-to-Date',       'crops': '0', 'srt22': '9'},
+    'freshman':     {'label': 'Freshman Sires',     'crops': '1', 'srt22': '9'},
+    'second_crop':  {'label': 'Second-Crop Sires',  'crops': '2', 'srt22': '9'},
+    'third_crop':   {'label': 'Third-Crop Sires',   'crops': '3', 'srt22': '9'},
+    'fourth_crop':  {'label': 'Fourth-Crop Sires',  'crops': '4', 'srt22': '9'},
+    'general':      {'label': 'Leading Sires',      'crops': '0', 'srt22': '1'},
 }
 
+# Region codes → TDN 'nao' query param
+REGION_NAO = {'na': '1', 'eu': '2', 'fr': '5'}
 
-def build_sire_list_url(stats_year: int, list_type: str, interface_year: Optional[int] = None) -> str:
+
+def build_sire_list_url(stats_year: int, list_type: str, interface_year: Optional[int] = None,
+                        region: str = 'na') -> str:
     """Build TDN sire list URL.
 
     Args:
         stats_year: The year to get stats for (e.g., 2025 for second-crop stats from 2025)
-        list_type: Type of list (freshman, second_crop, third_crop)
+        list_type: Type of list (freshman, second_crop, third_crop, general, ...)
         interface_year: The current year for the interface (defaults to current year)
+        region: 'na' (North America), 'eu' (Europe), or 'fr' (France)
     """
     if interface_year is None:
         interface_year = datetime.now().year
 
-    crops = LIST_TYPES.get(list_type, {}).get('crops', '0')
-    # URL format matches TDN site - srt22=9 sorts by total earnings
+    cfg = LIST_TYPES.get(list_type, {})
+    crops = cfg.get('crops', '0')
+    srt22 = cfg.get('srt22', '9')
+    nao = REGION_NAO.get(region, '1')
     return (
         f"https://www.thoroughbreddailynews.com/sire-list/"
         f"?txbYear={interface_year}"
         f"&crops={crops}"
         f"&sbYear={stats_year}"
-        f"&d22=1&s22=1&srt22=9"
-        f"&nOF=1&nOFC=0&nOS=1&nOSC=0&nao=1"
+        f"&d22=1&s22=1&srt22={srt22}"
+        f"&nOF=1&nOFC=0&nOS=1&nOSC=0&nao={nao}"
         f"&txbFR=NHB&fr=NHB"
         f"&ob=130&ob2=0&cy=0"
     )
@@ -294,7 +287,8 @@ def scrape_sire_from_list(driver: 'webdriver.Chrome', url: str, target_sire: str
 
 
 def scrape_stallion_rankings(sire_name: str, year: Optional[int] = None,
-                             list_types: Optional[List[str]] = None) -> List[SireRankingData]:
+                             list_types: Optional[List[str]] = None,
+                             region: str = 'na') -> List[SireRankingData]:
     """
     Scrape sire list rankings for a stallion.
 
@@ -328,7 +322,7 @@ def scrape_stallion_rankings(sire_name: str, year: Optional[int] = None,
             if list_type not in LIST_TYPES:
                 continue
             # Use current year as interface year for historical data
-            url = build_sire_list_url(year, list_type, interface_year=datetime.now().year)
+            url = build_sire_list_url(year, list_type, interface_year=datetime.now().year, region=region)
             data = scrape_sire_from_list(driver, url, sire_name, year, list_type)
 
             if data:
