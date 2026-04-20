@@ -41,6 +41,8 @@ STALLION_FIRST_CROP_YEAR = {
     'life is good': 2026,
     'mo donegal': 2026,
     'hello youmzain': 2024,   # 2024=freshman, 2025=2nd, 2026=3rd
+    'good magic': 2022,       # stood 2019 → first foals 2020 → freshman 2022
+    'constitution': 2018,     # stood 2015 → first foals 2016 → freshman 2018
 }
 
 CROP_LIST_TYPES = {
@@ -60,12 +62,35 @@ STALLION_TDN_REGION = {
 # Explicit historical (list_type, stats_year) tuples to backfill for a stallion,
 # in addition to the default current-year scrape selected by get_scrape_plan().
 # Duplicates with the default plan are removed before scraping.
+_CURRENT_YEAR = datetime.now().year
+
 STALLION_HISTORICAL_SCRAPES = {
     # Hello Youmzain: backfill his freshman (2024) and 2nd-crop (2025) years;
     # current year's third-crop is added by the default plan.
     'hello youmzain': [('freshman', 2024), ('second_crop', 2025)],
+
     # Lope de Vega: EU Leading Sires every year from 2020 onward.
-    'lope de vega':   [('general', y) for y in range(2020, datetime.now().year + 1)],
+    # (current year is added by the default plan, so range stops one short.)
+    'lope de vega':   [('general', y) for y in range(2020, _CURRENT_YEAR)],
+
+    # Twirling Candy: NA Leading Sires every year from 2020 onward.
+    'twirling candy': [('general', y) for y in range(2020, _CURRENT_YEAR)],
+
+    # Good Magic: crops 1-3 + general for his 4th-crop year onward.
+    'good magic': [
+        ('freshman',    2022),
+        ('second_crop', 2023),
+        ('third_crop',  2024),
+        ('general',     2025),
+    ],
+
+    # Constitution: crops 1-3 + general for 4th-crop (2021) through last year.
+    'constitution': [
+        ('freshman',    2018),
+        ('second_crop', 2019),
+        ('third_crop',  2020),
+        *[('general', y) for y in range(2021, _CURRENT_YEAR)],
+    ],
 }
 
 
@@ -81,13 +106,12 @@ def get_scrape_plan(sire_name: str) -> list[tuple[str, int]]:
     plan: list[tuple[str, int]] = []
 
     first_crop = STALLION_FIRST_CROP_YEAR.get(name_lower)
+    crop_list = None
     if first_crop:
         crop_num = current_year - first_crop + 1
         crop_list = CROP_LIST_TYPES.get(crop_num)
-        if crop_list:
-            plan.append((crop_list, current_year))
-    else:
-        plan.append(('general', current_year))
+    # Young stallion (crops 1-4): their crop list. Established: general.
+    plan.append((crop_list, current_year) if crop_list else ('general', current_year))
 
     plan.extend(STALLION_HISTORICAL_SCRAPES.get(name_lower, []))
 
