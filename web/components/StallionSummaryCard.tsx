@@ -71,7 +71,6 @@ export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
               <span className="font-medium text-slate-700">{formatMoney(stallion.tdn_earnings)}</span>
             </div>
           )}
-          <span className="text-slate-400 text-xs">{stallion.tdn_year} TDN</span>
         </div>
       )}
     </Link>
