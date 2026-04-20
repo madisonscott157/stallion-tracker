@@ -43,7 +43,8 @@ function DashboardContent() {
   const [results, setResults] = useState<Result[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchKey, setFetchKey] = useState(0)
-  const { isLoading: authLoading } = useAuth()
+  const { isLoading: authLoading, profile } = useAuth()
+  const showRaceActivity = profile?.organization?.show_race_activity !== false
   const router = useRouter()
   const searchParams = useSearchParams()
   const stallionFilter = searchParams.get('stallion') || ''
@@ -172,61 +173,65 @@ function DashboardContent() {
               )}
             </section>
 
-            {/* Upcoming Entries */}
-            <section className="mb-6 sm:mb-8">
-              <h2 className="section-header">Upcoming Entries</h2>
-              {filteredEntries.length > 0 ? (
-                <div className="card-stack">
-                  {filteredEntries.map(entry => (
-                    <EntryCard key={entry.id} entry={entry} showSireName />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState variant="entries" message="No upcoming entries" />
-              )}
-            </section>
+            {showRaceActivity && (
+              <>
+                {/* Upcoming Entries */}
+                <section className="mb-6 sm:mb-8">
+                  <h2 className="section-header">Upcoming Entries</h2>
+                  {filteredEntries.length > 0 ? (
+                    <div className="card-stack">
+                      {filteredEntries.map(entry => (
+                        <EntryCard key={entry.id} entry={entry} showSireName />
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState variant="entries" message="No upcoming entries" />
+                  )}
+                </section>
 
-            {/* Recent Results */}
-            <section className="mb-6 sm:mb-8">
-              <h2 className="section-header">Recent Results <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
-              {filteredResults.length > 0 ? (
-                <div className="card-stack">
-                  {filteredResults.map(result => (
-                    <ResultCard key={result.id} result={result} showSireName />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState variant="results" message="No recent results" />
-              )}
-            </section>
+                {/* Recent Results */}
+                <section className="mb-6 sm:mb-8">
+                  <h2 className="section-header">Recent Results <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
+                  {filteredResults.length > 0 ? (
+                    <div className="card-stack">
+                      {filteredResults.map(result => (
+                        <ResultCard key={result.id} result={result} showSireName />
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState variant="results" message="No recent results" />
+                  )}
+                </section>
 
-            {/* Recent Winners */}
-            <section className="mb-6 sm:mb-8">
-              <h2 className="section-header">Recent Winners <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
-              {filteredWinners.length > 0 ? (
-                <div className="card-stack">
-                  {filteredWinners.map(result => (
-                    <ResultCard key={`w-${result.id}`} result={result} showSireName />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState variant="winners" message="No recent winners" />
-              )}
-            </section>
+                {/* Recent Winners */}
+                <section className="mb-6 sm:mb-8">
+                  <h2 className="section-header">Recent Winners <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
+                  {filteredWinners.length > 0 ? (
+                    <div className="card-stack">
+                      {filteredWinners.map(result => (
+                        <ResultCard key={`w-${result.id}`} result={result} showSireName />
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState variant="winners" message="No recent winners" />
+                  )}
+                </section>
 
-            {/* Recent Stakes Results */}
-            <section className="mb-6 sm:mb-8">
-              <h2 className="section-header">Recent Stakes Results <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
-              {filteredStakes.length > 0 ? (
-                <div className="card-stack">
-                  {filteredStakes.map(result => (
-                    <ResultCard key={`s-${result.id}`} result={result} showSireName />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState variant="stakes" message="No recent stakes results" />
-              )}
-            </section>
+                {/* Recent Stakes Results */}
+                <section className="mb-6 sm:mb-8">
+                  <h2 className="section-header">Recent Stakes Results <span className="text-xs font-normal text-slate-400 ml-1">Last 14 days</span></h2>
+                  {filteredStakes.length > 0 ? (
+                    <div className="card-stack">
+                      {filteredStakes.map(result => (
+                        <ResultCard key={`s-${result.id}`} result={result} showSireName />
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState variant="stakes" message="No recent stakes results" />
+                  )}
+                </section>
+              </>
+            )}
           </>
         )}
       </main>
