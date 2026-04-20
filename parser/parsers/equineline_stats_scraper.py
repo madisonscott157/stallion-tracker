@@ -348,20 +348,12 @@ def scrape_equineline_stats(stallion_ref: str, ascid: str = "1443262") -> Option
             driver.quit()
 
 
-# Mapping of stallion names to Equineline StallionRef IDs
-STALLION_REFS = {
-    'McKinzie': '9873708',
-    'Olympiad': '10058498',
-}
-
-
-def get_stallion_ref(name: str) -> Optional[str]:
-    """Get the Equineline StallionRef for a stallion name (case-insensitive)."""
-    name_lower = name.lower()
-    for key, value in STALLION_REFS.items():
-        if key.lower() == name_lower:
-            return value
-    return None
+def extract_stallion_ref(equineline_url: Optional[str]) -> Optional[str]:
+    """Parse the StallionRef numeric ID from an Equineline URL query string."""
+    if not equineline_url:
+        return None
+    m = re.search(r'StallionRef=(\d+)', equineline_url, re.IGNORECASE)
+    return m.group(1) if m else None
 
 
 if __name__ == "__main__":
@@ -371,15 +363,18 @@ if __name__ == "__main__":
         print("Please install Selenium: pip install selenium webdriver-manager")
         sys.exit(1)
 
-    stallion = sys.argv[1] if len(sys.argv) > 1 else "McKinzie"
-    ref = get_stallion_ref(stallion)
-
-    if not ref:
-        print(f"Unknown stallion: {stallion}")
-        print(f"Known stallions: {list(STALLION_REFS.keys())}")
+    if len(sys.argv) < 2:
+        print("Usage: equineline_stats_scraper.py <StallionRef|URL>")
         sys.exit(1)
 
-    print(f"Scraping Equineline stats for {stallion} (ref: {ref})...")
+    arg = sys.argv[1]
+    ref = arg if arg.isdigit() else extract_stallion_ref(arg)
+
+    if not ref:
+        print(f"Could not parse StallionRef from: {arg}")
+        sys.exit(1)
+
+    print(f"Scraping Equineline stats for ref {ref}...")
 
     stats = scrape_equineline_stats(ref)
 

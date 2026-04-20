@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from db import Database
 from parsers.tdn_sales_scraper import scrape_stallion_sales, SALE_TYPES
 from parsers.tdn_sire_list_scraper import scrape_stallion_rankings, LIST_TYPES
-from parsers.equineline_stats_scraper import scrape_equineline_stats, get_stallion_ref
+from parsers.equineline_stats_scraper import scrape_equineline_stats, extract_stallion_ref
 
 load_dotenv()
 
@@ -124,11 +124,13 @@ def scrape_all_stallions(db: Database):
             print(f"  Error scraping rankings for {sire_name}: {e}")
             errors += 1
 
-        # Scrape Equineline racing stats
+        # Scrape Equineline racing stats - ref is parsed from stallions.equineline_url
         try:
-            equineline_ref = get_stallion_ref(sire_name)
+            url_row = db.client.table('stallions').select('equineline_url').eq('id', stallion_id).execute()
+            equineline_url = (url_row.data[0] if url_row.data else {}).get('equineline_url')
+            equineline_ref = extract_stallion_ref(equineline_url)
             if equineline_ref:
-                print(f"\n  Scraping Equineline stats...")
+                print(f"\n  Scraping Equineline stats (ref {equineline_ref})...")
                 stats_data = scrape_equineline_stats(equineline_ref)
 
                 if stats_data:
@@ -137,7 +139,7 @@ def scrape_all_stallions(db: Database):
                         equineline_records += 1
                         print(f"    Stored: {stats_data.lifetime_starters} starters, {stats_data.lifetime_winners} winners, ${stats_data.lifetime_earnings:,}")
             else:
-                print(f"\n  No Equineline ref found for {sire_name}")
+                print(f"\n  No Equineline URL set for {sire_name} (add via Admin → Stallions)")
 
         except Exception as e:
             print(f"  Error scraping Equineline for {sire_name}: {e}")
