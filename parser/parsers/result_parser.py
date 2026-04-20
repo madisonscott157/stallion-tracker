@@ -41,14 +41,16 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
     # 1. Check if winner or non-winner and extract accordingly
     # Winner pattern: "{Horse} won by {margin}, on {Date}, at {TRACK} in Race {N}."
     winner_match = re.search(
-        r"([A-Za-z][A-Za-z\s']+?)\s+won\s+by\s+(.+?),\s+on\s+"
+        r"([A-Za-z](?:[A-Za-z'\-]*|\.)(?:\s+(?:[A-Za-z]\.|[A-Za-z][A-Za-z'\-]*))*?(?:\s*\([A-Z]{2,3}\))?)"
+        r"\s+won\s+by\s+(.+?),\s+on\s+"
         r"(\w+ \d{1,2}, \d{4}),?\s+at\s+([A-Z][A-Za-z\s]+)\s+in\s+Race\s+(\d+)",
         text
     )
 
     # Non-winner pattern: "{Horse} finished {Nth} beaten by {lengths}, on {Date}, at {TRACK} in Race {N}."
     loser_match = re.search(
-        r"([A-Za-z][A-Za-z\s']+?)\s+finished\s+(\d+)(?:st|nd|rd|th)\s+"
+        r"([A-Za-z](?:[A-Za-z'\-]*|\.)(?:\s+(?:[A-Za-z]\.|[A-Za-z][A-Za-z'\-]*))*?(?:\s*\([A-Z]{2,3}\))?)"
+        r"\s+finished\s+(\d+)(?:st|nd|rd|th)\s+"
         r"beaten\s+by\s+([\d\s/]+\s*lengths?),\s+on\s+"
         r"(\w+ \d{1,2}, \d{4}),?\s+at\s+([A-Z][A-Za-z\s]+)\s+in\s+Race\s+(\d+)",
         text,
@@ -73,7 +75,8 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
         # Try alternate patterns
         # Simple finish pattern: "{Horse} finished {Nth}"
         simple_match = re.search(
-            r"([A-Za-z][A-Za-z\s']+?)\s+finished\s+(\d+)(?:st|nd|rd|th)",
+            r"([A-Za-z](?:[A-Za-z'\-]*|\.)(?:\s+(?:[A-Za-z]\.|[A-Za-z][A-Za-z'\-]*))*?(?:\s*\([A-Z]{2,3}\))?)"
+            r"\s+finished\s+(\d+)(?:st|nd|rd|th)",
             text
         )
         if simple_match:

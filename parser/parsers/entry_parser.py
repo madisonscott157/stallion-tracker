@@ -65,7 +65,8 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
     # 1. Extract horse name and race info from header
     # Pattern: "{Horse Name} is entered to run on {Date}, at {TRACK}."
     header_match = re.search(
-        r"([A-Za-z][A-Za-z\s']+?)\s+is entered to run on\s+"
+        r"([A-Za-z](?:[A-Za-z'\-]*|\.)(?:\s+(?:[A-Za-z]\.|[A-Za-z][A-Za-z'\-]*))*?(?:\s*\([A-Z]{2,3}\))?)"
+        r"\s+is entered to run on\s+"
         r"(\w+ \d{1,2}, \d{4}),?\s+at\s+([A-Z][A-Za-z\s]+)\.",
         text
     )
