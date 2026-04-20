@@ -42,3 +42,18 @@ export async function getUserPreferences(
     show_claiming_races: showClaiming,
   }
 }
+
+export async function getOrgShowRaceActivity(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('users')
+    .select('organizations(show_race_activity)')
+    .eq('auth_id', userId)
+    .single()
+
+  // Missing/null is treated as true (belt-and-suspenders for rows created
+  // before the migration ran)
+  return (data?.organizations as any)?.show_race_activity !== false
+}

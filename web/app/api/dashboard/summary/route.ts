@@ -9,7 +9,7 @@ export async function GET() {
   // Single query for both prefs and profile — avoids two roundtrips to the same table
   const { data: userRow } = await supabase
     .from('users')
-    .select('role, organization_id, show_claiming_races, organizations(allow_claiming_toggle)')
+    .select('role, organization_id, show_claiming_races, organizations(allow_claiming_toggle, show_race_activity)')
     .eq('auth_id', userId)
     .single()
 
@@ -19,6 +19,7 @@ export async function GET() {
 
   const orgAllowsToggle = (userRow.organizations as any)?.allow_claiming_toggle ?? true
   const prefs = { show_claiming_races: orgAllowsToggle ? (userRow.show_claiming_races ?? true) : false }
+  const showRaceActivity = (userRow.organizations as any)?.show_race_activity !== false
   const profile = userRow
 
   // 1. Fetch visible stallions (same logic as /api/stallions)
@@ -64,6 +65,11 @@ export async function GET() {
     return query
   }
 
+  // Skip recent-winners / recent-stakes roundtrips entirely when the org has
+  // race activity hidden. Stallion-summary-card queries (entries / YTD stats)
+  // remain — those feed cards that are intentionally still rendered.
+  const emptyQuery = Promise.resolve({ data: [], error: null })
+
   // 2-5. Parallel queries
   const [entriesRes, entryResultsRes, ytdRes, winnersRes, stakesRes] = await Promise.all([
     // Upcoming entries (all stallions, not scratched, from today)
@@ -88,40 +94,44 @@ export async function GET() {
       .in('stallion_name', stallionList.map(s => s.name)),
 
     // Recent winners (last 14 days, limit 15)
-    applyClaimingFilter(
-      supabase
-        .from('results')
-        .select(`
-          *,
-          horses!inner (
-            name, sex, yob, dam, equibase_profile_url,
-            stallions!inner ( name )
-          )
-        `)
-        .eq('finish_position', 1)
-        .gte('race_date', fourteenDaysAgo)
-    )
-      .order('race_date', { ascending: false })
-      .order('race_number', { ascending: false })
-      .limit(15),
+    showRaceActivity
+      ? applyClaimingFilter(
+          supabase
+            .from('results')
+            .select(`
+              *,
+              horses!inner (
+                name, sex, yob, dam, equibase_profile_url,
+                stallions!inner ( name )
+              )
+            `)
+            .eq('finish_position', 1)
+            .gte('race_date', fourteenDaysAgo)
+        )
+          .order('race_date', { ascending: false })
+          .order('race_number', { ascending: false })
+          .limit(15)
+      : emptyQuery,
 
     // Recent stakes (last 14 days, limit 15)
-    applyClaimingFilter(
-      supabase
-        .from('results')
-        .select(`
-          *,
-          horses!inner (
-            name, sex, yob, dam, equibase_profile_url,
-            stallions!inner ( name )
-          )
-        `)
-        .eq('is_stakes', true)
-        .gte('race_date', fourteenDaysAgo)
-    )
-      .order('race_date', { ascending: false })
-      .order('race_number', { ascending: false })
-      .limit(15),
+    showRaceActivity
+      ? applyClaimingFilter(
+          supabase
+            .from('results')
+            .select(`
+              *,
+              horses!inner (
+                name, sex, yob, dam, equibase_profile_url,
+                stallions!inner ( name )
+              )
+            `)
+            .eq('is_stakes', true)
+            .gte('race_date', fourteenDaysAgo)
+        )
+          .order('race_date', { ascending: false })
+          .order('race_number', { ascending: false })
+          .limit(15)
+      : emptyQuery,
   ])
 
   // Log any query errors
