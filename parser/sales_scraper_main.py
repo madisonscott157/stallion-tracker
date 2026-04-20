@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from db import Database
-from parsers.tdn_sales_scraper import scrape_stallion_sales, SALE_TYPES
+from parsers.tdn_sales_scraper import scrape_stallion_sales, SALE_TYPES, extract_sire_param
 from parsers.tdn_sire_list_scraper import scrape_stallion_rankings, LIST_TYPES
 from parsers.equineline_stats_scraper import scrape_equineline_stats, extract_stallion_ref
 
@@ -86,10 +86,14 @@ def scrape_all_stallions(db: Database):
             errors += 1
             continue
 
-        # Scrape sales data
+        # Scrape sales data - sire param is pulled from stallions.tdn_url so
+        # foreign-bred stallions index with their country-code suffix on TDN.
         try:
             print(f"\n  Scraping sales data...")
-            sales_data = scrape_stallion_sales(sire_name)
+            tdn_row = db.client.table('stallions').select('tdn_url').eq('id', stallion_id).execute()
+            tdn_url = (tdn_row.data[0] if tdn_row.data else {}).get('tdn_url')
+            tdn_sire_param = extract_sire_param(tdn_url)
+            sales_data = scrape_stallion_sales(sire_name, sire_param=tdn_sire_param)
 
             for data in sales_data:
                 result_id = db.upsert_sales_stats(stallion_id, data)

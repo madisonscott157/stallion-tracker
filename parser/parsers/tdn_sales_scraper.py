@@ -47,9 +47,23 @@ SALE_TYPES = {
 }
 
 
-def build_tdn_url(sire_name: str, sale_year: int) -> str:
-    """Build TDN Insta-tistics URL for a specific stallion/year."""
-    sire_param = sire_name.lower().replace(' ', '+')
+def extract_sire_param(tdn_url: Optional[str]) -> Optional[str]:
+    """Extract the TDN 'sire' query parameter (url-encoded) from a stored TDN URL."""
+    if not tdn_url:
+        return None
+    m = re.search(r'[?&]sire=([^&]+)', tdn_url, re.IGNORECASE)
+    return m.group(1) if m else None
+
+
+def build_tdn_url(sire_name: str, sale_year: int, sire_param: Optional[str] = None) -> str:
+    """Build TDN Insta-tistics URL for a specific stallion/year.
+
+    If sire_param is given it is used verbatim (already url-encoded — e.g.
+    'lope+de+vega+%28IRE%29'). This is required for foreign-bred sires where
+    TDN indexes under the country-code suffix the stored stallion name lacks.
+    """
+    if sire_param is None:
+        sire_param = sire_name.lower().replace(' ', '+')
     return (
         f"https://www.thoroughbreddailynews.com/insta-tistics/"
         f"?sire={sire_param}"
@@ -230,7 +244,7 @@ def fetch_and_parse_tdn_page(driver: 'webdriver.Chrome', url: str, target_year: 
     return results
 
 
-def scrape_stallion_sales(sire_name: str, years: Optional[List[int]] = None) -> List[SalesData]:
+def scrape_stallion_sales(sire_name: str, years: Optional[List[int]] = None, sire_param: Optional[str] = None) -> List[SalesData]:
     """
     Scrape all sales data for a stallion across specified years.
     """
@@ -249,7 +263,7 @@ def scrape_stallion_sales(sire_name: str, years: Optional[List[int]] = None) -> 
         driver = create_driver()
 
         for year in years:
-            url = build_tdn_url(sire_name, year)
+            url = build_tdn_url(sire_name, year, sire_param)
             print(f"  Scraping {sire_name} {year}...")
 
             year_results = fetch_and_parse_tdn_page(driver, url, year)
