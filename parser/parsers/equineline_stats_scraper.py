@@ -224,9 +224,17 @@ def scrape_equineline_stats(stallion_ref: str, ascid: str = "1443262") -> Option
             stats.weanlings = int(weanlings_match.group(1))
 
         # Parse achievements
-        champ_match = re.search(r'(\d+)\s+champions', text)
+        # "champions" is plural — a stallion with exactly 1 champion reads
+        # "1 champion" (no 's'), so accept either. For zero champions the
+        # Equineline page may omit the line entirely; log when we can't find it.
+        champ_match = re.search(r'(\d+)\s+champions?\b', text)
         if champ_match:
             stats.champions = int(champ_match.group(1))
+        else:
+            # Default to 0 rather than leaving None — the page omits the line
+            # for stallions with no champions (e.g. Constitution).
+            stats.champions = 0
+            print("  INFO: no 'champions' line found, defaulting to 0")
 
         gsw_match = re.search(r'(\d+)\s+graded blacktype winners', text)
         if gsw_match:
@@ -252,89 +260,127 @@ def scrape_equineline_stats(stallion_ref: str, ascid: str = "1443262") -> Option
             if i + 1 < len(lines) and '(/foals' in lines[i + 1]:
                 combined_line = line + ' ' + lines[i + 1]
 
+            # Helper: assign up to three columns (Lifetime, Current Year,
+            # Current 2YOs). A stallion whose 2YO crop hasn't started races
+            # may render the 2YO column as "-" instead of "0 (0%)", which
+            # produces only two regex matches. The old >=3 guard caused
+            # every 2YO field to be silently skipped in that case. Assign
+            # whatever columns are present and leave the rest None.
+            def _assign3(parts, setters):
+                for i, (val_attr, pct_attr) in enumerate(setters):
+                    if i < len(parts):
+                        setattr(stats, val_attr, int(parts[i][0]))
+                        setattr(stats, pct_attr, float(parts[i][1]))
+
             # Starters line
             if 'Starters' in combined_line and 'foals' in combined_line:
                 parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
-                if len(parts) >= 3:
-                    stats.lifetime_starters, stats.lifetime_starters_pct = int(parts[0][0]), float(parts[0][1])
-                    stats.current_starters, stats.current_starters_pct = int(parts[1][0]), float(parts[1][1])
-                    stats.current_2yo_starters, stats.current_2yo_starters_pct = int(parts[2][0]), float(parts[2][1])
+                _assign3(parts, [
+                    ('lifetime_starters', 'lifetime_starters_pct'),
+                    ('current_starters', 'current_starters_pct'),
+                    ('current_2yo_starters', 'current_2yo_starters_pct'),
+                ])
 
             # Winners line (not Blacktype)
             elif 'Winners' in combined_line and 'foals' in combined_line and 'Blacktype' not in combined_line:
                 parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
-                if len(parts) >= 3:
-                    stats.lifetime_winners, stats.lifetime_winners_pct = int(parts[0][0]), float(parts[0][1])
-                    stats.current_winners, stats.current_winners_pct = int(parts[1][0]), float(parts[1][1])
-                    stats.current_2yo_winners, stats.current_2yo_winners_pct = int(parts[2][0]), float(parts[2][1])
+                _assign3(parts, [
+                    ('lifetime_winners', 'lifetime_winners_pct'),
+                    ('current_winners', 'current_winners_pct'),
+                    ('current_2yo_winners', 'current_2yo_winners_pct'),
+                ])
 
             # Blacktype Winners line
             elif 'Blacktype Winners' in combined_line:
                 parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
-                if len(parts) >= 3:
-                    stats.lifetime_btw, stats.lifetime_btw_pct = int(parts[0][0]), float(parts[0][1])
-                    stats.current_btw, stats.current_btw_pct = int(parts[1][0]), float(parts[1][1])
-                    stats.current_2yo_btw, stats.current_2yo_btw_pct = int(parts[2][0]), float(parts[2][1])
+                _assign3(parts, [
+                    ('lifetime_btw', 'lifetime_btw_pct'),
+                    ('current_btw', 'current_btw_pct'),
+                    ('current_2yo_btw', 'current_2yo_btw_pct'),
+                ])
 
             # Blacktype Placers line
             elif 'Blacktype Placers' in combined_line:
                 parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
-                if len(parts) >= 3:
-                    stats.lifetime_btp, stats.lifetime_btp_pct = int(parts[0][0]), float(parts[0][1])
-                    stats.current_btp, stats.current_btp_pct = int(parts[1][0]), float(parts[1][1])
-                    stats.current_2yo_btp, stats.current_2yo_btp_pct = int(parts[2][0]), float(parts[2][1])
+                _assign3(parts, [
+                    ('lifetime_btp', 'lifetime_btp_pct'),
+                    ('current_btp', 'current_btp_pct'),
+                    ('current_2yo_btp', 'current_2yo_btp_pct'),
+                ])
 
             # Starts line (just numbers, no percentages from foals)
             elif combined_line.strip().startswith('Starts') and 'starter' not in combined_line.lower():
                 nums = re.findall(r'\d+', combined_line)
-                if len(nums) >= 3:
+                if len(nums) >= 1:
                     stats.lifetime_starts = int(nums[0])
+                if len(nums) >= 2:
                     stats.current_starts = int(nums[1])
+                if len(nums) >= 3:
                     stats.current_2yo_starts = int(nums[2])
 
             # Wins line
             elif 'Wins' in combined_line and 'starts' in combined_line:
                 parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
-                if len(parts) >= 3:
-                    stats.lifetime_wins, stats.lifetime_wins_pct = int(parts[0][0]), float(parts[0][1])
-                    stats.current_wins, stats.current_wins_pct = int(parts[1][0]), float(parts[1][1])
-                    stats.current_2yo_wins, stats.current_2yo_wins_pct = int(parts[2][0]), float(parts[2][1])
+                _assign3(parts, [
+                    ('lifetime_wins', 'lifetime_wins_pct'),
+                    ('current_wins', 'current_wins_pct'),
+                    ('current_2yo_wins', 'current_2yo_wins_pct'),
+                ])
 
             # Placings line
             elif 'Placings' in combined_line and 'starts' in combined_line:
                 parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
-                if len(parts) >= 3:
-                    stats.lifetime_placings, stats.lifetime_placings_pct = int(parts[0][0]), float(parts[0][1])
-                    stats.current_placings, stats.current_placings_pct = int(parts[1][0]), float(parts[1][1])
-                    stats.current_2yo_placings, stats.current_2yo_placings_pct = int(parts[2][0]), float(parts[2][1])
+                _assign3(parts, [
+                    ('lifetime_placings', 'lifetime_placings_pct'),
+                    ('current_placings', 'current_placings_pct'),
+                    ('current_2yo_placings', 'current_2yo_placings_pct'),
+                ])
 
             # Earnings line
             elif combined_line.strip().startswith('Earnings') and 'Avg' not in combined_line:
                 amounts = re.findall(r'\$([0-9,]+)', combined_line)
-                if len(amounts) >= 3:
+                if len(amounts) >= 1:
                     stats.lifetime_earnings = parse_number(amounts[0])
+                if len(amounts) >= 2:
                     stats.current_earnings = parse_number(amounts[1])
+                if len(amounts) >= 3:
                     stats.current_2yo_earnings = parse_number(amounts[2])
 
             # Avg Earnings per starter
             elif 'Avg Earnings' in combined_line and '/starter' in combined_line:
                 amounts = re.findall(r'\$([0-9,]+)', combined_line)
-                if len(amounts) >= 3:
+                if len(amounts) >= 1:
                     stats.lifetime_avg_earnings = parse_number(amounts[0])
+                if len(amounts) >= 2:
                     stats.current_avg_earnings = parse_number(amounts[1])
+                if len(amounts) >= 3:
                     stats.current_2yo_avg_earnings = parse_number(amounts[2])
 
         # Parse chief earners
-        chief_match = re.search(r'Chief Earner:\s*\n\s*(\S+)\s+\$([0-9,]+)', text)
+        # Horse names can contain spaces (e.g. "Tiz the Law"), parentheses for
+        # country suffixes (e.g. "Enable (GB)"), apostrophes, and hyphens.
+        # Use a non-greedy capture that stops at the $amount rather than \S+
+        # which breaks on the first space and silently drops multi-word names.
+        chief_match = re.search(
+            r'Chief Earner:\s*\n\s*(.+?)\s+\$([0-9,]+)',
+            text,
+        )
         if chief_match:
-            stats.chief_earner_name = chief_match.group(1)
+            stats.chief_earner_name = chief_match.group(1).strip()
             stats.chief_earner_amount = parse_number(chief_match.group(2))
+        else:
+            print("  WARN: Chief Earner line not matched")
 
         # Current year top earner (second line after Chief Earner)
-        current_earner_match = re.search(r'Chief Earner:\s*\n\s*\S+\s+\$[0-9,]+\s*\n\s*(\S+)\s+\$([0-9,]+)', text)
+        current_earner_match = re.search(
+            r'Chief Earner:\s*\n\s*.+?\s+\$[0-9,]+\s*\n\s*(.+?)\s+\$([0-9,]+)',
+            text,
+        )
         if current_earner_match:
-            stats.current_top_earner_name = current_earner_match.group(1)
+            stats.current_top_earner_name = current_earner_match.group(1).strip()
             stats.current_top_earner_amount = parse_number(current_earner_match.group(2))
+        else:
+            print("  WARN: Current Top Earner line not matched")
 
         return stats
 
