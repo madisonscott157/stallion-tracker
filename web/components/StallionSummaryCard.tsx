@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { formatStudFee } from '@/lib/currency'
 
 interface StallionSummary {
   id: string
@@ -18,6 +19,7 @@ interface StallionSummaryCardProps {
 }
 
 export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
+  const feeDisplay = formatStudFee(stallion.stud_fee, stallion.name)
   return (
     <Link
       href={`/?stallion=${stallion.id}`}
@@ -32,11 +34,11 @@ export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
         </svg>
       </div>
 
-      {(stallion.stud_farm || stallion.stud_fee) && (
+      {(stallion.stud_farm || feeDisplay) && (
         <div className="flex flex-wrap items-baseline gap-x-2 text-sm text-slate-500 mb-1 sm:mb-2">
           {stallion.stud_farm && <span>{stallion.stud_farm}</span>}
-          {stallion.stud_farm && stallion.stud_fee && <span className="text-slate-300">|</span>}
-          {stallion.stud_fee && <span>${Number(stallion.stud_fee).toLocaleString('en-US')}</span>}
+          {stallion.stud_farm && feeDisplay && <span className="text-slate-300">|</span>}
+          {feeDisplay && <span>{feeDisplay}</span>}
         </div>
       )}
 

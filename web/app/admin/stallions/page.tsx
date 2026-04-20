@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { formatStudFee } from '@/lib/currency'
 
 interface Stallion {
   id: string
@@ -177,8 +178,8 @@ export default function AdminStallionsPage() {
                     {stallion.stud_farm && (
                       <span className="text-sm text-slate-400">@ {stallion.stud_farm}</span>
                     )}
-                    {stallion.stud_fee && (
-                      <span className="text-sm text-slate-400">${Number(stallion.stud_fee).toLocaleString('en-US')}</span>
+                    {formatStudFee(stallion.stud_fee, stallion.name) && (
+                      <span className="text-sm text-slate-400">{formatStudFee(stallion.stud_fee, stallion.name)}</span>
                     )}
                   </div>
                   {(stallion.sire || stallion.dam) && (
