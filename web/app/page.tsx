@@ -264,7 +264,7 @@ function HomeContent() {
             {activeTab === 'stats' && (
               <div key="stats" className="tab-content-enter">
                 <section className="max-w-3xl mx-auto">
-                  <SireRankingsTable rankings={rankings} />
+                  <SireRankingsTable rankings={rankings} stallionName={stallion} />
                   {equinelineStats && (
                     <EquinelineSection stats={equinelineStats} currentYear={currentYear} />
                   )}

@@ -1,22 +1,28 @@
 'use client'
 
 import type { SireRanking } from '@/lib/supabase'
+import { getStallionRegion, type StallionRegion } from '@/lib/regions'
 
 interface SireRankingsTableProps {
   rankings: SireRanking[]
+  stallionName?: string
 }
 
-function getListLabel(listType: string): string {
-  return listType === 'ytd' ? 'YTD' :
+function getListLabel(listType: string, region: StallionRegion = 'na'): string {
+  const base =
+    listType === 'ytd' ? 'YTD' :
     listType === 'freshman' ? '1st Crop' :
     listType === 'second_crop' ? '2nd Crop' :
     listType === 'third_crop' ? '3rd Crop' :
     listType === 'fourth_crop' ? '4th Crop' :
     listType === 'general' ? 'Leading Sires' :
     listType
+  const suffix = region === 'eu' ? ' - EU' : region === 'fr' ? ' - FR' : ''
+  return `${base}${suffix}`
 }
 
-export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
+export function SireRankingsTable({ rankings, stallionName }: SireRankingsTableProps) {
+  const region = getStallionRegion(stallionName)
   if (rankings.length === 0) return null
 
   const sortedRankings = [...rankings].sort((a, b) => b.year - a.year)
@@ -28,7 +34,7 @@ export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
       {/* Mobile: Card layout */}
       <div className="sm:hidden space-y-3">
         {sortedRankings.map(ranking => {
-          const listLabel = getListLabel(ranking.list_type)
+          const listLabel = getListLabel(ranking.list_type, region)
           return (
             <div key={ranking.id} className="bg-white rounded-lg border border-slate-200 p-3 card-hover">
               <div className="flex items-baseline justify-between mb-2">
@@ -108,7 +114,7 @@ export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
           </thead>
           <tbody>
             {sortedRankings.map(ranking => {
-              const listLabel = getListLabel(ranking.list_type)
+              const listLabel = getListLabel(ranking.list_type, region)
               return (
                 <tr key={ranking.id} className="border-b border-slate-100 last:border-0">
                   <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
