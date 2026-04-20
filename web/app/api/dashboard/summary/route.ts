@@ -64,8 +64,10 @@ export async function GET() {
     return query
   }
 
+  const currentYear = new Date().getFullYear()
+
   // 2-5. Parallel queries
-  const [entriesRes, entryResultsRes, ytdRes, winnersRes, stakesRes] = await Promise.all([
+  const [entriesRes, entryResultsRes, ytdRes, winnersRes, stakesRes, rankingsRes] = await Promise.all([
     // Upcoming entries (all stallions, not scratched, from today)
     applyClaimingFilter(
       supabase
@@ -122,6 +124,13 @@ export async function GET() {
       .order('race_date', { ascending: false })
       .order('race_number', { ascending: false })
       .limit(15),
+
+    // Current-year sire rankings (TDN) — used for top-line stats on summary card
+    supabase
+      .from('sire_rankings')
+      .select('stallion_id, starters, winners, total_earnings')
+      .eq('year', currentYear)
+      .in('stallion_id', stallionIds),
   ])
 
   // Log any query errors
@@ -130,6 +139,7 @@ export async function GET() {
   if (ytdRes.error) console.error('Dashboard YTD query error:', ytdRes.error)
   if (winnersRes.error) console.error('Dashboard winners query error:', winnersRes.error)
   if (stakesRes.error) console.error('Dashboard stakes query error:', stakesRes.error)
+  if (rankingsRes.error) console.error('Dashboard rankings query error:', rankingsRes.error)
 
   // Build a set of results to exclude entries whose race has already run
   const resultKeys = new Set(
@@ -159,17 +169,42 @@ export async function GET() {
     }
   }
 
+  // Map current-year sire rankings (TDN) by stallion_id.
+  // Each stallion has at most one row per (year, list_type); typically one row for the current year.
+  // If multiple exist, prefer the one with highest starters count.
+  const rankingMap: Record<string, { starters: number | null; winners: number | null; total_earnings: number | null }> = {}
+  if (rankingsRes.data) {
+    for (const row of rankingsRes.data as any[]) {
+      const existing = rankingMap[row.stallion_id]
+      if (!existing || (row.starters ?? 0) > (existing.starters ?? 0)) {
+        rankingMap[row.stallion_id] = {
+          starters: row.starters,
+          winners: row.winners,
+          total_earnings: row.total_earnings,
+        }
+      }
+    }
+  }
+
   // Build stallion summaries
-  const stallions = stallionList.map(s => ({
-    id: s.id,
-    name: s.name,
-    stud_farm: s.stud_farm,
-    stud_fee: s.stud_fee,
-    upcoming_entries: entryCounts[s.id] || 0,
-    ytd_starters: ytdMap[s.name]?.starters || 0,
-    ytd_winners: ytdMap[s.name]?.winners || 0,
-    ytd_earnings: ytdMap[s.name]?.total_earnings || 0,
-  }))
+  const stallions = stallionList.map(s => {
+    const tdn = rankingMap[s.id]
+    return {
+      id: s.id,
+      name: s.name,
+      stud_farm: s.stud_farm,
+      stud_fee: s.stud_fee,
+      upcoming_entries: entryCounts[s.id] || 0,
+      ytd_starters: ytdMap[s.name]?.starters || 0,
+      ytd_winners: ytdMap[s.name]?.winners || 0,
+      ytd_earnings: ytdMap[s.name]?.total_earnings || 0,
+      // TDN current-year stats — undefined when no ranking row exists
+      tdn_year: tdn ? currentYear : null,
+      tdn_starters: tdn?.starters ?? null,
+      tdn_winners: tdn?.winners ?? null,
+      tdn_earnings: tdn?.total_earnings ?? null,
+    }
+  })
 
   // Flatten results for frontend
   const flattenResult = (result: any) => ({
