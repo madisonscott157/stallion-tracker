@@ -31,7 +31,11 @@ All data is stored in Supabase (PostgreSQL).
 1. Create a project at [supabase.com](https://supabase.com)
 2. Run `database/schema.sql` in the SQL Editor to create all tables
 3. Run `database/seed.sql` to create the default organization and starter stallions
-4. Run migrations in order from `database/migrations/` (001, 003, 004, 005, 006)
+4. Run migrations in order from `database/migrations/` (001–009). Note that
+   `schema.sql` already includes the effects of migrations 008 (stallions.tdn_region,
+   stallions.first_sales_year) and 009 (stallion_fee_history table) — those specific
+   migration files are idempotent against an up-to-date schema.sql but can be skipped
+   on fresh installs.
 5. Copy your credentials from Settings > API:
    - **Project URL** (e.g. `https://xxxxx.supabase.co`)
    - **Anon key** (public, safe for frontend)

@@ -386,6 +386,16 @@ def scrape_stallion_rankings(sire_name: str, year: Optional[int] = None,
 
             if data:
                 results.append(data)
+            elif override_key not in SIRE_LIST_URL_OVERRIDES:
+                # Only warn when the default builder returned empty — overrides
+                # that come back empty mean the override URL is stale / wrong,
+                # but the log already notes their use above.
+                print(
+                    f"    WARNING: no row found for {sire_name} {list_type} {year} — "
+                    f"TDN's default URL may be wrong for this combination. "
+                    f"Consider adding an override to SIRE_LIST_URL_OVERRIDES: "
+                    f"{override_key!r}"
+                )
 
             time.sleep(2)  # Rate limiting
 
