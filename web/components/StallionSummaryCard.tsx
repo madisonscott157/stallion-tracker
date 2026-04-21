@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { formatStudFee } from '@/lib/currency'
+import { formatMoney } from '@/lib/utils'
 
 interface StallionSummary {
   id: string
@@ -12,6 +13,10 @@ interface StallionSummary {
   ytd_starters: number
   ytd_winners: number
   ytd_earnings: number
+  tdn_year?: number | null
+  tdn_starters?: number | null
+  tdn_winners?: number | null
+  tdn_earnings?: number | null
 }
 
 interface StallionSummaryCardProps {
@@ -49,15 +54,25 @@ export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-slate-500">
-        <div>
-          <span className="font-medium text-slate-700">{stallion.ytd_starters}</span> starters
+      {stallion.tdn_year != null && (
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-slate-500">
+          {stallion.tdn_starters != null && (
+            <div>
+              <span className="font-medium text-slate-700">{stallion.tdn_starters}</span> starters
+            </div>
+          )}
+          {stallion.tdn_winners != null && (
+            <div>
+              <span className="font-medium text-slate-700">{stallion.tdn_winners}</span> winners
+            </div>
+          )}
+          {stallion.tdn_earnings != null && stallion.tdn_earnings > 0 && (
+            <div>
+              <span className="font-medium text-slate-700">{formatMoney(stallion.tdn_earnings)}</span>
+            </div>
+          )}
         </div>
-        <div>
-          <span className="font-medium text-slate-700">{stallion.ytd_winners}</span> winners
-        </div>
-        <span className="text-slate-400">YTD</span>
-      </div>
+      )}
     </Link>
   )
 }

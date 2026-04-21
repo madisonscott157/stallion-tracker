@@ -175,6 +175,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         checkBookings()
       } finally {
         isLoadingUserData = false
+        // Flip isLoading to false only after the profile setState above has
+        // been queued — this keeps React's batching tight so DashboardHeader
+        // never renders with isLoading=false + profile=null, which produced
+        // the "Stallion Tracker" + bare Logout fallback on back-navigation.
+        if (!isCancelled) setIsLoading(false)
         // Run the queued retry (if any) — handles the case where a TOKEN_REFRESHED
         // event arrived while the initial load was in-flight and would otherwise be lost
         if (pendingUserId && !isCancelled) {
@@ -196,15 +201,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (session?.user) {
           await loadUserData(session.user.id)
+          // loadUserData's finally flips isLoading to false after setProfile
+          // — don't duplicate it here or we reintroduce the race.
+        } else if (!isCancelled) {
+          // No session → nothing to load, safe to mark complete.
+          setIsLoading(false)
         }
       } catch (error: unknown) {
         if (error instanceof Error && error.name === 'AbortError') return
         if (isCancelled) return
         console.error('Error initializing auth:', error)
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false)
-        }
+        if (!isCancelled) setIsLoading(false)
       }
     }
 

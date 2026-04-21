@@ -12,13 +12,13 @@ interface StatsBarProps {
 export function StatsBar({ year, starters, winners, earnings }: StatsBarProps) {
   return (
     <div className="bg-slate-50 border-b border-slate-200 px-4 py-3">
-      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm max-w-5xl mx-auto">
+      <div className="flex flex-wrap items-center justify-center gap-x-2 sm:gap-x-4 gap-y-1 text-sm max-w-5xl mx-auto">
         <span className="text-slate-500 font-medium">{year}</span>
         <span className="text-slate-300 hidden sm:inline">|</span>
         <span className="text-slate-700">{starters} starters</span>
-        <span className="text-slate-300">|</span>
+        <span className="text-slate-300 hidden sm:inline">|</span>
         <span className="text-slate-700">{winners} winners</span>
-        <span className="text-slate-300">|</span>
+        <span className="text-slate-300 hidden sm:inline">|</span>
         <span className="text-slate-700 font-medium">{formatMoney(earnings)}</span>
       </div>
     </div>

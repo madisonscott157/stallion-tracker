@@ -37,12 +37,12 @@ load_dotenv()
 STALLION_FIRST_CROP_YEAR = {
     'mckinzie': 2024,         # 2024=freshman, 2025=2nd, 2026=3rd
     'olympiad': 2026,         # first foals 2024, first runners 2026
-    'idol': 2026,
+    'idol': 2026,             # stood 2023 → first foals 2024 → freshman 2026
     'life is good': 2026,
     'mo donegal': 2026,
     'hello youmzain': 2024,   # 2024=freshman, 2025=2nd, 2026=3rd
     'good magic': 2022,       # stood 2019 → first foals 2020 → freshman 2022
-    'constitution': 2018,     # stood 2015 → first foals 2016 → freshman 2018
+    'constitution': 2019,     # stood 2015 (late) → first foals 2017 → freshman 2019
 }
 
 CROP_LIST_TYPES = {
@@ -52,12 +52,8 @@ CROP_LIST_TYPES = {
     4: 'fourth_crop',
 }
 
-# Per-stallion TDN region override. Default is 'na' (North America). TDN indexes
-# foreign-bred sires under their region's nao= filter.
-STALLION_TDN_REGION = {
-    'lope de vega': 'eu',
-    'hello youmzain': 'fr',
-}
+# Per-stallion TDN region override is now stored in stallions.tdn_region
+# ('na' | 'eu' | 'fr') — see migration 008. Fetched inline by the scrape loop.
 
 # Explicit historical (list_type, stats_year) tuples to backfill for a stallion,
 # in addition to the default current-year scrape selected by get_scrape_plan().
@@ -84,12 +80,12 @@ STALLION_HISTORICAL_SCRAPES = {
         ('general',     2025),
     ],
 
-    # Constitution: crops 1-3 + general for 4th-crop (2021) through last year.
+    # Constitution: crops 1-3 + general for 4th-crop (2022) through last year.
     'constitution': [
-        ('freshman',    2018),
-        ('second_crop', 2019),
-        ('third_crop',  2020),
-        *[('general', y) for y in range(2021, _CURRENT_YEAR)],
+        ('freshman',    2019),
+        ('second_crop', 2020),
+        ('third_crop',  2021),
+        *[('general', y) for y in range(2022, _CURRENT_YEAR)],
     ],
 }
 
@@ -153,14 +149,27 @@ def scrape_all_stallions(db: Database):
             errors += 1
             continue
 
+        # Fetch per-stallion scrape config from the stallions table in one
+        # round-trip: tdn_url, tdn_region, first_sales_year, equineline_url.
+        meta_row = db.client.table('stallions').select(
+            'tdn_url,tdn_region,first_sales_year,equineline_url'
+        ).eq('id', stallion_id).execute()
+        meta = meta_row.data[0] if meta_row.data else {}
+        tdn_url = meta.get('tdn_url')
+        tdn_region = meta.get('tdn_region') or 'na'
+        first_sales_year = meta.get('first_sales_year')
+        equineline_url = meta.get('equineline_url')
+        tdn_sire_param = extract_sire_param(tdn_url)
+
         # Scrape sales data - sire param is pulled from stallions.tdn_url so
         # foreign-bred stallions index with their country-code suffix on TDN.
         try:
-            print(f"\n  Scraping sales data...")
-            tdn_row = db.client.table('stallions').select('tdn_url').eq('id', stallion_id).execute()
-            tdn_url = (tdn_row.data[0] if tdn_row.data else {}).get('tdn_url')
-            tdn_sire_param = extract_sire_param(tdn_url)
-            sales_data = scrape_stallion_sales(sire_name, sire_param=tdn_sire_param)
+            print(f"\n  Scraping sales data (first_sales_year={first_sales_year})...")
+            sales_data = scrape_stallion_sales(
+                sire_name,
+                sire_param=tdn_sire_param,
+                first_sales_year=first_sales_year,
+            )
 
             for data in sales_data:
                 result_id = db.upsert_sales_stats(stallion_id, data)
@@ -175,13 +184,12 @@ def scrape_all_stallions(db: Database):
 
         # Scrape sire rankings per the per-stallion scrape plan
         try:
-            region = STALLION_TDN_REGION.get(sire_name.lower(), 'na')
             plan = get_scrape_plan(sire_name)
 
             for list_type, stats_year in plan:
                 type_label = LIST_TYPES.get(list_type, {}).get('label', list_type)
-                print(f"\n  Scraping sire rankings ({type_label} {stats_year}, region={region})...")
-                ranking_data = scrape_stallion_rankings(sire_name, stats_year, [list_type], region=region)
+                print(f"\n  Scraping sire rankings ({type_label} {stats_year}, region={tdn_region})...")
+                ranking_data = scrape_stallion_rankings(sire_name, stats_year, [list_type], region=tdn_region)
 
                 for data in ranking_data:
                     result_id = db.upsert_sire_ranking(stallion_id, data)
@@ -195,8 +203,6 @@ def scrape_all_stallions(db: Database):
 
         # Scrape Equineline racing stats - ref is parsed from stallions.equineline_url
         try:
-            url_row = db.client.table('stallions').select('equineline_url').eq('id', stallion_id).execute()
-            equineline_url = (url_row.data[0] if url_row.data else {}).get('equineline_url')
             equineline_ref = extract_stallion_ref(equineline_url)
             if equineline_ref:
                 print(f"\n  Scraping Equineline stats (ref {equineline_ref})...")

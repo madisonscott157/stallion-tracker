@@ -11,12 +11,13 @@ import { ResultsSection } from '@/components/ResultsSection'
 import { WorkoutsSection } from '@/components/WorkoutsSection'
 import { SireRankingsTable } from '@/components/SireRankingsTable'
 import { EquinelineSection } from '@/components/EquinelineSection'
+import { FeeHistoryTable } from '@/components/FeeHistoryTable'
 import dynamic from 'next/dynamic'
 
 const ExportModal = dynamic(() => import('@/components/ExportModal').then(mod => ({ default: mod.ExportModal })), { ssr: false })
 import { PullToRefresh } from '@/components/PullToRefresh'
 import { useAuth } from '@/lib/auth-context'
-import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineStats, Workout } from '@/lib/supabase'
+import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineStats, Workout, StallionFeeHistory } from '@/lib/supabase'
 import { EmptyState } from '@/components/EmptyState'
 import { ClmToggle } from '@/components/ClmToggle'
 import type { ExportOptions, OrgWithSilks } from '@/lib/pdf-export'
@@ -36,7 +37,9 @@ function HomeContent() {
   const [sales, setSales] = useState<SalesStats[]>([])
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [rankings, setRankings] = useState<SireRanking[]>([])
+  const [tdnRegion, setTdnRegion] = useState<'na' | 'eu' | 'fr'>('na')
   const [equinelineStats, setEquinelineStats] = useState<EquinelineStats | null>(null)
+  const [feeHistory, setFeeHistory] = useState<StallionFeeHistory[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [fetchKey, setFetchKey] = useState(0)
@@ -46,7 +49,7 @@ function HomeContent() {
   const [stallion, setStallion] = useState<string>('Loading...')
   const { profile, isLoading: authLoading, allOrgsWithSilks, isAdmin } = useAuth()
   const showRaceActivity = profile?.organization?.show_race_activity !== false
-  const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats' | 'sales'>(
+  const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats' | 'sales' | 'history'>(
     showRaceActivity ? 'overview' : 'stats'
   )
   const router = useRouter()
@@ -122,7 +125,9 @@ function HomeContent() {
           setSales(data.sales || [])
           setWorkouts(data.workouts || [])
           setRankings(data.rankings || [])
+          setTdnRegion(data.tdn_region || 'na')
           setEquinelineStats(data.equineline || null)
+          setFeeHistory(data.history || [])
         } else {
           setError(true)
         }
@@ -288,7 +293,7 @@ function HomeContent() {
             {activeTab === 'stats' && (
               <div key="stats" className="tab-content-enter">
                 <section className="max-w-3xl mx-auto">
-                  <SireRankingsTable rankings={rankings} />
+                  <SireRankingsTable rankings={rankings} region={tdnRegion} />
                   {equinelineStats && (
                     <EquinelineSection stats={equinelineStats} currentYear={currentYear} />
                   )}
@@ -322,6 +327,19 @@ function HomeContent() {
                 </section>
               </div>
             )}
+
+            {/* History Tab */}
+            {activeTab === 'history' && (
+              <div key="history" className="tab-content-enter">
+                <section className="max-w-3xl mx-auto">
+                  {feeHistory.length > 0 ? (
+                    <FeeHistoryTable history={feeHistory} stallionName={stallion} />
+                  ) : (
+                    <EmptyState message="No history available" />
+                  )}
+                </section>
+              </div>
+            )}
           </>
         )}
       </main>
@@ -336,8 +354,8 @@ function HomeContent() {
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
         aria-label="Main navigation"
       >
-        <div className="flex justify-around text-sm max-w-5xl mx-auto" role="tablist">
-          {(['overview', 'results', 'stats', 'sales'] as const)
+        <div className="flex justify-around text-xs sm:text-sm max-w-5xl mx-auto" role="tablist">
+          {(['overview', 'results', 'stats', 'sales', 'history'] as const)
             .filter(tab => showRaceActivity || (tab !== 'overview' && tab !== 'results'))
             .map((tab) => (
             <button
@@ -345,7 +363,7 @@ function HomeContent() {
               role="tab"
               aria-selected={activeTab === tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex flex-col items-center relative pb-2 px-3 ${activeTab === tab ? 'text-slate-900 font-semibold' : 'text-slate-400 font-normal'}`}
+              className={`flex flex-col items-center relative pb-2 px-2 sm:px-3 ${activeTab === tab ? 'text-slate-900 font-semibold' : 'text-slate-400 font-normal'}`}
             >
               <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
               <span

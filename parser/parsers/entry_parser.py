@@ -20,9 +20,11 @@ TRACK_TIMEZONES = {
     # Mountain
     'TURF PARADISE': 'MT',
     'ARIZONA DOWNS': 'MT',
+    # Eastern Kentucky (Louisville + Lexington are both on ET)
+    'CHURCHILL DOWNS': 'ET', 'CD': 'ET',
+    'KEENELAND': 'ET',
+    'TURFWAY PARK': 'ET', 'TP': 'ET',
     # Central
-    'CHURCHILL DOWNS': 'CT', 'CD': 'CT',
-    'KEENELAND': 'ET',  # Kentucky is ET
     'FAIR GROUNDS': 'CT', 'FG': 'CT',
     'OAKLAWN': 'CT', 'OP': 'CT',
     'LOUISIANA DOWNS': 'CT',

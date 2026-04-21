@@ -47,10 +47,19 @@ class SireRankingData:
     source_url: Optional[str] = None
 
 
-# List type configurations - srt22 differs by list type (1=rank, 9=earnings)
+# List type configurations — srt22 and the current-year region (naocy) mirror
+# the parameters TDN uses on each list's own page. Crop lists sort by rank
+# (srt22=7); the general Leading Sires list sorts by rank (srt22=1). Without
+# the cy-prefixed params the page renders a short/empty result set for some
+# lists (e.g. the freshman 2026 list omits sires below rank ~25).
+# TDN's "crops" param appears to filter by number-of-crops-racing. Freshman
+# sires (1 crop) pass crops=1, 2nd-crop (2 crops racing) pass crops=2, etc.
+# Historical / foreign / out-of-default URLs sometimes use different crops
+# values on TDN's own interface — those cases live in SIRE_LIST_URL_OVERRIDES
+# below. The general Leading Sires list uses crops=0 (all sires).
 LIST_TYPES = {
     'ytd':          {'label': 'Year-to-Date',       'crops': '0', 'srt22': '9'},
-    'freshman':     {'label': 'Freshman Sires',     'crops': '1', 'srt22': '9'},
+    'freshman':     {'label': 'Freshman Sires',     'crops': '1', 'srt22': '7'},
     'second_crop':  {'label': 'Second-Crop Sires',  'crops': '2', 'srt22': '9'},
     'third_crop':   {'label': 'Third-Crop Sires',   'crops': '3', 'srt22': '9'},
     'fourth_crop':  {'label': 'Fourth-Crop Sires',  'crops': '4', 'srt22': '9'},
@@ -59,6 +68,38 @@ LIST_TYPES = {
 
 # Region codes → TDN 'nao' query param
 REGION_NAO = {'na': '1', 'eu': '2', 'fr': '5'}
+
+# Explicit URL overrides for (sire_name_lower, list_type, stats_year) combinations
+# where the default builder's URL returns an empty page. These were captured
+# manually from TDN's interface when the target sire is confirmed on the list.
+# Using verbatim URLs avoids guessing at TDN's inconsistent crops/srt22/txbYear
+# semantics across historical years and regions.
+SIRE_LIST_URL_OVERRIDES: dict[tuple[str, str, int], str] = {
+    ('hello youmzain', 'second_crop', 2025):
+        'https://www.thoroughbreddailynews.com/sire-list/'
+        '?txbYear=2022&crops=1&sbYear=2025&d22=1&s22=1&srt22=8'
+        '&nOF=1&nOFC=0&nOS=1&nOSC=0&nao=5&txbFR=NHB&fr=NHB'
+        '&ob=130&ob2=0&cy=0&nOFcy=1&nOFCcy=0&nOScy=1&nOSCcy=0'
+        '&naocy=1&frcy=NHB&obcy=130&ob2cy=0',
+    ('constitution', 'second_crop', 2020):
+        'https://www.thoroughbreddailynews.com/sire-list/'
+        '?txbYear=2025&crops=2&sbYear=2020&d22=1&s22=1&srt22=8'
+        '&nOF=1&nOFC=0&nOS=1&nOSC=0&nao=1&txbFR=NHB&fr=NHB'
+        '&ob=130&ob2=0&cy=0&nOFcy=1&nOFCcy=0&nOScy=1&nOSCcy=0'
+        '&naocy=5&frcy=NHB&obcy=130&ob2cy=0',
+    ('constitution', 'third_crop', 2021):
+        'https://www.thoroughbreddailynews.com/sire-list/'
+        '?txbYear=2020&crops=2&sbYear=2021&d22=1&s22=1&srt22=9'
+        '&nOF=1&nOFC=0&nOS=1&nOSC=0&nao=1&txbFR=NHB&fr=NHB'
+        '&ob=130&ob2=0&cy=0&nOFcy=1&nOFCcy=0&nOScy=1&nOSCcy=0'
+        '&naocy=1&frcy=NHB&obcy=130&ob2cy=0',
+    ('good magic', 'second_crop', 2023):
+        'https://www.thoroughbreddailynews.com/sire-list/'
+        '?txbYear=2021&crops=3&sbYear=2023&d22=1&s22=1&srt22=8'
+        '&nOF=1&nOFC=0&nOS=1&nOSC=0&nao=1&txbFR=NHB&fr=NHB'
+        '&ob=130&ob2=0&cy=0&nOFcy=1&nOFCcy=0&nOScy=1&nOSCcy=0'
+        '&naocy=1&frcy=NHB&obcy=130&ob2cy=0',
+}
 
 
 def build_sire_list_url(stats_year: int, list_type: str, interface_year: Optional[int] = None,
@@ -87,6 +128,10 @@ def build_sire_list_url(stats_year: int, list_type: str, interface_year: Optiona
         f"&nOF=1&nOFC=0&nOS=1&nOSC=0&nao={nao}"
         f"&txbFR=NHB&fr=NHB"
         f"&ob=130&ob2=0&cy=0"
+        # Current-year comparison block — required for full result rendering.
+        # naocy=3 mirrors TDN's own "worldwide" compare default.
+        f"&nOFcy=1&nOFCcy=0&nOScy=1&nOSCcy=0&naocy=3"
+        f"&frcy=NHB&obcy=130&ob2cy=0"
     )
 
 
@@ -166,23 +211,30 @@ def scrape_sire_from_list(driver: 'webdriver.Chrome', url: str, target_sire: str
         # Find all tables and look for sire data
         tables = soup.find_all('table')
 
+        # Word-boundary regex on the stallion's normalised name. Prevents
+        # incidental substring matches like "Constitutional" / "Constitution Lane"
+        # / dam-sire column mentions / "By Constitution" in a top-earner cell
+        # from pulling the wrong row.
+        sire_pattern = re.compile(
+            r'\b' + re.escape(target_sire.lower()) + r'\b'
+        )
+
         for table in tables:
             rows = table.find_all('tr')
 
             for row in rows:
-                row_text = row.get_text().lower()
-
-                # Check if this row contains our sire
-                if target_sire.lower() not in row_text:
-                    continue
-
-                # Found the sire - parse cells
                 cells = row.find_all(['td', 'th'])
                 if len(cells) < 14:
                     continue
 
+                # The stallion-name column is cell 1 (cell 0 is rank). Match
+                # the sire name inside that cell only — not anywhere in the row.
+                sire_cell_text = cells[1].get_text(separator=' ', strip=True).lower()
+                if not sire_pattern.search(sire_cell_text):
+                    continue
+
                 cell_texts = [c.get_text(strip=True) for c in cells]
-                print(f"    Found {target_sire}")
+                print(f"    Found {target_sire} (rank cell = {cell_texts[0]!r})")
 
                 data = SireRankingData(
                     year=year,
@@ -321,12 +373,29 @@ def scrape_stallion_rankings(sire_name: str, year: Optional[int] = None,
         for list_type in list_types:
             if list_type not in LIST_TYPES:
                 continue
-            # Use current year as interface year for historical data
-            url = build_sire_list_url(year, list_type, interface_year=datetime.now().year, region=region)
+            # Check for a manual URL override first (TDN's param semantics are
+            # inconsistent across years/regions; overrides were captured from a
+            # working session). Fall back to the default builder otherwise.
+            override_key = (sire_name.lower(), list_type, year)
+            if override_key in SIRE_LIST_URL_OVERRIDES:
+                url = SIRE_LIST_URL_OVERRIDES[override_key]
+                print(f"    Using manual URL override for {sire_name} {list_type} {year}")
+            else:
+                url = build_sire_list_url(year, list_type, interface_year=datetime.now().year, region=region)
             data = scrape_sire_from_list(driver, url, sire_name, year, list_type)
 
             if data:
                 results.append(data)
+            elif override_key not in SIRE_LIST_URL_OVERRIDES:
+                # Only warn when the default builder returned empty — overrides
+                # that come back empty mean the override URL is stale / wrong,
+                # but the log already notes their use above.
+                print(
+                    f"    WARNING: no row found for {sire_name} {list_type} {year} — "
+                    f"TDN's default URL may be wrong for this combination. "
+                    f"Consider adding an override to SIRE_LIST_URL_OVERRIDES: "
+                    f"{override_key!r}"
+                )
 
             time.sleep(2)  # Rate limiting
 

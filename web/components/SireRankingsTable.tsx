@@ -2,21 +2,27 @@
 
 import type { SireRanking } from '@/lib/supabase'
 
+export type StallionRegion = 'na' | 'eu' | 'fr'
+
 interface SireRankingsTableProps {
   rankings: SireRanking[]
+  region?: StallionRegion
 }
 
-function getListLabel(listType: string): string {
-  return listType === 'ytd' ? 'YTD' :
+function getListLabel(listType: string, region: StallionRegion = 'na'): string {
+  const base =
+    listType === 'ytd' ? 'YTD' :
     listType === 'freshman' ? '1st Crop' :
     listType === 'second_crop' ? '2nd Crop' :
     listType === 'third_crop' ? '3rd Crop' :
     listType === 'fourth_crop' ? '4th Crop' :
     listType === 'general' ? 'Leading Sires' :
     listType
+  const suffix = region === 'eu' ? ' - EU' : region === 'fr' ? ' - FR' : ''
+  return `${base}${suffix}`
 }
 
-export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
+export function SireRankingsTable({ rankings, region = 'na' }: SireRankingsTableProps) {
   if (rankings.length === 0) return null
 
   const sortedRankings = [...rankings].sort((a, b) => b.year - a.year)
@@ -28,27 +34,27 @@ export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
       {/* Mobile: Card layout */}
       <div className="sm:hidden space-y-3">
         {sortedRankings.map(ranking => {
-          const listLabel = getListLabel(ranking.list_type)
+          const listLabel = getListLabel(ranking.list_type, region)
           return (
             <div key={ranking.id} className="bg-white rounded-lg border border-slate-200 p-3 card-hover">
-              <div className="flex items-baseline justify-between mb-2">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-medium text-slate-600">{ranking.year}</span>
+              <div className="flex items-baseline justify-between mb-2 gap-2">
+                <div className="flex items-baseline gap-2 min-w-0 flex-1">
+                  <span className="text-sm font-medium text-slate-600 shrink-0">{ranking.year}</span>
                   {ranking.source_url ? (
                     <a
                       href={ranking.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm font-medium hover:underline"
+                      className="text-sm font-medium hover:underline truncate"
                       style={{ color: 'var(--org-primary)' }}
                     >
                       {listLabel}
                     </a>
                   ) : (
-                    <span className="text-sm text-slate-700">{listLabel}</span>
+                    <span className="text-sm text-slate-700 truncate">{listLabel}</span>
                   )}
                 </div>
-                <span className="text-lg font-bold text-slate-900">{ranking.rank != null ? `#${ranking.rank}` : '-'}</span>
+                <span className="text-lg font-bold text-slate-900 shrink-0">{ranking.rank != null ? `#${ranking.rank}` : '-'}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-sm">
                 <div className="text-center">
@@ -108,7 +114,7 @@ export function SireRankingsTable({ rankings }: SireRankingsTableProps) {
           </thead>
           <tbody>
             {sortedRankings.map(ranking => {
-              const listLabel = getListLabel(ranking.list_type)
+              const listLabel = getListLabel(ranking.list_type, region)
               return (
                 <tr key={ranking.id} className="border-b border-slate-100 last:border-0">
                   <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">

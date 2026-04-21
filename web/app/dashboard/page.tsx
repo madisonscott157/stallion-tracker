@@ -21,6 +21,10 @@ interface StallionSummary {
   ytd_starters: number
   ytd_winners: number
   ytd_earnings: number
+  tdn_year: number | null
+  tdn_starters: number | null
+  tdn_winners: number | null
+  tdn_earnings: number | null
 }
 
 interface DashboardData {

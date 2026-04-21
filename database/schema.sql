@@ -39,8 +39,12 @@ CREATE TABLE stallions (
     dam TEXT,
     dam_sire TEXT,
     stud_farm TEXT,
+    stud_fee INTEGER,                                           -- migration 004
     equineline_url TEXT,
     tdn_url TEXT,
+    tdn_region TEXT NOT NULL DEFAULT 'na'                       -- migration 008
+        CHECK (tdn_region IN ('na', 'eu', 'fr')),
+    first_sales_year INTEGER,                                   -- migration 008
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -500,3 +504,22 @@ CREATE TRIGGER update_sire_rankings_updated_at
     BEFORE UPDATE ON sire_rankings
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+
+-- ============================================
+-- STALLION FEE HISTORY (migration 009)
+-- Year-by-year stud-fee + mares-bred record, manually maintained.
+-- ============================================
+CREATE TABLE stallion_fee_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    stallion_id UUID REFERENCES stallions(id) NOT NULL,
+    year INTEGER NOT NULL,
+    stud_fee INTEGER,                                           -- native currency per stallions.tdn_region
+    mares_bred INTEGER,
+    standing_at TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(stallion_id, year)
+);
+
+CREATE INDEX idx_stallion_fee_history_stallion ON stallion_fee_history(stallion_id);

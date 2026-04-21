@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     // Stallion ID lookup (needed for rankings, equineline, sales)
     supabase
       .from('stallions')
-      .select('id')
+      .select('id, tdn_region')
       .ilike('name', stallion)
       .single(),
 
@@ -127,9 +127,9 @@ export async function GET(request: NextRequest) {
       .limit(100) : emptyQuery,
   ])
 
-  // Second batch: rankings + equineline need stallion ID
+  // Second batch: rankings + equineline + fee history need stallion ID
   const stallionId = stallionIdRes.data?.id
-  const [rankingsRes, equinelineRes] = stallionId
+  const [rankingsRes, equinelineRes, historyRes] = stallionId
     ? await Promise.all([
         supabase
           .from('sire_rankings')
@@ -142,8 +142,13 @@ export async function GET(request: NextRequest) {
           .select('*')
           .eq('stallion_id', stallionId)
           .maybeSingle(),
+        supabase
+          .from('stallion_fee_history')
+          .select('id, stallion_id, year, stud_fee, mares_bred, standing_at')
+          .eq('stallion_id', stallionId)
+          .order('year', { ascending: false }),
       ])
-    : [{ data: [], error: null }, { data: null, error: null }]
+    : [{ data: [], error: null }, { data: null, error: null }, { data: [], error: null }]
 
   // Build a set of results keyed by horse_id+race_date+track+race_number
   // so we can exclude entries whose race has already run
@@ -211,6 +216,8 @@ export async function GET(request: NextRequest) {
     workouts,
     rankings: rankingsRes.data || [],
     equineline: equinelineRes.data || null,
+    history: historyRes.data || [],
+    tdn_region: (stallionIdRes.data as any)?.tdn_region ?? 'na',
   })
   response.headers.set('Cache-Control', 'private, s-maxage=300, stale-while-revalidate=600')
   return response
