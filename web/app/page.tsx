@@ -330,7 +330,7 @@ function HomeContent() {
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
         aria-label="Main navigation"
       >
-        <div className="flex justify-around text-sm max-w-5xl mx-auto" role="tablist">
+        <div className="flex justify-around text-xs sm:text-sm max-w-5xl mx-auto" role="tablist">
           {(['overview', 'results', 'stats', 'sales', 'history'] as const).map((tab) => (
             <button
               key={tab}

@@ -41,7 +41,7 @@ export function FeeHistoryTable({ history, stallionName }: FeeHistoryTableProps)
                   {formatStudFee(row.stud_fee, stallionName) ?? '-'}
                 </td>
                 <td className="py-2 px-2 sm:px-3 text-slate-600 text-center tabular-nums">{row.mares_bred ?? '-'}</td>
-                <td className="py-2 px-2 sm:px-3 text-slate-600 truncate max-w-[110px] sm:max-w-none">{row.standing_at ?? '-'}</td>
+                <td className="py-2 px-2 sm:px-3 text-slate-600 truncate max-w-[110px] sm:max-w-none" title={row.standing_at ?? ''}>{row.standing_at ?? '-'}</td>
               </tr>
             ))}
           </tbody>
