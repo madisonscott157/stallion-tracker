@@ -72,19 +72,23 @@ export async function GET() {
   // 2-5. Parallel queries
   const [entriesRes, entryResultsRes, ytdRes, winnersRes, stakesRes, rankingsRes] = await Promise.all([
     // Upcoming entries (all stallions, not scratched, from today)
-    applyClaimingFilter(
-      supabase
-        .from('entries')
-        .select('id, horse_id, race_date, track, race_number, horses!inner(sire_id)')
-        .eq('scratched', false)
-        .gte('race_date', today)
-    ),
+    showRaceActivity
+      ? applyClaimingFilter(
+          supabase
+            .from('entries')
+            .select('id, horse_id, race_date, track, race_number, horses!inner(sire_id)')
+            .eq('scratched', false)
+            .gte('race_date', today)
+        )
+      : emptyQuery,
 
     // Results for today+ (to exclude entries whose race has already run)
-    supabase
-      .from('results')
-      .select('horse_id, race_date, track, race_number')
-      .gte('race_date', today),
+    showRaceActivity
+      ? supabase
+          .from('results')
+          .select('horse_id, race_date, track, race_number')
+          .gte('race_date', today)
+      : emptyQuery,
 
     // YTD stats from view (use stallion_name since view may not have stallion_id)
     supabase
