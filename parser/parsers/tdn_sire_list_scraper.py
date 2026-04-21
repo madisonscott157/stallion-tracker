@@ -211,23 +211,30 @@ def scrape_sire_from_list(driver: 'webdriver.Chrome', url: str, target_sire: str
         # Find all tables and look for sire data
         tables = soup.find_all('table')
 
+        # Word-boundary regex on the stallion's normalised name. Prevents
+        # incidental substring matches like "Constitutional" / "Constitution Lane"
+        # / dam-sire column mentions / "By Constitution" in a top-earner cell
+        # from pulling the wrong row.
+        sire_pattern = re.compile(
+            r'\b' + re.escape(target_sire.lower()) + r'\b'
+        )
+
         for table in tables:
             rows = table.find_all('tr')
 
             for row in rows:
-                row_text = row.get_text().lower()
-
-                # Check if this row contains our sire
-                if target_sire.lower() not in row_text:
-                    continue
-
-                # Found the sire - parse cells
                 cells = row.find_all(['td', 'th'])
                 if len(cells) < 14:
                     continue
 
+                # The stallion-name column is cell 1 (cell 0 is rank). Match
+                # the sire name inside that cell only — not anywhere in the row.
+                sire_cell_text = cells[1].get_text(separator=' ', strip=True).lower()
+                if not sire_pattern.search(sire_cell_text):
+                    continue
+
                 cell_texts = [c.get_text(strip=True) for c in cells]
-                print(f"    Found {target_sire}")
+                print(f"    Found {target_sire} (rank cell = {cell_texts[0]!r})")
 
                 data = SireRankingData(
                     year=year,
