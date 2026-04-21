@@ -52,12 +52,15 @@ class SireRankingData:
 # (srt22=7); the general Leading Sires list sorts by rank (srt22=1). Without
 # the cy-prefixed params the page renders a short/empty result set for some
 # lists (e.g. the freshman 2026 list omits sires below rank ~25).
+# All young-sire lists share crops=1 on TDN's URL; the specific crop (freshman
+# vs 2nd/3rd/4th) is determined by sbYear (the stats year). crops=0 is only
+# for the general / Leading Sires list.
 LIST_TYPES = {
     'ytd':          {'label': 'Year-to-Date',       'crops': '0', 'srt22': '9'},
     'freshman':     {'label': 'Freshman Sires',     'crops': '1', 'srt22': '7'},
-    'second_crop':  {'label': 'Second-Crop Sires',  'crops': '2', 'srt22': '7'},
-    'third_crop':   {'label': 'Third-Crop Sires',   'crops': '3', 'srt22': '7'},
-    'fourth_crop':  {'label': 'Fourth-Crop Sires',  'crops': '4', 'srt22': '7'},
+    'second_crop':  {'label': 'Second-Crop Sires',  'crops': '1', 'srt22': '7'},
+    'third_crop':   {'label': 'Third-Crop Sires',   'crops': '1', 'srt22': '7'},
+    'fourth_crop':  {'label': 'Fourth-Crop Sires',  'crops': '1', 'srt22': '7'},
     'general':      {'label': 'Leading Sires',      'crops': '0', 'srt22': '1'},
 }
 
