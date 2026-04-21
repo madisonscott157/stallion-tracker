@@ -266,15 +266,19 @@ def scrape_equineline_stats(stallion_ref: str, ascid: str = "1443262") -> Option
             # produces only two regex matches. The old >=3 guard caused
             # every 2YO field to be silently skipped in that case. Assign
             # whatever columns are present and leave the rest None.
+            # Equineline renders 4-digit+ numbers with commas (e.g. "1,227(74%)").
+            # The value group must accept commas; strip them before int().
+            value_pct_re = r'([\d,]+)\s*\((\d+)%\)'
+
             def _assign3(parts, setters):
                 for i, (val_attr, pct_attr) in enumerate(setters):
                     if i < len(parts):
-                        setattr(stats, val_attr, int(parts[i][0]))
+                        setattr(stats, val_attr, int(parts[i][0].replace(',', '')))
                         setattr(stats, pct_attr, float(parts[i][1]))
 
             # Starters line
             if 'Starters' in combined_line and 'foals' in combined_line:
-                parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
+                parts = re.findall(value_pct_re, combined_line)
                 _assign3(parts, [
                     ('lifetime_starters', 'lifetime_starters_pct'),
                     ('current_starters', 'current_starters_pct'),
@@ -283,7 +287,7 @@ def scrape_equineline_stats(stallion_ref: str, ascid: str = "1443262") -> Option
 
             # Winners line (not Blacktype)
             elif 'Winners' in combined_line and 'foals' in combined_line and 'Blacktype' not in combined_line:
-                parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
+                parts = re.findall(value_pct_re, combined_line)
                 _assign3(parts, [
                     ('lifetime_winners', 'lifetime_winners_pct'),
                     ('current_winners', 'current_winners_pct'),
@@ -292,7 +296,7 @@ def scrape_equineline_stats(stallion_ref: str, ascid: str = "1443262") -> Option
 
             # Blacktype Winners line
             elif 'Blacktype Winners' in combined_line:
-                parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
+                parts = re.findall(value_pct_re, combined_line)
                 _assign3(parts, [
                     ('lifetime_btw', 'lifetime_btw_pct'),
                     ('current_btw', 'current_btw_pct'),
@@ -301,7 +305,7 @@ def scrape_equineline_stats(stallion_ref: str, ascid: str = "1443262") -> Option
 
             # Blacktype Placers line
             elif 'Blacktype Placers' in combined_line:
-                parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
+                parts = re.findall(value_pct_re, combined_line)
                 _assign3(parts, [
                     ('lifetime_btp', 'lifetime_btp_pct'),
                     ('current_btp', 'current_btp_pct'),
@@ -310,7 +314,7 @@ def scrape_equineline_stats(stallion_ref: str, ascid: str = "1443262") -> Option
 
             # Starts line (just numbers, no percentages from foals)
             elif combined_line.strip().startswith('Starts') and 'starter' not in combined_line.lower():
-                nums = re.findall(r'\d+', combined_line)
+                nums = [n.replace(',', '') for n in re.findall(r'[\d,]+', combined_line)]
                 if len(nums) >= 1:
                     stats.lifetime_starts = int(nums[0])
                 if len(nums) >= 2:
@@ -320,7 +324,7 @@ def scrape_equineline_stats(stallion_ref: str, ascid: str = "1443262") -> Option
 
             # Wins line
             elif 'Wins' in combined_line and 'starts' in combined_line:
-                parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
+                parts = re.findall(value_pct_re, combined_line)
                 _assign3(parts, [
                     ('lifetime_wins', 'lifetime_wins_pct'),
                     ('current_wins', 'current_wins_pct'),
@@ -329,7 +333,7 @@ def scrape_equineline_stats(stallion_ref: str, ascid: str = "1443262") -> Option
 
             # Placings line
             elif 'Placings' in combined_line and 'starts' in combined_line:
-                parts = re.findall(r'(\d+)\s*\((\d+)%\)', combined_line)
+                parts = re.findall(value_pct_re, combined_line)
                 _assign3(parts, [
                     ('lifetime_placings', 'lifetime_placings_pct'),
                     ('current_placings', 'current_placings_pct'),
