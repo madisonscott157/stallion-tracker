@@ -337,7 +337,7 @@ function HomeContent() {
               role="tab"
               aria-selected={activeTab === tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex flex-col items-center relative pb-2 px-3 ${activeTab === tab ? 'text-slate-900 font-semibold' : 'text-slate-400 font-normal'}`}
+              className={`flex flex-col items-center relative pb-2 px-2 sm:px-3 ${activeTab === tab ? 'text-slate-900 font-semibold' : 'text-slate-400 font-normal'}`}
             >
               <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
               <span
