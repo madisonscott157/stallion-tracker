@@ -22,12 +22,13 @@ export async function GET() {
   const profile = userRow
 
   // 1. Fetch visible stallions (same logic as /api/stallions)
-  let stallionList: { id: string; name: string; stud_farm: string | null; stud_fee: string | null }[] = []
+  type StallionRow = { id: string; name: string; stud_farm: string | null; stud_fee: string | null; tdn_region: string | null }
+  let stallionList: StallionRow[] = []
 
   if (profile.role === 'admin') {
     const { data } = await supabase
       .from('stallions')
-      .select('id, name, stud_farm, stud_fee')
+      .select('id, name, stud_farm, stud_fee, tdn_region')
       .order('name')
     stallionList = data || []
   } else {
@@ -36,11 +37,11 @@ export async function GET() {
     }
     const { data } = await supabase
       .from('organization_stallions')
-      .select('stallion_id, stallions(id, name, stud_farm, stud_fee)')
+      .select('stallion_id, stallions(id, name, stud_farm, stud_fee, tdn_region)')
       .eq('organization_id', profile.organization_id)
 
     stallionList = (data || [])
-      .map(os => os.stallions as unknown as { id: string; name: string; stud_farm: string | null; stud_fee: string | null })
+      .map(os => os.stallions as unknown as StallionRow)
       .filter(Boolean)
       .sort((a, b) => a.name.localeCompare(b.name))
   }
@@ -194,6 +195,7 @@ export async function GET() {
       name: s.name,
       stud_farm: s.stud_farm,
       stud_fee: s.stud_fee,
+      tdn_region: s.tdn_region ?? 'na',
       upcoming_entries: entryCounts[s.id] || 0,
       ytd_starters: ytdMap[s.name]?.starters || 0,
       ytd_winners: ytdMap[s.name]?.winners || 0,

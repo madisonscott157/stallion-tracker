@@ -244,9 +244,15 @@ def fetch_and_parse_tdn_page(driver: 'webdriver.Chrome', url: str, target_year: 
     return results
 
 
-def scrape_stallion_sales(sire_name: str, years: Optional[List[int]] = None, sire_param: Optional[str] = None) -> List[SalesData]:
+def scrape_stallion_sales(sire_name: str, years: Optional[List[int]] = None,
+                          sire_param: Optional[str] = None,
+                          first_sales_year: Optional[int] = None) -> List[SalesData]:
     """
     Scrape all sales data for a stallion across specified years.
+
+    If ``first_sales_year`` is given, any default-generated years below it are
+    dropped before scraping — skips the ~14 empty-year Selenium loads per young
+    stallion each run. Explicit ``years`` lists are honoured as-is.
     """
     if not SELENIUM_AVAILABLE:
         print("Error: Selenium is required for TDN scraping")
@@ -257,7 +263,8 @@ def scrape_stallion_sales(sire_name: str, years: Optional[List[int]] = None, sir
         # Start at 2010 to backfill older data for established stallions
         # (e.g. Twirling Candy stood from 2011, Lope de Vega has 2019 sales).
         # Empty years are handled silently by fetch_and_parse_tdn_page.
-        years = list(range(2010, current_year + 1))
+        start_year = max(2010, first_sales_year) if first_sales_year else 2010
+        years = list(range(start_year, current_year + 1))
 
     results = []
     driver = None

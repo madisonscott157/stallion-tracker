@@ -36,6 +36,7 @@ function HomeContent() {
   const [sales, setSales] = useState<SalesStats[]>([])
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [rankings, setRankings] = useState<SireRanking[]>([])
+  const [tdnRegion, setTdnRegion] = useState<'na' | 'eu' | 'fr'>('na')
   const [equinelineStats, setEquinelineStats] = useState<EquinelineStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -98,6 +99,7 @@ function HomeContent() {
           setSales(data.sales || [])
           setWorkouts(data.workouts || [])
           setRankings(data.rankings || [])
+          setTdnRegion(data.tdn_region || 'na')
           setEquinelineStats(data.equineline || null)
         } else {
           setError(true)
@@ -264,7 +266,7 @@ function HomeContent() {
             {activeTab === 'stats' && (
               <div key="stats" className="tab-content-enter">
                 <section className="max-w-3xl mx-auto">
-                  <SireRankingsTable rankings={rankings} stallionName={stallion} />
+                  <SireRankingsTable rankings={rankings} region={tdnRegion} />
                   {equinelineStats && (
                     <EquinelineSection stats={equinelineStats} currentYear={currentYear} />
                   )}

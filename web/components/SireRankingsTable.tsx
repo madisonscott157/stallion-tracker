@@ -1,11 +1,12 @@
 'use client'
 
 import type { SireRanking } from '@/lib/supabase'
-import { getStallionRegion, type StallionRegion } from '@/lib/regions'
+
+export type StallionRegion = 'na' | 'eu' | 'fr'
 
 interface SireRankingsTableProps {
   rankings: SireRanking[]
-  stallionName?: string
+  region?: StallionRegion
 }
 
 function getListLabel(listType: string, region: StallionRegion = 'na'): string {
@@ -21,8 +22,7 @@ function getListLabel(listType: string, region: StallionRegion = 'na'): string {
   return `${base}${suffix}`
 }
 
-export function SireRankingsTable({ rankings, stallionName }: SireRankingsTableProps) {
-  const region = getStallionRegion(stallionName)
+export function SireRankingsTable({ rankings, region = 'na' }: SireRankingsTableProps) {
   if (rankings.length === 0) return null
 
   const sortedRankings = [...rankings].sort((a, b) => b.year - a.year)

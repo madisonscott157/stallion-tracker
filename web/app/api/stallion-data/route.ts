@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     // Stallion ID lookup (needed for rankings, equineline, sales)
     supabase
       .from('stallions')
-      .select('id')
+      .select('id, tdn_region')
       .ilike('name', stallion)
       .single(),
 
@@ -206,6 +206,7 @@ export async function GET(request: NextRequest) {
     workouts,
     rankings: rankingsRes.data || [],
     equineline: equinelineRes.data || null,
+    tdn_region: (stallionIdRes.data as any)?.tdn_region ?? 'na',
   })
   response.headers.set('Cache-Control', 'private, s-maxage=300, stale-while-revalidate=600')
   return response
