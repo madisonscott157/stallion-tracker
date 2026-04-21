@@ -52,15 +52,17 @@ class SireRankingData:
 # (srt22=7); the general Leading Sires list sorts by rank (srt22=1). Without
 # the cy-prefixed params the page renders a short/empty result set for some
 # lists (e.g. the freshman 2026 list omits sires below rank ~25).
-# All young-sire lists share crops=1 on TDN's URL; the specific crop (freshman
-# vs 2nd/3rd/4th) is determined by sbYear (the stats year). crops=0 is only
-# for the general / Leading Sires list.
+# TDN's "crops" param appears to filter by number-of-crops-racing. Freshman
+# sires (1 crop) pass crops=1, 2nd-crop (2 crops racing) pass crops=2, etc.
+# Historical / foreign / out-of-default URLs sometimes use different crops
+# values on TDN's own interface — those cases live in SIRE_LIST_URL_OVERRIDES
+# below. The general Leading Sires list uses crops=0 (all sires).
 LIST_TYPES = {
     'ytd':          {'label': 'Year-to-Date',       'crops': '0', 'srt22': '9'},
     'freshman':     {'label': 'Freshman Sires',     'crops': '1', 'srt22': '7'},
-    'second_crop':  {'label': 'Second-Crop Sires',  'crops': '1', 'srt22': '7'},
-    'third_crop':   {'label': 'Third-Crop Sires',   'crops': '1', 'srt22': '7'},
-    'fourth_crop':  {'label': 'Fourth-Crop Sires',  'crops': '1', 'srt22': '7'},
+    'second_crop':  {'label': 'Second-Crop Sires',  'crops': '2', 'srt22': '9'},
+    'third_crop':   {'label': 'Third-Crop Sires',   'crops': '3', 'srt22': '9'},
+    'fourth_crop':  {'label': 'Fourth-Crop Sires',  'crops': '4', 'srt22': '9'},
     'general':      {'label': 'Leading Sires',      'crops': '0', 'srt22': '1'},
 }
 
