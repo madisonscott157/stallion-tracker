@@ -47,13 +47,17 @@ class SireRankingData:
     source_url: Optional[str] = None
 
 
-# List type configurations - srt22 differs by list type (1=rank, 9=earnings)
+# List type configurations — srt22 and the current-year region (naocy) mirror
+# the parameters TDN uses on each list's own page. Crop lists sort by rank
+# (srt22=7); the general Leading Sires list sorts by rank (srt22=1). Without
+# the cy-prefixed params the page renders a short/empty result set for some
+# lists (e.g. the freshman 2026 list omits sires below rank ~25).
 LIST_TYPES = {
     'ytd':          {'label': 'Year-to-Date',       'crops': '0', 'srt22': '9'},
-    'freshman':     {'label': 'Freshman Sires',     'crops': '1', 'srt22': '9'},
-    'second_crop':  {'label': 'Second-Crop Sires',  'crops': '2', 'srt22': '9'},
-    'third_crop':   {'label': 'Third-Crop Sires',   'crops': '3', 'srt22': '9'},
-    'fourth_crop':  {'label': 'Fourth-Crop Sires',  'crops': '4', 'srt22': '9'},
+    'freshman':     {'label': 'Freshman Sires',     'crops': '1', 'srt22': '7'},
+    'second_crop':  {'label': 'Second-Crop Sires',  'crops': '2', 'srt22': '7'},
+    'third_crop':   {'label': 'Third-Crop Sires',   'crops': '3', 'srt22': '7'},
+    'fourth_crop':  {'label': 'Fourth-Crop Sires',  'crops': '4', 'srt22': '7'},
     'general':      {'label': 'Leading Sires',      'crops': '0', 'srt22': '1'},
 }
 
@@ -87,6 +91,10 @@ def build_sire_list_url(stats_year: int, list_type: str, interface_year: Optiona
         f"&nOF=1&nOFC=0&nOS=1&nOSC=0&nao={nao}"
         f"&txbFR=NHB&fr=NHB"
         f"&ob=130&ob2=0&cy=0"
+        # Current-year comparison block — required for full result rendering.
+        # naocy=3 mirrors TDN's own "worldwide" compare default.
+        f"&nOFcy=1&nOFCcy=0&nOScy=1&nOSCcy=0&naocy=3"
+        f"&frcy=NHB&obcy=130&ob2cy=0"
     )
 
 
