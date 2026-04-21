@@ -64,7 +64,7 @@ export function Header({
               <button
                 onClick={onExportPDF}
                 disabled={isExporting}
-                className="p-0.5 hover:text-white transition-colors disabled:opacity-50"
+                className="inline-flex items-center p-0.5 hover:text-white transition-colors disabled:opacity-50"
                 title="Export PDF"
               >
                 {isExporting ? (

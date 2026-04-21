@@ -37,24 +37,24 @@ export function SireRankingsTable({ rankings, region = 'na' }: SireRankingsTable
           const listLabel = getListLabel(ranking.list_type, region)
           return (
             <div key={ranking.id} className="bg-white rounded-lg border border-slate-200 p-3 card-hover">
-              <div className="flex items-baseline justify-between mb-2">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-medium text-slate-600">{ranking.year}</span>
+              <div className="flex items-baseline justify-between mb-2 gap-2">
+                <div className="flex items-baseline gap-2 min-w-0 flex-1">
+                  <span className="text-sm font-medium text-slate-600 shrink-0">{ranking.year}</span>
                   {ranking.source_url ? (
                     <a
                       href={ranking.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm font-medium hover:underline"
+                      className="text-sm font-medium hover:underline truncate"
                       style={{ color: 'var(--org-primary)' }}
                     >
                       {listLabel}
                     </a>
                   ) : (
-                    <span className="text-sm text-slate-700">{listLabel}</span>
+                    <span className="text-sm text-slate-700 truncate">{listLabel}</span>
                   )}
                 </div>
-                <span className="text-lg font-bold text-slate-900">{ranking.rank != null ? `#${ranking.rank}` : '-'}</span>
+                <span className="text-lg font-bold text-slate-900 shrink-0">{ranking.rank != null ? `#${ranking.rank}` : '-'}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-sm">
                 <div className="text-center">
