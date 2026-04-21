@@ -20,7 +20,6 @@ export function StatsBar({ year, starters, winners, earnings }: StatsBarProps) {
         <span className="text-slate-700">{winners} winners</span>
         <span className="text-slate-300 hidden sm:inline">|</span>
         <span className="text-slate-700 font-medium">{formatMoney(earnings)}</span>
-        <span className="text-slate-400 text-xs sm:ml-1">TDN</span>
       </div>
     </div>
   )
