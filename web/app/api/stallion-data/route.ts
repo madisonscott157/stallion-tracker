@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, isAuthError, getUserPreferences } from '@/lib/api-auth'
+import { requireAuth, isAuthError, getUserPreferences, getOrgShowRaceActivity } from '@/lib/api-auth'
 
 /**
  * Combined endpoint that returns all data for a stallion page in a single request.
@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
 
   // Single auth + preferences query (was duplicated across 6 routes)
   const prefs = await getUserPreferences(supabase, userId)
+  const showRaceActivity = await getOrgShowRaceActivity(supabase, userId)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -47,6 +48,10 @@ export async function GET(request: NextRequest) {
     : null
 
   try {
+
+  // When the caller's org has race activity hidden, skip the entries/results/
+  // workouts roundtrips entirely — the UI treats these as empty arrays anyway.
+  const emptyQuery = Promise.resolve({ data: [], error: null })
 
   // All data queries in parallel — single DB connection, single auth context
   const [
@@ -58,7 +63,7 @@ export async function GET(request: NextRequest) {
     workoutsRes,
   ] = await Promise.all([
     // Entries
-    (() => {
+    showRaceActivity ? (() => {
       let q = supabase
         .from('entries')
         .select('*, horses!inner ( name, sex, yob, dam, is_unnamed, equibase_profile_url, stallions!inner ( name ) )')
@@ -67,17 +72,17 @@ export async function GET(request: NextRequest) {
         .ilike('horses.stallions.name', stallion)
       if (claimingFilter) q = q.or(claimingFilter)
       return q.order('race_date', { ascending: true }).order('post_time', { ascending: true })
-    })(),
+    })() : emptyQuery,
 
     // Results
-    (() => {
+    showRaceActivity ? (() => {
       let q = supabase
         .from('results')
         .select('*, horses!inner ( name, sex, yob, dam, equibase_profile_url, stallions!inner ( name ) )')
         .ilike('horses.stallions.name', stallion)
       if (claimingFilter) q = q.or(claimingFilter)
       return q.order('race_date', { ascending: false }).order('race_number', { ascending: false }).limit(1000)
-    })(),
+    })() : emptyQuery,
 
     // YTD Stats
     supabase
@@ -101,7 +106,7 @@ export async function GET(request: NextRequest) {
       .order('sale_type'),
 
     // Workouts
-    supabase
+    showRaceActivity ? supabase
       .from('workouts')
       .select(`
         *,
@@ -119,7 +124,7 @@ export async function GET(request: NextRequest) {
       `)
       .ilike('horses.stallions.name', stallion)
       .order('workout_date', { ascending: false })
-      .limit(100),
+      .limit(100) : emptyQuery,
   ])
 
   // Second batch: rankings + equineline + fee history need stallion ID

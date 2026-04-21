@@ -47,11 +47,15 @@ function HomeContent() {
   const [showExportModal, setShowExportModal] = useState(false)
   const [stallionId, setStallionId] = useState<string | null>(null)
   const [stallion, setStallion] = useState<string>('Loading...')
-  const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats' | 'sales' | 'history'>('overview')
   const { profile, isLoading: authLoading, allOrgsWithSilks, isAdmin } = useAuth()
+  const showRaceActivity = profile?.organization?.show_race_activity !== false
+  const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats' | 'sales' | 'history'>(
+    showRaceActivity ? 'overview' : 'stats'
+  )
   const router = useRouter()
   const searchParams = useSearchParams()
   const stallionParam = searchParams.get('stallion')
+  const tabParam = searchParams.get('tab')
 
   // Always redirect to dashboard unless viewing a specific stallion
   useEffect(() => {
@@ -66,6 +70,26 @@ function HomeContent() {
       setStallionId(stallionParam)
     }
   }, [stallionParam])
+
+  // Apply ?tab= deep link, honoring the org's show_race_activity flag
+  useEffect(() => {
+    const valid = ['overview', 'results', 'stats', 'sales'] as const
+    type Tab = typeof valid[number]
+    if (tabParam && (valid as readonly string[]).includes(tabParam)) {
+      const target = tabParam as Tab
+      if (!showRaceActivity && (target === 'overview' || target === 'results')) {
+        setActiveTab('stats')
+      } else {
+        setActiveTab(target)
+      }
+      return
+    }
+    // No tab param: make sure hidden tabs aren't the active one after the
+    // flag flips (e.g. the initial render picked 'overview' before profile loaded)
+    if (!showRaceActivity && (activeTab === 'overview' || activeTab === 'results')) {
+      setActiveTab('stats')
+    }
+  }, [tabParam, showRaceActivity])
 
   const handleStallionChange = useCallback((id: string, name: string) => {
     setStallionId(id)
@@ -216,7 +240,7 @@ function HomeContent() {
         ) : (
           <>
             {/* Overview Tab */}
-            {activeTab === 'overview' && (
+            {showRaceActivity && activeTab === 'overview' && (
               <div key="overview" className="tab-content-enter">
                 {/* Upcoming Entries */}
                 <section className="mb-6 sm:mb-8">
@@ -259,7 +283,7 @@ function HomeContent() {
             )}
 
             {/* Results Tab */}
-            {activeTab === 'results' && (
+            {showRaceActivity && activeTab === 'results' && (
               <div key="results" className="tab-content-enter">
                 <ResultsSection results={results} stallionName={stallion} />
               </div>
@@ -331,7 +355,9 @@ function HomeContent() {
         aria-label="Main navigation"
       >
         <div className="flex justify-around text-xs sm:text-sm max-w-5xl mx-auto" role="tablist">
-          {(['overview', 'results', 'stats', 'sales', 'history'] as const).map((tab) => (
+          {(['overview', 'results', 'stats', 'sales', 'history'] as const)
+            .filter(tab => showRaceActivity || (tab !== 'overview' && tab !== 'results'))
+            .map((tab) => (
             <button
               key={tab}
               role="tab"

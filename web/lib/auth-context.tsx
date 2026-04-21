@@ -13,6 +13,7 @@ export interface Organization {
   logo_url: string | null
   silks_url: string | null
   allow_claiming_toggle: boolean
+  show_race_activity: boolean
 }
 
 export interface UserProfile {
