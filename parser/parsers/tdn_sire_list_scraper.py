@@ -67,6 +67,38 @@ LIST_TYPES = {
 # Region codes → TDN 'nao' query param
 REGION_NAO = {'na': '1', 'eu': '2', 'fr': '5'}
 
+# Explicit URL overrides for (sire_name_lower, list_type, stats_year) combinations
+# where the default builder's URL returns an empty page. These were captured
+# manually from TDN's interface when the target sire is confirmed on the list.
+# Using verbatim URLs avoids guessing at TDN's inconsistent crops/srt22/txbYear
+# semantics across historical years and regions.
+SIRE_LIST_URL_OVERRIDES: dict[tuple[str, str, int], str] = {
+    ('hello youmzain', 'second_crop', 2025):
+        'https://www.thoroughbreddailynews.com/sire-list/'
+        '?txbYear=2022&crops=1&sbYear=2025&d22=1&s22=1&srt22=8'
+        '&nOF=1&nOFC=0&nOS=1&nOSC=0&nao=5&txbFR=NHB&fr=NHB'
+        '&ob=130&ob2=0&cy=0&nOFcy=1&nOFCcy=0&nOScy=1&nOSCcy=0'
+        '&naocy=1&frcy=NHB&obcy=130&ob2cy=0',
+    ('constitution', 'second_crop', 2020):
+        'https://www.thoroughbreddailynews.com/sire-list/'
+        '?txbYear=2025&crops=2&sbYear=2020&d22=1&s22=1&srt22=8'
+        '&nOF=1&nOFC=0&nOS=1&nOSC=0&nao=1&txbFR=NHB&fr=NHB'
+        '&ob=130&ob2=0&cy=0&nOFcy=1&nOFCcy=0&nOScy=1&nOSCcy=0'
+        '&naocy=5&frcy=NHB&obcy=130&ob2cy=0',
+    ('constitution', 'third_crop', 2021):
+        'https://www.thoroughbreddailynews.com/sire-list/'
+        '?txbYear=2020&crops=2&sbYear=2021&d22=1&s22=1&srt22=9'
+        '&nOF=1&nOFC=0&nOS=1&nOSC=0&nao=1&txbFR=NHB&fr=NHB'
+        '&ob=130&ob2=0&cy=0&nOFcy=1&nOFCcy=0&nOScy=1&nOSCcy=0'
+        '&naocy=1&frcy=NHB&obcy=130&ob2cy=0',
+    ('good magic', 'second_crop', 2023):
+        'https://www.thoroughbreddailynews.com/sire-list/'
+        '?txbYear=2021&crops=3&sbYear=2023&d22=1&s22=1&srt22=8'
+        '&nOF=1&nOFC=0&nOS=1&nOSC=0&nao=1&txbFR=NHB&fr=NHB'
+        '&ob=130&ob2=0&cy=0&nOFcy=1&nOFCcy=0&nOScy=1&nOSCcy=0'
+        '&naocy=1&frcy=NHB&obcy=130&ob2cy=0',
+}
+
 
 def build_sire_list_url(stats_year: int, list_type: str, interface_year: Optional[int] = None,
                         region: str = 'na') -> str:
@@ -332,8 +364,15 @@ def scrape_stallion_rankings(sire_name: str, year: Optional[int] = None,
         for list_type in list_types:
             if list_type not in LIST_TYPES:
                 continue
-            # Use current year as interface year for historical data
-            url = build_sire_list_url(year, list_type, interface_year=datetime.now().year, region=region)
+            # Check for a manual URL override first (TDN's param semantics are
+            # inconsistent across years/regions; overrides were captured from a
+            # working session). Fall back to the default builder otherwise.
+            override_key = (sire_name.lower(), list_type, year)
+            if override_key in SIRE_LIST_URL_OVERRIDES:
+                url = SIRE_LIST_URL_OVERRIDES[override_key]
+                print(f"    Using manual URL override for {sire_name} {list_type} {year}")
+            else:
+                url = build_sire_list_url(year, list_type, interface_year=datetime.now().year, region=region)
             data = scrape_sire_from_list(driver, url, sire_name, year, list_type)
 
             if data:
