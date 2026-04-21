@@ -37,7 +37,7 @@ load_dotenv()
 STALLION_FIRST_CROP_YEAR = {
     'mckinzie': 2024,         # 2024=freshman, 2025=2nd, 2026=3rd
     'olympiad': 2026,         # first foals 2024, first runners 2026
-    'idol': 2025,             # stood 2022 → first foals 2023 → freshman 2025
+    'idol': 2026,             # stood 2023 → first foals 2024 → freshman 2026
     'life is good': 2026,
     'mo donegal': 2026,
     'hello youmzain': 2024,   # 2024=freshman, 2025=2nd, 2026=3rd
@@ -87,9 +87,6 @@ STALLION_HISTORICAL_SCRAPES = {
         ('third_crop',  2021),
         *[('general', y) for y in range(2022, _CURRENT_YEAR)],
     ],
-
-    # Idol: freshman 2025 (his 1st crop); 2026 default plan adds second_crop.
-    'idol': [('freshman', 2025)],
 }
 
 
