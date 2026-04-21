@@ -15,6 +15,14 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
   const pathname = usePathname()
   const isBookingsPage = pathname === '/dashboard/bookings'
 
+  // Org is still resolving if isLoading OR the user has an organization_id
+  // set but the joined `organization` object hasn't arrived yet (happens when
+  // the RLS join momentarily returns null under a stale JWT and auth-context
+  // schedules a retry). Both cases should show a blank placeholder rather
+  // than the generic "Stallion Tracker" fallback to avoid the back-nav flash.
+  const orgLoading = isLoading || (profile?.organization_id != null && !profile?.organization)
+  const orgName = profile?.organization?.name || (orgLoading ? '\u00A0' : 'Stallion Tracker')
+
   return (
     <header className="sticky top-0 z-10 text-white px-4 sm:px-6 sm:py-3" style={{ backgroundColor: 'var(--org-primary)', paddingTop: 'max(0.125rem, env(safe-area-inset-top))' }}>
       <div className="max-w-5xl mx-auto">
@@ -23,7 +31,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
         <div className="flex sm:hidden items-center justify-between gap-2 pb-0.5" style={{ color: 'var(--org-secondary)' }}>
           {/* Org name */}
           <h1 className="text-base font-semibold tracking-wide truncate min-w-0">
-            {profile?.organization?.name || (isLoading ? '\u00A0' : 'Stallion Tracker')}
+            {orgName}
           </h1>
 
           {/* Nav icons / links */}
@@ -79,7 +87,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
         {/* ── Desktop: single row ── */}
         <div className="hidden sm:flex items-baseline justify-between gap-3">
           <h1 className="text-lg font-semibold tracking-wide truncate min-w-0" style={{ color: 'var(--org-secondary)' }}>
-            {profile?.organization?.name || (isLoading ? '\u00A0' : 'Stallion Tracker')}
+            {orgName}
           </h1>
           <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--org-secondary)' }}>
             {onPreferenceChange && (
