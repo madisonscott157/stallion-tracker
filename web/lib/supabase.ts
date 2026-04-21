@@ -256,3 +256,12 @@ export interface StallionBookingReport {
   data: BookingRow[]
   created_at: string
 }
+
+export interface StallionFeeHistory {
+  id: string
+  stallion_id: string
+  year: number
+  stud_fee: number | null
+  mares_bred: number | null
+  standing_at: string | null
+}

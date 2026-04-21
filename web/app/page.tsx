@@ -11,12 +11,13 @@ import { ResultsSection } from '@/components/ResultsSection'
 import { WorkoutsSection } from '@/components/WorkoutsSection'
 import { SireRankingsTable } from '@/components/SireRankingsTable'
 import { EquinelineSection } from '@/components/EquinelineSection'
+import { FeeHistoryTable } from '@/components/FeeHistoryTable'
 import dynamic from 'next/dynamic'
 
 const ExportModal = dynamic(() => import('@/components/ExportModal').then(mod => ({ default: mod.ExportModal })), { ssr: false })
 import { PullToRefresh } from '@/components/PullToRefresh'
 import { useAuth } from '@/lib/auth-context'
-import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineStats, Workout } from '@/lib/supabase'
+import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineStats, Workout, StallionFeeHistory } from '@/lib/supabase'
 import { EmptyState } from '@/components/EmptyState'
 import { ClmToggle } from '@/components/ClmToggle'
 import type { ExportOptions, OrgWithSilks } from '@/lib/pdf-export'
@@ -38,6 +39,7 @@ function HomeContent() {
   const [rankings, setRankings] = useState<SireRanking[]>([])
   const [tdnRegion, setTdnRegion] = useState<'na' | 'eu' | 'fr'>('na')
   const [equinelineStats, setEquinelineStats] = useState<EquinelineStats | null>(null)
+  const [feeHistory, setFeeHistory] = useState<StallionFeeHistory[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [fetchKey, setFetchKey] = useState(0)
@@ -45,7 +47,7 @@ function HomeContent() {
   const [showExportModal, setShowExportModal] = useState(false)
   const [stallionId, setStallionId] = useState<string | null>(null)
   const [stallion, setStallion] = useState<string>('Loading...')
-  const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats' | 'sales'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats' | 'sales' | 'history'>('overview')
   const { profile, isLoading: authLoading, allOrgsWithSilks, isAdmin } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -101,6 +103,7 @@ function HomeContent() {
           setRankings(data.rankings || [])
           setTdnRegion(data.tdn_region || 'na')
           setEquinelineStats(data.equineline || null)
+          setFeeHistory(data.history || [])
         } else {
           setError(true)
         }
@@ -300,6 +303,19 @@ function HomeContent() {
                 </section>
               </div>
             )}
+
+            {/* History Tab */}
+            {activeTab === 'history' && (
+              <div key="history" className="tab-content-enter">
+                <section className="max-w-3xl mx-auto">
+                  {feeHistory.length > 0 ? (
+                    <FeeHistoryTable history={feeHistory} stallionName={stallion} />
+                  ) : (
+                    <EmptyState message="No history available" />
+                  )}
+                </section>
+              </div>
+            )}
           </>
         )}
       </main>
@@ -315,7 +331,7 @@ function HomeContent() {
         aria-label="Main navigation"
       >
         <div className="flex justify-around text-sm max-w-5xl mx-auto" role="tablist">
-          {(['overview', 'results', 'stats', 'sales'] as const).map((tab) => (
+          {(['overview', 'results', 'stats', 'sales', 'history'] as const).map((tab) => (
             <button
               key={tab}
               role="tab"
