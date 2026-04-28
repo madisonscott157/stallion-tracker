@@ -233,11 +233,17 @@ export default function AdminUsersAndStablesPage() {
     setIsSubmittingUser(true)
     setUserError('')
 
+    // Allow username-only entry; convert to synthetic email matching login page logic
+    const identifier = newUser.email.trim()
+    const email = identifier.includes('@')
+      ? identifier
+      : identifier.toLowerCase().replace(/\s+/g, '.') + '@stalliontracker.local'
+
     try {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser),
+        body: JSON.stringify({ ...newUser, email }),
       })
 
       const data = await response.json()
@@ -296,12 +302,13 @@ export default function AdminUsersAndStablesPage() {
         <form onSubmit={handleAddUser} className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Username or Email</label>
               <input
-                type="email"
+                type="text"
                 value={newUser.email}
                 onChange={e => setNewUser({ ...newUser, email: e.target.value })}
                 required
+                placeholder="username or user@example.com"
                 className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md"
               />
             </div>
