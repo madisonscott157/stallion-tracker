@@ -6,6 +6,7 @@
 
 import type { Result, Entry } from './supabase'
 import { formatDate, formatDistance, formatHorseDescription, formatOrdinal, formatTrack, cleanRaceName } from './utils'
+import { formatPurse } from './currency'
 
 export type ExportType = 'all' | 'entries' | 'results' | 'stakes'
 
@@ -107,7 +108,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   const dateStr = formatDate(r.race_date)
 
   // Race details
-  const raceParts = [r.race_type, r.purse ? `$${r.purse.toLocaleString('en-US')}` : null, formatDistance(r.distance || null) || null].filter(Boolean).join(` ${pipe()} `)
+  const raceParts = [r.race_type, formatPurse(r.purse, r.purse_currency), formatDistance(r.distance || null) || null].filter(Boolean).join(` ${pipe()} `)
   const nameWeight = isWin ? 'font-weight:700;' : 'font-weight:600;'
 
   // Sub-details
@@ -151,7 +152,7 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
   const dateStr = formatDate(e.race_date)
   const distDisplay = formatDistance(e.distance || null)
 
-  const raceParts = [e.race_type, e.purse ? `$${e.purse.toLocaleString('en-US')}` : null, distDisplay || null].filter(Boolean).join(` ${pipe()} `)
+  const raceParts = [e.race_type, formatPurse(e.purse, e.purse_currency), distDisplay || null].filter(Boolean).join(` ${pipe()} `)
 
   // Time + track info
   const rightParts = [`${track} R${e.race_number}`]
