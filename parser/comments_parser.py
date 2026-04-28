@@ -14,6 +14,23 @@ from typing import Optional
 from models import ParsedComments
 
 
+# Owner abbreviations from VS notes that should be expanded to full org names.
+# Matched as whole words; replacement is skipped if the full form already appears.
+OWNER_ALIASES: dict[str, str] = {
+    "LNJ": "LNJ Foxwoods",
+}
+
+
+def _normalize_owner_aliases(notes: str) -> str:
+    if not notes:
+        return notes
+    for alias, full in OWNER_ALIASES.items():
+        if full in notes:
+            continue
+        notes = re.sub(r'\b' + re.escape(alias) + r'\b', full, notes)
+    return notes
+
+
 def parse_comments(comments: str) -> ParsedComments:
     """
     Parse the Virtual Stable comments field to extract sire, dam, yob, dam_sire.
@@ -47,6 +64,8 @@ def parse_comments(comments: str) -> ParsedComments:
                 elif len(after_paren) < 50 and not any(x in after_paren for x in ['Full Entries', 'Overnight', 'Race:']):
                     # Short text without email content patterns - likely just the owner
                     result.notes = after_paren
+                if result.notes:
+                    result.notes = _normalize_owner_aliases(result.notes)
 
     # Pattern 1: Starts with 2-digit year (23 Olympiad - Gale)
     match = re.match(r'^(\d{2})\s+(.+?)\s*[-x]\s*(.+)$', inner, re.IGNORECASE)
