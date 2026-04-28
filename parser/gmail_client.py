@@ -90,6 +90,41 @@ class GmailClient:
                 print(f"Error fetching email {email_id}: {e}")
                 continue
 
+    def fetch_arion_emails(self, limit: int = 200, unseen_only: bool = False,
+                           oldest_first: bool = True) -> Generator[EmailMessage, None, None]:
+        """
+        Fetch emails from Arion Pedigrees Horse Tracker.
+
+        Defaults to oldest-first so daily entry emails are ingested before
+        the result email that references them (the parser relies on
+        matching entries already being in the DB to backfill track + race
+        number on Arion results).
+        """
+        if not self.mail:
+            raise RuntimeError("Not connected to Gmail")
+
+        search_criteria = '(FROM "arionpedigrees.co.nz")'
+        if unseen_only:
+            search_criteria = f'(UNSEEN {search_criteria})'
+
+        status, messages = self.mail.search(None, search_criteria)
+        if status != "OK":
+            return
+
+        email_ids = messages[0].split()
+        email_ids = email_ids[-limit:] if len(email_ids) > limit else email_ids
+        if not oldest_first:
+            email_ids = list(reversed(email_ids))
+
+        for email_id in email_ids:
+            try:
+                msg = self._fetch_email(email_id)
+                if msg:
+                    yield msg
+            except Exception as e:
+                print(f"Error fetching Arion email {email_id}: {e}")
+                continue
+
     def _fetch_email(self, email_id: bytes) -> Optional[EmailMessage]:
         """Fetch and parse a single email."""
         status, msg_data = self.mail.fetch(email_id, "(RFC822)")

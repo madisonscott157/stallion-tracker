@@ -25,7 +25,9 @@ function matchesRaceType(result: Result, filter: RaceTypeFilter): boolean {
 function matchesPosition(result: Result, filter: PositionFilter): boolean {
   if (filter === 'all') return true
   if (filter === 'win') return result.finish_position === 1
-  return result.finish_position <= 3
+  // "Placed" = positions 1-3. Null (DNF) must NOT match — `null <= 3`
+  // evaluates true in JS due to coercion, so guard explicitly.
+  return result.finish_position !== null && result.finish_position <= 3
 }
 
 function exportCSV(results: Result[], stallionName: string) {
@@ -51,7 +53,7 @@ function exportCSV(results: Result[], stallionName: string) {
     r.purse ? String(r.purse) : '',
     formatDistance(r.distance || null),
     r.surface || '',
-    String(r.finish_position),
+    r.finish_position != null ? String(r.finish_position) : (r.finish_status || ''),
     r.beaten_lengths || '',
     r.win_margin || '',
     r.odds || '',

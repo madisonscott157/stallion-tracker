@@ -163,6 +163,8 @@ class Database:
             "equibase_refno": horse.equibase_refno,
             "equibase_profile_url": horse.equibase_profile_url,
         }
+        if horse.country:
+            insert_data["country"] = horse.country
 
         result = self.client.table("horses") \
             .insert(insert_data) \
@@ -243,6 +245,12 @@ class Database:
             "equibase_email_id": entry.equibase_email_id,
             "raw_email_subject": entry.raw_email_subject,
         }
+        # International fields (migration 010). Only send when set so
+        # legacy US VS inserts remain exactly as before.
+        if entry.race_country:
+            insert_data["race_country"] = entry.race_country
+        if entry.purse_currency:
+            insert_data["purse_currency"] = entry.purse_currency
 
         try:
             result = self.client.table("entries") \
@@ -316,6 +324,17 @@ class Database:
             "equibase_email_id": result_data.equibase_email_id,
             "raw_email_subject": result_data.raw_email_subject,
         }
+        # International fields (migration 010). Only send when set.
+        if result_data.finish_status:
+            insert_data["finish_status"] = result_data.finish_status
+        if result_data.race_country:
+            insert_data["race_country"] = result_data.race_country
+        if result_data.purse_currency:
+            insert_data["purse_currency"] = result_data.purse_currency
+        if result_data.earnings is not None:
+            insert_data["earnings"] = result_data.earnings
+        if result_data.earnings_currency:
+            insert_data["earnings_currency"] = result_data.earnings_currency
 
         try:
             result = self.client.table("results") \
@@ -341,6 +360,23 @@ class Database:
 
         if result.data:
             return result.data[0]["id"]
+        return None
+
+    def find_entry_by_horse_date(self, horse_id: str, race_date: date) -> Optional[dict]:
+        """Find the entry row(s) for (horse, date). Used to backfill
+        track + race_number + race_country on Arion result rows. Returns
+        the most recently created row if the horse was entered in
+        multiple races on the same day (rare)."""
+        result = self.client.table("entries") \
+            .select("id,track,race_number,race_name,race_country,purse_currency") \
+            .eq("horse_id", horse_id) \
+            .eq("race_date", race_date.isoformat()) \
+            .order("created_at", desc=True) \
+            .limit(1) \
+            .execute()
+
+        if result.data:
+            return result.data[0]
         return None
 
     def insert_workout(self, workout: WorkoutData, horse_id: str) -> Optional[str]:

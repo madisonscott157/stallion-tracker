@@ -25,6 +25,7 @@ class HorseData(BaseModel):
     is_unnamed: bool = False
     equibase_refno: Optional[str] = None
     equibase_profile_url: Optional[str] = None
+    country: Optional[str] = None  # GB, IRE, FR, GER, USA, AUS, NZ (Arion only)
 
 
 class EntryData(BaseModel):
@@ -55,6 +56,9 @@ class EntryData(BaseModel):
     entries_url: Optional[str] = None
     equibase_email_id: Optional[str] = None
     raw_email_subject: Optional[str] = None
+    # Arion / international fields (NULL for US VS data)
+    race_country: Optional[str] = None
+    purse_currency: Optional[str] = None  # ISO 4217
 
 
 class ResultData(BaseModel):
@@ -71,7 +75,8 @@ class ResultData(BaseModel):
     purse: Optional[int] = None
     distance: Optional[str] = None
     surface: Optional[str] = None
-    finish_position: int
+    finish_position: Optional[int] = None
+    finish_status: Optional[str] = None  # FF/PU/BD/UR/DQ/LFT/REF when not a numeric finish
     beaten_lengths: Optional[str] = None
     win_margin: Optional[str] = None
     odds: Optional[str] = None
@@ -83,6 +88,11 @@ class ResultData(BaseModel):
     replay_url: Optional[str] = None
     equibase_email_id: Optional[str] = None
     raw_email_subject: Optional[str] = None
+    # Arion / international fields (NULL for US VS data)
+    race_country: Optional[str] = None
+    purse_currency: Optional[str] = None  # ISO 4217
+    earnings: Optional[int] = None  # prize money won by this horse in native currency
+    earnings_currency: Optional[str] = None  # ISO 4217
 
 
 class WorkoutData(BaseModel):

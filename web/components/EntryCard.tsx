@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import { cn, cleanRaceName, formatDate, formatDistance, formatHorseDescription, formatTrack, shouldShowSilks, isToday, isTomorrow } from '@/lib/utils'
+import { formatPurse } from '@/lib/currency'
 import { useAuth } from '@/lib/auth-context'
 import type { Entry } from '@/lib/supabase'
 
@@ -107,10 +108,10 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
             <span>{entry.race_type}</span>
           </>
         )}
-        {entry.purse && (
+        {entry.purse != null && (
           <>
             <span className="text-slate-300">|</span>
-            <span>${entry.purse.toLocaleString('en-US')}</span>
+            <span>{formatPurse(entry.purse, entry.purse_currency)}</span>
           </>
         )}
         {distanceDisplay && (

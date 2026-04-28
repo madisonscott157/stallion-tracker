@@ -94,7 +94,8 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   if (isWin) { posText = '1st'; posStyle = 'color:#b8860b;font-weight:700;' }
   else if (r.finish_position === 2) { posText = '2nd'; posStyle = 'color:#64748b;font-weight:600;' }
   else if (r.finish_position === 3) { posText = '3rd'; posStyle = 'color:#a0622a;font-weight:600;' }
-  else { posText = formatOrdinal(r.finish_position); posStyle = 'color:#94a3b8;' }
+  else if (r.finish_position != null) { posText = formatOrdinal(r.finish_position); posStyle = 'color:#94a3b8;' }
+  else { posText = r.finish_status || '-'; posStyle = 'color:#94a3b8;' }
 
   const nameText = r.horse_name || 'Unknown'
   const name = r.horse_profile_url

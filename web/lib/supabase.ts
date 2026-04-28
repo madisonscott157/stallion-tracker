@@ -26,6 +26,7 @@ export interface Entry {
   is_stakes: boolean
   stakes_grade: string | null
   purse: number | null
+  purse_currency: string | null
   distance: string | null
   surface: string | null
   post_position: number | null
@@ -35,6 +36,7 @@ export interface Entry {
   scratched: boolean
   entries_url: string | null
   owner: string | null
+  race_country: string | null
   // Joined fields
   horse_name?: string | null
   horse_sex?: string | null
@@ -57,9 +59,11 @@ export interface Result {
   is_stakes: boolean
   stakes_grade: string | null
   purse: number | null
+  purse_currency: string | null
   distance: string | null
   surface: string | null
-  finish_position: number
+  finish_position: number | null
+  finish_status: string | null
   beaten_lengths: string | null
   win_margin: string | null
   odds: string | null
@@ -68,6 +72,9 @@ export interface Result {
   chart_url: string | null
   replay_url: string | null
   owner: string | null
+  race_country: string | null
+  earnings: number | null
+  earnings_currency: string | null
   // Joined fields
   horse_name?: string | null
   horse_sex?: string | null

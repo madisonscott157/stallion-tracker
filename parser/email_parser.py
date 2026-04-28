@@ -14,18 +14,30 @@ from parsers.scratch_parser import parse_scratch_email
 
 def detect_email_type(html_content: str) -> str:
     """
-    Determine if this is an entry, result, workout, or scratch notification.
+    Determine if this is an entry, result, workout, scratch, or Arion
+    Horse Tracker notification.
 
     Args:
         html_content: HTML body of the email
 
     Returns:
-        'entry', 'result', 'workout', 'scratch', or 'unknown'
+        'entry', 'result', 'workout', 'scratch',
+        'arion_entry', 'arion_result', 'arion_trial',
+        or 'unknown'
     """
     if not html_content:
         return 'unknown'
 
     text = BeautifulSoup(html_content, 'lxml').get_text()
+
+    # Arion Horse Tracker — check trials BEFORE results because the
+    # "Recent trials starts" marker is a superset of "Recent starts".
+    if "Recent trials starts for tracked horses" in text:
+        return 'arion_trial'
+    if "Recent starts for tracked horses" in text:
+        return 'arion_result'
+    if "Forthcoming starts for tracked horses" in text:
+        return 'arion_entry'
 
     # Scratch emails contain "was scratched from"
     if "was scratched from" in text:

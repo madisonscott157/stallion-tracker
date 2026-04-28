@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import { cn, cleanRaceName, formatDistance, formatHorseDescription, formatDate, formatOrdinal, formatTrack, shouldShowSilks, isToday, isTomorrow } from '@/lib/utils'
+import { formatPurse } from '@/lib/currency'
 import { useAuth } from '@/lib/auth-context'
 import type { Result } from '@/lib/supabase'
 
@@ -88,7 +89,9 @@ export const ResultCard = memo(function ResultCard({ result, showSireName }: Res
           </span>
         ) : (
           <span className="text-slate-500 text-sm font-medium">
-            {result.finish_position > 0 ? formatOrdinal(result.finish_position) : '-'}
+            {result.finish_position && result.finish_position > 0
+              ? formatOrdinal(result.finish_position)
+              : (result.finish_status || '-')}
           </span>
         )}
         {result.horse_profile_url ? (
@@ -131,10 +134,10 @@ export const ResultCard = memo(function ResultCard({ result, showSireName }: Res
             <span className={cn(isStakesWinner && "font-semibold text-slate-700")}>{result.race_type}</span>
           </>
         )}
-        {result.purse && (
+        {result.purse != null && (
           <>
             <span className="text-slate-300">|</span>
-            <span>${result.purse.toLocaleString('en-US')}</span>
+            <span>{formatPurse(result.purse, result.purse_currency)}</span>
           </>
         )}
         {result.distance && (
