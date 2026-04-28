@@ -31,6 +31,7 @@ NH_COUNTRIES = {
     'Japan', 'Hong Kong', 'South Korea', 'Turkey',
     'Czech Republic', 'Hungary', 'Poland', 'Sweden', 'Denmark',
     'Norway', 'Belgium', 'Netherlands', 'Switzerland', 'Austria',
+    'Slovakia', 'Morocco',
 }
 
 # Southern-hemisphere / out-of-scope country headers — sections under these

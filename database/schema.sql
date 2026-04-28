@@ -396,7 +396,10 @@ SELECT
         1
     ) as win_pct,
     COUNT(DISTINCT r.id) FILTER (WHERE r.is_stakes AND r.finish_position = 1) as stakes_winners,
-    COALESCE(SUM(r.earnings), 0) as total_earnings
+    -- Currency-safe sum: USD/legacy rows only (race_country IS NULL).
+    -- Arion / international rows have native currencies (GBP, EUR, QAR, ...)
+    -- and must not be summed into the same scalar. See migration 012.
+    COALESCE(SUM(r.earnings) FILTER (WHERE r.race_country IS NULL), 0) as total_earnings
 FROM stallions s
 LEFT JOIN horses h ON h.sire_id = s.id
 LEFT JOIN results r ON r.horse_id = h.id
