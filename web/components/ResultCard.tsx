@@ -9,9 +9,14 @@ import type { Result } from '@/lib/supabase'
 interface ResultCardProps {
   result: Result
   showSireName?: boolean
+  // When the surrounding section is "all winners" (e.g. dashboard Recent
+  // Winners), the amber/gold background on every card becomes visual noise.
+  // Setting this true keeps the gold left border + WIN badge but renders the
+  // card body white so the list reads cleanly.
+  suppressWinHighlight?: boolean
 }
 
-export const ResultCard = memo(function ResultCard({ result, showSireName }: ResultCardProps) {
+export const ResultCard = memo(function ResultCard({ result, showSireName, suppressWinHighlight }: ResultCardProps) {
   const { profile, allOrgsWithSilks, isAdmin } = useAuth()
   const horseName = result.horse_name || 'Unknown'
   const horseDesc = formatHorseDescription(result.horse_sex || null, result.horse_yob || null)
@@ -63,7 +68,7 @@ export const ResultCard = memo(function ResultCard({ result, showSireName }: Res
     <div
       className={cn(
         'rounded-lg border px-2 sm:px-4 py-1.5 sm:py-2.5 card-hover',
-        isWinner
+        isWinner && !suppressWinHighlight
           ? 'bg-amber-50/60 border-gold/30 shadow-[0_1px_4px_rgba(212,175,55,0.15)] card-hover-white'
           : isSecond
           ? 'bg-slate-50/60 border-silver/30 shadow-[0_1px_4px_rgba(168,169,173,0.15)] card-hover-white'

@@ -214,7 +214,7 @@ function DashboardContent() {
                   {filteredWinners.length > 0 ? (
                     <div className="card-stack">
                       {filteredWinners.map(result => (
-                        <ResultCard key={`w-${result.id}`} result={result} showSireName />
+                        <ResultCard key={`w-${result.id}`} result={result} showSireName suppressWinHighlight />
                       ))}
                     </div>
                   ) : (
