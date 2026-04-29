@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import { cn, cleanRaceName, formatDate, formatDistance, formatHorseDescription, formatTrack, shouldShowSilks, isToday, isTomorrow } from '@/lib/utils'
+import { formatPostTimeET } from '@/lib/timezones'
 import { formatPurse } from '@/lib/currency'
 import { useAuth } from '@/lib/auth-context'
 import type { Entry } from '@/lib/supabase'
@@ -107,12 +108,17 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
         <span className={cn('font-medium', entry.scratched ? 'text-slate-400' : 'text-slate-600')}>{dateLabel}</span>
         <span className="text-slate-300">|</span>
         <span>{trackDisplay} R{entry.race_number}</span>
-        {entry.post_time && (
-          <>
-            <span className="text-slate-300">|</span>
-            <span>{entry.post_time} {entry.timezone}</span>
-          </>
-        )}
+        {entry.post_time && (() => {
+          // Convert non-ET local times to ET so the user never has to do mental
+          // math. Falls back to the raw stored time if conversion fails.
+          const et = formatPostTimeET(entry.post_time, entry.race_date, entry.race_country, entry.timezone)
+          return (
+            <>
+              <span className="text-slate-300">|</span>
+              <span>{et ?? `${entry.post_time} ${entry.timezone}`}</span>
+            </>
+          )
+        })()}
         {entry.race_type && (
           <>
             <span className="text-slate-300">|</span>

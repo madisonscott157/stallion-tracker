@@ -6,6 +6,7 @@
 
 import type { Result, Entry } from './supabase'
 import { formatDate, formatDistance, formatHorseDescription, formatOrdinal, formatTrack, cleanRaceName, shouldShowSilks } from './utils'
+import { formatPostTimeET } from './timezones'
 import { formatPurse } from './currency'
 
 export type ExportType = 'all' | 'entries' | 'results' | 'stakes'
@@ -153,9 +154,12 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
 
   const raceParts = [e.race_type, formatPurse(e.purse, e.purse_currency), distDisplay || null].filter(Boolean).join(` ${pipe()} `)
 
-  // Time + track info
+  // Time + track info — convert non-ET local times to ET in the export too
   const rightParts = [`${track} R${e.race_number}`]
-  if (e.post_time) rightParts.push(`${e.post_time}`)
+  if (e.post_time) {
+    const et = formatPostTimeET(e.post_time, e.race_date, e.race_country, e.timezone)
+    rightParts.push(et ?? `${e.post_time} ${e.timezone ?? ''}`.trim())
+  }
 
   // Stakes sub-line
   const stakesName = e.is_stakes && e.race_name ? cleanRaceName(e.race_name.replace(/^STAKES\s*/i, '').trim()) : null
