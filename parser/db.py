@@ -362,22 +362,46 @@ class Database:
             return result.data[0]["id"]
         return None
 
-    def find_entry_by_horse_date(self, horse_id: str, race_date: date) -> Optional[dict]:
-        """Find the entry row(s) for (horse, date). Used to backfill
-        track + race_number + race_country on Arion result rows. Returns
-        the most recently created row if the horse was entered in
-        multiple races on the same day (rare)."""
-        result = self.client.table("entries") \
-            .select("id,track,race_number,race_name,race_country,purse_currency") \
+    def find_entry_by_horse_date(
+        self,
+        horse_id: str,
+        race_date: date,
+        purse: Optional[int] = None,
+        distance: Optional[str] = None,
+    ) -> Optional[dict]:
+        """Find the entry row for (horse, date) that the result actually
+        belongs to. Used to backfill track / race_number / race_country
+        on Arion result rows.
+
+        A horse is sometimes entered in two races on the same day and
+        scratched from one, so we:
+          1. Skip entries marked scratched.
+          2. If multiple unscratched candidates remain (rare — horses
+             don't run twice in a day but may sit double-entered briefly
+             before a scratch lands), prefer the one whose purse and
+             distance match the result; fall back to most-recently-created.
+        """
+        q = self.client.table("entries") \
+            .select("id,track,race_number,race_name,race_country,purse_currency,purse,distance") \
             .eq("horse_id", horse_id) \
             .eq("race_date", race_date.isoformat()) \
-            .order("created_at", desc=True) \
-            .limit(1) \
-            .execute()
+            .eq("scratched", False) \
+            .order("created_at", desc=True)
 
-        if result.data:
-            return result.data[0]
-        return None
+        result = q.execute()
+        rows = result.data or []
+        if not rows:
+            return None
+        if len(rows) == 1:
+            return rows[0]
+
+        # Multiple unscratched entries. Pick the one whose purse + distance
+        # match the result row. If none match, fall back to most recent.
+        for row in rows:
+            if (purse is not None and row.get("purse") == purse and
+                distance is not None and row.get("distance") == distance):
+                return row
+        return rows[0]
 
     def insert_workout(self, workout: WorkoutData, horse_id: str) -> Optional[str]:
         """Insert a workout record."""

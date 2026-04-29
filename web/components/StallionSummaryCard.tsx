@@ -1,14 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { formatStudFee } from '@/lib/currency'
-import { formatMoney } from '@/lib/utils'
+import { formatStudFee, currencyForRegion, formatMoneyCompact } from '@/lib/currency'
 
 interface StallionSummary {
   id: string
   name: string
   stud_farm?: string | null
   stud_fee?: number | null
+  tdn_region?: string | null
   upcoming_entries: number
   ytd_starters: number
   ytd_winners: number
@@ -24,7 +24,8 @@ interface StallionSummaryCardProps {
 }
 
 export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
-  const feeDisplay = formatStudFee(stallion.stud_fee, stallion.name)
+  const ccy = currencyForRegion(stallion.tdn_region)
+  const feeDisplay = formatStudFee(stallion.stud_fee, stallion.name, stallion.tdn_region)
   return (
     <Link
       href={`/?stallion=${stallion.id}`}
@@ -68,7 +69,7 @@ export function StallionSummaryCard({ stallion }: StallionSummaryCardProps) {
           )}
           {stallion.tdn_earnings != null && stallion.tdn_earnings > 0 && (
             <div>
-              <span className="font-medium text-slate-700">{formatMoney(stallion.tdn_earnings)}</span>
+              <span className="font-medium text-slate-700">{formatMoneyCompact(stallion.tdn_earnings, ccy)}</span>
             </div>
           )}
         </div>

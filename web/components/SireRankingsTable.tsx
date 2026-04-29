@@ -1,6 +1,7 @@
 'use client'
 
 import type { SireRanking } from '@/lib/supabase'
+import { currencyForRegion, formatPurse, formatMoneyCompact } from '@/lib/currency'
 
 export type StallionRegion = 'na' | 'eu' | 'fr'
 
@@ -26,6 +27,7 @@ export function SireRankingsTable({ rankings, region = 'na' }: SireRankingsTable
   if (rankings.length === 0) return null
 
   const sortedRankings = [...rankings].sort((a, b) => b.year - a.year)
+  const ccy = currencyForRegion(region)
 
   return (
     <>
@@ -67,7 +69,7 @@ export function SireRankingsTable({ rankings, region = 'na' }: SireRankingsTable
                 </div>
                 <div className="text-center">
                   <div className="text-slate-400 text-xs">Earnings</div>
-                  <div className="font-medium text-slate-700">{ranking.total_earnings ? `$${(ranking.total_earnings / 1000).toFixed(0)}K` : '-'}</div>
+                  <div className="font-medium text-slate-700">{formatMoneyCompact(ranking.total_earnings, ccy)}</div>
                 </div>
               </div>
               {(ranking.black_type_winners || ranking.graded_stakes_winners) && (
@@ -157,7 +159,7 @@ export function SireRankingsTable({ rankings, region = 'na' }: SireRankingsTable
                     {ranking.graded_stakes_horses ?? '-'}
                   </td>
                   <td className="py-2 px-3 text-sm text-slate-600 text-center tabular-nums">
-                    {ranking.total_earnings ? `$${ranking.total_earnings.toLocaleString('en-US')}` : '-'}
+                    {formatPurse(ranking.total_earnings, ccy) ?? '-'}
                   </td>
                 </tr>
               )

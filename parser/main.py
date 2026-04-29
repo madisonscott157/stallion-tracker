@@ -130,7 +130,10 @@ def process_arion_result(db: Database, result: ResultData) -> bool:
         return False
 
     if not result.track or not result.race_number:
-        entry_row = db.find_entry_by_horse_date(horse_id, result.race_date)
+        entry_row = db.find_entry_by_horse_date(
+            horse_id, result.race_date,
+            purse=result.purse, distance=result.distance,
+        )
         if not entry_row:
             print(f"  No matching entry for {result.horse.name} on {result.race_date}; skipping Arion result")
             return True  # silent skip — counted as processed, not errored

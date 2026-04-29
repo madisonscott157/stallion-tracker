@@ -17,6 +17,7 @@ interface StallionSummary {
   name: string
   stud_farm: string | null
   stud_fee: number | null
+  tdn_region: string | null
   upcoming_entries: number
   ytd_starters: number
   ytd_winners: number
