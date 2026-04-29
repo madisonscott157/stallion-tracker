@@ -20,6 +20,7 @@ import { useAuth } from '@/lib/auth-context'
 import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineStats, Workout, StallionFeeHistory } from '@/lib/supabase'
 import { EmptyState } from '@/components/EmptyState'
 import { ClmToggle } from '@/components/ClmToggle'
+import { StakesToggle } from '@/components/StakesToggle'
 import type { ExportOptions, OrgWithSilks } from '@/lib/pdf-export'
 
 export default function Home() {
@@ -264,11 +265,18 @@ function HomeContent() {
                 <section className="mb-6 sm:mb-8">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming Entries</h2>
-                    <ClmToggle
-                      onPreferenceChange={() => setFetchKey(k => k + 1)}
-                      className="text-slate-500 hover:text-slate-700 transition-colors"
-                      checkboxClassName="accent-slate-600"
-                    />
+                    <div className="flex items-center gap-3">
+                      <StakesToggle
+                        onPreferenceChange={() => setFetchKey(k => k + 1)}
+                        className="text-slate-500 hover:text-slate-700 transition-colors"
+                        checkboxClassName="accent-slate-600"
+                      />
+                      <ClmToggle
+                        onPreferenceChange={() => setFetchKey(k => k + 1)}
+                        className="text-slate-500 hover:text-slate-700 transition-colors"
+                        checkboxClassName="accent-slate-600"
+                      />
+                    </div>
                   </div>
                   {entries.length > 0 ? (
                     <div className="card-stack">

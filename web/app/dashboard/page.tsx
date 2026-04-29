@@ -8,6 +8,7 @@ import { EntryCard } from '@/components/EntryCard'
 import { ResultCard } from '@/components/ResultCard'
 import { PullToRefresh } from '@/components/PullToRefresh'
 import { ClmToggle } from '@/components/ClmToggle'
+import { StakesToggle } from '@/components/StakesToggle'
 import { useAuth } from '@/lib/auth-context'
 import { EmptyState } from '@/components/EmptyState'
 import type { Entry, Result } from '@/lib/supabase'
@@ -160,6 +161,7 @@ function DashboardContent() {
                 </select>
               )}
               <ClmToggle onPreferenceChange={() => setFetchKey(k => k + 1)} className="sm:hidden text-slate-500" checkboxClassName="accent-slate-600" />
+              <StakesToggle onPreferenceChange={() => setFetchKey(k => k + 1)} className="text-slate-500" checkboxClassName="accent-slate-600" />
             </div>
 
             {/* Stallion Summary Cards */}

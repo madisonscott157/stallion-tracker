@@ -6,25 +6,42 @@ export async function PATCH(request: NextRequest) {
   if (isAuthError(auth)) return auth
   const { supabase, userId } = auth
 
-  let body: { show_claiming_races?: boolean }
+  let body: { show_claiming_races?: boolean; show_stakes_only?: boolean }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  if (typeof body.show_claiming_races !== 'boolean') {
-    return NextResponse.json(
-      { error: 'show_claiming_races must be a boolean' },
-      { status: 400 }
-    )
+  const updates: Record<string, boolean> = {}
+  if ('show_claiming_races' in body) {
+    if (typeof body.show_claiming_races !== 'boolean') {
+      return NextResponse.json(
+        { error: 'show_claiming_races must be a boolean' },
+        { status: 400 }
+      )
+    }
+    updates.show_claiming_races = body.show_claiming_races
+  }
+  if ('show_stakes_only' in body) {
+    if (typeof body.show_stakes_only !== 'boolean') {
+      return NextResponse.json(
+        { error: 'show_stakes_only must be a boolean' },
+        { status: 400 }
+      )
+    }
+    updates.show_stakes_only = body.show_stakes_only
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
   }
 
   const { data, error } = await supabase
     .from('users')
-    .update({ show_claiming_races: body.show_claiming_races })
+    .update(updates)
     .eq('auth_id', userId)
-    .select('show_claiming_races')
+    .select('show_claiming_races, show_stakes_only')
     .single()
 
   if (error) {

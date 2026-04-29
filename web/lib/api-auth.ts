@@ -9,6 +9,7 @@ interface AuthResult {
 
 interface UserPreferences {
   show_claiming_races: boolean
+  show_stakes_only: boolean
 }
 
 export async function requireAuth(): Promise<AuthResult | NextResponse> {
@@ -30,7 +31,7 @@ export async function getUserPreferences(
 ): Promise<UserPreferences> {
   const { data } = await supabase
     .from('users')
-    .select('show_claiming_races, organizations(allow_claiming_toggle)')
+    .select('show_claiming_races, show_stakes_only, organizations(allow_claiming_toggle)')
     .eq('auth_id', userId)
     .single()
 
@@ -40,6 +41,7 @@ export async function getUserPreferences(
 
   return {
     show_claiming_races: showClaiming,
+    show_stakes_only: data?.show_stakes_only ?? false,
   }
 }
 

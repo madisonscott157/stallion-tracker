@@ -56,6 +56,11 @@ export async function GET(request: NextRequest) {
     query = query.or('race_type.is.null,race_type.not.in.("MCL","CLM")')
   }
 
+  // Stakes-only mode: drop everything except is_stakes = true
+  if (prefs.show_stakes_only) {
+    query = query.eq('is_stakes', true)
+  }
+
   const { data, error } = await query
     .order('race_date', { ascending: false })
     .order('race_number', { ascending: false })

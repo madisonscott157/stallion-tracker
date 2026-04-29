@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
         .gte('race_date', today)
         .ilike('horses.stallions.name', stallion)
       if (claimingFilter) q = q.or(claimingFilter)
+      if (prefs.show_stakes_only) q = q.eq('is_stakes', true)
       return q.order('race_date', { ascending: true }).order('post_time', { ascending: true })
     })() : emptyQuery,
 
@@ -83,6 +84,7 @@ export async function GET(request: NextRequest) {
         .select('*, horses!inner ( name, sex, yob, dam, equibase_profile_url, stallions!inner ( name ) )')
         .ilike('horses.stallions.name', stallion)
       if (claimingFilter) q = q.or(claimingFilter)
+      if (prefs.show_stakes_only) q = q.eq('is_stakes', true)
       return q.order('race_date', { ascending: false }).order('race_number', { ascending: false }).limit(1000)
     })() : emptyQuery,
 

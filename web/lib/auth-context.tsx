@@ -69,6 +69,7 @@ export interface UserProfile {
   role: 'user' | 'admin'
   default_stallion_id: string | null
   show_claiming_races: boolean
+  show_stakes_only: boolean
   show_dashboard: boolean
   organization?: Organization
 }
@@ -84,7 +85,7 @@ interface AuthContextType {
   allOrgsWithSilks: Organization[]
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
-  updateProfile: (updates: { show_claiming_races?: boolean }) => Promise<void>
+  updateProfile: (updates: { show_claiming_races?: boolean; show_stakes_only?: boolean }) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -422,7 +423,7 @@ export function AuthProvider({
     window.location.href = '/login'
   }
 
-  const updateProfile = async (updates: { show_claiming_races?: boolean }) => {
+  const updateProfile = async (updates: { show_claiming_races?: boolean; show_stakes_only?: boolean }) => {
     const res = await fetch('/api/user/preferences', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -432,7 +433,7 @@ export function AuthProvider({
       throw new Error('Failed to update preferences')
     }
     const data = await res.json()
-    setProfile(prev => prev ? { ...prev, show_claiming_races: data.show_claiming_races } : prev)
+    setProfile(prev => prev ? { ...prev, ...data } : prev)
   }
 
   return (

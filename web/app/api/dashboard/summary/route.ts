@@ -10,7 +10,7 @@ export async function GET() {
   // Single query for both prefs and profile — avoids two roundtrips to the same table
   const { data: userRow } = await supabase
     .from('users')
-    .select('role, organization_id, show_claiming_races, organizations(allow_claiming_toggle, show_race_activity)')
+    .select('role, organization_id, show_claiming_races, show_stakes_only, organizations(allow_claiming_toggle, show_race_activity)')
     .eq('auth_id', userId)
     .single()
 
@@ -19,7 +19,10 @@ export async function GET() {
   }
 
   const orgAllowsToggle = (userRow.organizations as any)?.allow_claiming_toggle ?? true
-  const prefs = { show_claiming_races: orgAllowsToggle ? (userRow.show_claiming_races ?? true) : false }
+  const prefs = {
+    show_claiming_races: orgAllowsToggle ? (userRow.show_claiming_races ?? true) : false,
+    show_stakes_only: userRow.show_stakes_only ?? false,
+  }
   const showRaceActivity = (userRow.organizations as any)?.show_race_activity !== false
   const profile = userRow
 
@@ -67,6 +70,14 @@ export async function GET() {
     return query
   }
 
+  // Stakes-only filter: drop everything that isn't is_stakes=true
+  const applyStakesFilter = (query: any) => {
+    if (prefs.show_stakes_only) {
+      query = query.eq('is_stakes', true)
+    }
+    return query
+  }
+
   const emptyQuery = Promise.resolve({ data: [], error: null })
   const currentYear = new Date().getFullYear()
 
@@ -75,13 +86,13 @@ export async function GET() {
     // Upcoming entries (all stallions, not scratched, from today).
     // Pull distance + sire's tdn_region so we can drop NA jumps races client-side.
     showRaceActivity
-      ? applyClaimingFilter(
+      ? applyStakesFilter(applyClaimingFilter(
           supabase
             .from('entries')
             .select('id, horse_id, race_date, track, race_number, distance, horses!inner(sire_id, stallions!inner(tdn_region))')
             .eq('scratched', false)
             .gte('race_date', today)
-        )
+        ))
       : emptyQuery,
 
     // Results for today+ (to exclude entries whose race has already run)
@@ -100,7 +111,7 @@ export async function GET() {
 
     // Recent winners (last 14 days, limit 15)
     showRaceActivity
-      ? applyClaimingFilter(
+      ? applyStakesFilter(applyClaimingFilter(
           supabase
             .from('results')
             .select(`
@@ -112,7 +123,7 @@ export async function GET() {
             `)
             .eq('finish_position', 1)
             .gte('race_date', fourteenDaysAgo)
-        )
+        ))
           .order('race_date', { ascending: false })
           .order('race_number', { ascending: false })
           .limit(15)
