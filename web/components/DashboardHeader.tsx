@@ -11,16 +11,21 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
-  const { profile, signOut, isSigningOut, isAdmin, hasBookings, isLoading } = useAuth()
+  const { user, profile, signOut, isSigningOut, isAdmin, hasBookings, isLoading } = useAuth()
   const pathname = usePathname()
   const isBookingsPage = pathname === '/dashboard/bookings'
 
-  // Org is still resolving if isLoading OR the user has an organization_id
-  // set but the joined `organization` object hasn't arrived yet (happens when
-  // the RLS join momentarily returns null under a stale JWT and auth-context
-  // schedules a retry). Both cases should show a blank placeholder rather
-  // than the generic "Stallion Tracker" fallback to avoid the back-nav flash.
-  const orgLoading = isLoading || (profile?.organization_id != null && !profile?.organization)
+  // Org is still resolving in any of these cases, all of which should render the
+  // blank placeholder rather than the generic "Stallion Tracker" fallback:
+  //   1. Auth is still initializing (isLoading)
+  //   2. We have a user but the profile fetch hasn't returned yet
+  //   3. Profile arrived but the org join hasn't (transient RLS/JWT race)
+  // The "Stallion Tracker" fallback should only render when the user is truly
+  // signed out — never during a transient null-profile window.
+  const orgLoading =
+    isLoading ||
+    (user != null && profile == null) ||
+    (profile?.organization_id != null && !profile?.organization)
   const orgName = profile?.organization?.name || (orgLoading ? '\u00A0' : 'Stallion Tracker')
 
   return (

@@ -4,6 +4,50 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { User, Session } from '@supabase/supabase-js'
 import { createClientComponentClient } from './supabase'
 
+const ORG_THEME_STORAGE_KEY = 'st_org_theme_v1'
+
+interface CachedOrgTheme {
+  primary_color: string
+  secondary_color: string
+}
+
+function readCachedOrgTheme(): CachedOrgTheme | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(ORG_THEME_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (typeof parsed?.primary_color === 'string' && typeof parsed?.secondary_color === 'string') {
+      return { primary_color: parsed.primary_color, secondary_color: parsed.secondary_color }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+function writeCachedOrgTheme(theme: CachedOrgTheme | null): void {
+  if (typeof window === 'undefined') return
+  try {
+    if (theme === null) window.localStorage.removeItem(ORG_THEME_STORAGE_KEY)
+    else window.localStorage.setItem(ORG_THEME_STORAGE_KEY, JSON.stringify(theme))
+  } catch {
+    // localStorage unavailable (private mode / quota) — ignore
+  }
+}
+
+function applyOrgColorsToDom(primary: string, secondary: string): void {
+  if (typeof document === 'undefined') return
+  document.documentElement.style.setProperty('--org-primary', primary)
+  document.documentElement.style.setProperty('--org-secondary', secondary)
+  const sec = secondary?.toLowerCase().replace(/\s/g, '')
+  if (sec === '#ffffff' || sec === '#fff' || sec === 'white') {
+    document.documentElement.setAttribute('data-white-secondary', '')
+  } else {
+    document.documentElement.removeAttribute('data-white-secondary')
+  }
+}
+
 export interface Organization {
   id: string
   name: string
@@ -61,34 +105,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = createClientComponentClient()
 
   const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
-    const { data, error } = await supabase
-      .from('users')
-      .select(`*, organization:organizations(*)`)
-      .eq('auth_id', userId)
-      .single()
-
-    if (error || !data) {
-      console.error('Error fetching profile:', error)
-      return null
-    }
-
-    // If the org join came back null despite an organization_id being set, the RLS
-    // evaluation may have run with a stale JWT. Try fetching the org directly — a
-    // simple eq() query evaluates RLS differently than an embedded join and is more
-    // reliable immediately after login.
-    if (data.organization_id && !data.organization) {
-      const { data: orgData } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', data.organization_id)
+    // One pass: join, plus direct-org fallback (different RLS evaluation path).
+    const tryOnce = async (): Promise<UserProfile | null> => {
+      const { data, error } = await supabase
+        .from('users')
+        .select(`*, organization:organizations(*)`)
+        .eq('auth_id', userId)
         .single()
-      // Return the profile with whatever org data we got.
-      // Returning a partial profile (null org) is always better than returning null —
-      // a null return from here means the caller never calls setProfile at all.
-      return { ...data, organization: orgData ?? null } as UserProfile
+
+      if (error || !data) return null
+
+      if (data.organization_id && !data.organization) {
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', data.organization_id)
+          .single()
+        return { ...data, organization: orgData ?? null } as UserProfile
+      }
+      return data as UserProfile
     }
 
-    return data as UserProfile
+    // Up to 3 passes with backoff. We return the first pass that yields a complete
+    // profile (with org) — otherwise we fall through and return the best we got.
+    let lastResult: UserProfile | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) {
+        await new Promise(r => setTimeout(r, 400 * (1 << (attempt - 1))))
+      }
+      const result = await tryOnce()
+      if (result) lastResult = result
+      // Only short-circuit when org is fully resolved. If org_id is null (rare),
+      // there's nothing to wait for either — return immediately.
+      if (result && (!result.organization_id || result.organization)) return result
+    }
+    if (lastResult && lastResult.organization_id && !lastResult.organization) {
+      console.warn('[auth] fetchProfile returning profile with null org after retries')
+    } else if (!lastResult) {
+      console.error('[auth] fetchProfile returned null after retries')
+    }
+    return lastResult
   }
 
   const fetchAllOrgsWithSilks = async (): Promise<Organization[]> => {
@@ -104,28 +160,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data as Organization[]
   }
 
-  // Apply org theme colors as CSS variables
+  // On first mount, eagerly apply the last-known org theme from localStorage so the
+  // header paints with correct colors before the profile fetch resolves. Without this,
+  // a remount (back-nav, error boundary, hard refresh) shows the navy default for
+  // ~hundreds of ms while the join races, which users perceive as "wrong colors".
+  useEffect(() => {
+    const cached = readCachedOrgTheme()
+    if (cached) {
+      applyOrgColorsToDom(cached.primary_color, cached.secondary_color)
+      hasAppliedOrgColors.current = true
+    }
+    // Only run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Apply org theme colors as CSS variables. Defaults only kick in when we know the
+  // user is signed out — never during a transient null-profile window.
   useEffect(() => {
     if (profile?.organization) {
       hasAppliedOrgColors.current = true
-      document.documentElement.style.setProperty('--org-primary', profile.organization.primary_color)
-      document.documentElement.style.setProperty('--org-secondary', profile.organization.secondary_color)
-      const sec = profile.organization.secondary_color?.toLowerCase().replace(/\s/g, '')
-      if (sec === '#ffffff' || sec === '#fff' || sec === 'white') {
-        document.documentElement.setAttribute('data-white-secondary', '')
-      } else {
-        document.documentElement.removeAttribute('data-white-secondary')
-      }
-    } else if (!isLoading && !hasAppliedOrgColors.current) {
-      // Only set defaults if org colors were never applied this session.
-      // Once org colors are set, we keep them — profile can be transiently null
-      // during back-navigation or token refresh without resetting the header.
-      // (Sign-out does a full page reload, so the ref resets naturally.)
-      document.documentElement.style.setProperty('--org-primary', '#0f172a')
-      document.documentElement.style.setProperty('--org-secondary', '#64748b')
-      document.documentElement.removeAttribute('data-white-secondary')
+      applyOrgColorsToDom(profile.organization.primary_color, profile.organization.secondary_color)
+      writeCachedOrgTheme({
+        primary_color: profile.organization.primary_color,
+        secondary_color: profile.organization.secondary_color,
+      })
+    } else if (!isLoading && !user && !hasAppliedOrgColors.current) {
+      // Truly logged out and never applied colors — safe to use defaults.
+      applyOrgColorsToDom('#0f172a', '#64748b')
     }
-  }, [profile, isLoading])
+  }, [profile, isLoading, user])
 
   useEffect(() => {
     let isCancelled = false
@@ -138,15 +201,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const checkBookings = () => {
       fetch('/api/bookings')
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (!isCancelled) setHasBookings(!!data?.reports?.length)
+        .then(r => {
+          // Only treat a definitive 200 as authoritative. Anything else (401/500/network)
+          // we ignore so a transient error doesn't flip a previously-true hasBookings to false.
+          if (!r.ok) return undefined
+          return r.json()
         })
-        .catch(() => {})
+        .then(data => {
+          if (isCancelled || data === undefined) return
+          setHasBookings(!!data?.reports?.length)
+        })
+        .catch(() => {
+          // Network error — keep last-known hasBookings rather than wiping it.
+        })
     }
 
-    // isRetry=true suppresses the one-shot background retry so it can never self-reschedule
-    const loadUserData = async (userId: string, isRetry = false) => {
+    const loadUserData = async (userId: string) => {
       if (isLoadingUserData) {
         pendingUserId = userId // queue a retry; will fire when active load finishes
         return
@@ -160,17 +230,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ])
         if (isCancelled) return
         // Only update profile if fetch succeeded — don't wipe valid state on transient errors.
-        // Also guard against a stale-JWT race on TOKEN_REFRESHED: if the org join returned null
-        // but the current profile already has org data, keep the good data.
+        // Guard against a stale-JWT race: if the new fetch came back without org data but the
+        // current profile already has org, keep the good data.
         if (fetchedProfile) {
-          setProfile(prev => (prev?.organization && !fetchedProfile.organization) ? prev : fetchedProfile)
+          setProfile(prev => {
+            if (prev?.organization && !fetchedProfile.organization) {
+              console.warn('[auth] setProfile guard: keeping previous org data; new fetch had null org')
+              return prev
+            }
+            return fetchedProfile
+          })
           setAllOrgsWithSilks(fetchedProfile.role === 'admin' ? orgs : [])
-
-          // If org data is still missing, schedule one background retry (isRetry=true prevents
-          // the retry from rescheduling itself, avoiding an infinite loop).
-          if (fetchedProfile.organization_id && !fetchedProfile.organization && !isRetry) {
-            setTimeout(() => { if (!isCancelled) loadUserData(userId, true) }, 1500)
-          }
         }
         checkBookings()
       } finally {
@@ -242,6 +312,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setProfile(null)
             setAllOrgsWithSilks([])
             setHasBookings(false)
+            hasAppliedOrgColors.current = false
+            writeCachedOrgTheme(null)
           }
         } catch (error: unknown) {
           if (error instanceof Error && error.name === 'AbortError') return
@@ -267,6 +339,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (signOutRef.current) return
     signOutRef.current = true
     setIsSigningOut(true)
+    writeCachedOrgTheme(null)
+    hasAppliedOrgColors.current = false
+
+    // Safety net: if the navigation below is somehow blocked or interrupted,
+    // release the lock so onAuthStateChange events resume processing instead of
+    // leaving the AuthProvider in a permanently muted state.
+    setTimeout(() => {
+      signOutRef.current = false
+      setIsSigningOut(false)
+    }, 4000)
 
     const clearAuth = () => {
       document.cookie.split(';').forEach(c => {
