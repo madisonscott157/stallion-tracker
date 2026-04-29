@@ -95,14 +95,31 @@ def _extract_grade(name: str) -> tuple[str, Optional[str], bool]:
 
 
 def _infer_race_type(name: str, is_stakes: bool) -> str:
-    """Coarse race-type label for the `race_type` column."""
+    """Coarse race-type label for the `race_type` column.
+
+    Distinguishes UK/IRE/FR flat-race classes that have no direct US
+    equivalent. Order matters — more-specific keywords win:
+        STK   graded or listed (set by caller via is_stakes)
+        NOV   novice (UK/IRE: limited prior wins)
+        NUR   nursery (UK: 2yo handicap)
+        MSW   maiden / pucelle / nouveau (FR)
+        HCP   handicap
+        CON   conditions / allowance equivalent on the continent
+        ALW   anything else (fallback)
+    """
     if is_stakes:
         return 'STK'
     low = name.lower()
-    if re.search(r'\bmaiden\b', low):
+    if re.search(r'\bnursery\b', low):
+        return 'NUR'
+    if re.search(r'\bnovice\b', low):
+        return 'NOV'
+    if re.search(r'\b(maiden|pucelle|nouveaux?|inedit[ae]?s?)\b', low):
         return 'MSW'
     if re.search(r'\b(handicap|hcp)\b|\bh\.', low):
         return 'HCP'
+    if re.search(r'\bcondition[s]?\b', low):
+        return 'CON'
     return 'ALW'
 
 
