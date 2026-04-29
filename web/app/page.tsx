@@ -161,12 +161,17 @@ function HomeContent() {
     try {
       const { exportDashboardToPDF } = await import('@/lib/pdf-export')
       // Build list of orgs with silks for matching owner names
-      const orgsWithSilks: OrgWithSilks[] = allOrgsWithSilks.map(o => ({ name: o.name, silks_url: o.silks_url }))
+      const orgsWithSilks: OrgWithSilks[] = allOrgsWithSilks.map(o => ({
+        name: o.name,
+        silks_url: o.silks_url,
+        owner_match_patterns: o.owner_match_patterns,
+      }))
       // Include user's org silks if not already included
       if (profile?.organization?.silks_url && !orgsWithSilks.find(o => o.silks_url === profile.organization?.silks_url)) {
         orgsWithSilks.push({
           name: profile.organization.name,
-          silks_url: profile.organization.silks_url
+          silks_url: profile.organization.silks_url,
+          owner_match_patterns: profile.organization.owner_match_patterns,
         })
       }
       await exportDashboardToPDF({
@@ -178,6 +183,7 @@ function HomeContent() {
         isAdmin,
         userOrgName: profile?.organization?.name,
         userOrgSilksUrl: profile?.organization?.silks_url,
+        userOrgPatterns: profile?.organization?.owner_match_patterns,
       })
       setShowExportModal(false)
     } catch (error) {

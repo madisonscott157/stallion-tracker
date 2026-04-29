@@ -50,8 +50,11 @@ def parse_comments(comments: str) -> ParsedComments:
     # Remove outer parentheses if present
     inner = comments
     if comments.startswith('('):
-        # Find matching closing paren
-        paren_match = re.match(r'\(([^)]+)\)(.*)', comments)
+        # Match up to the LAST close paren so nested country codes like
+        # "(IRE)" inside a dam name don't truncate the dam and bleed into
+        # the owner field. e.g. "(2024 Olympiad - Yesterdayoncemore (IRE)) LNJ"
+        # → inner = "2024 Olympiad - Yesterdayoncemore (IRE)", after = " LNJ"
+        paren_match = re.match(r'\((.+)\)(.*)', comments)
         if paren_match:
             inner = paren_match.group(1).strip()
             # Extract owner name - text after ) but before common email content patterns

@@ -219,7 +219,8 @@ export async function GET(request: NextRequest) {
     history: historyRes.data || [],
     tdn_region: (stallionIdRes.data as any)?.tdn_region ?? 'na',
   })
-  response.headers.set('Cache-Control', 'private, s-maxage=300, stale-while-revalidate=600')
+  response.headers.set('Cache-Control', 'private, no-store')
+  response.headers.set('Vary', 'Cookie')
   return response
 
   } catch (error) {

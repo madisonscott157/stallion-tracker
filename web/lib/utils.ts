@@ -208,19 +208,51 @@ export function formatTrack(track: string): string {
     .join(' ')
 }
 
+// Normalize for silks owner-name matching: lowercase, drop punctuation,
+// collapse whitespace. Lets "L.N.J. Foxwoods, LLC" match a pattern like "LNJ".
+function normalizeOwnerName(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[.,'"`]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+interface SilksOrg {
+  name?: string
+  silks_url?: string | null
+  owner_match_patterns?: string[] | null
+}
+
+// Effective patterns for an org: explicit patterns if set, else fall back to the org name.
+function patternsFor(org: SilksOrg): string[] {
+  const explicit = (org.owner_match_patterns ?? []).filter(p => p && p.trim())
+  if (explicit.length > 0) return explicit
+  return org.name ? [org.name] : []
+}
+
+function ownerMatches(ownerNorm: string, patterns: string[]): boolean {
+  return patterns.some(p => {
+    const norm = normalizeOwnerName(p)
+    return norm.length > 0 && ownerNorm.includes(norm)
+  })
+}
+
 export function shouldShowSilks(
-  organization: { name?: string; silks_url?: string | null } | undefined,
+  organization: SilksOrg | undefined,
   owner: string | null | undefined,
-  allOrgsWithSilks?: { name: string; silks_url: string | null }[],
+  allOrgsWithSilks?: SilksOrg[],
   isAdmin?: boolean
 ): { show: boolean; silksUrls: string[] } {
   if (!owner) return { show: false, silksUrls: [] }
+  const ownerNorm = normalizeOwnerName(owner)
 
   // For admins: show ALL matching org silks (multiple owners)
   if (isAdmin && allOrgsWithSilks && allOrgsWithSilks.length > 0) {
     const matchingSilks: string[] = []
     for (const org of allOrgsWithSilks) {
-      if (org.name && org.silks_url && owner.includes(org.name)) {
+      if (!org.silks_url) continue
+      if (ownerMatches(ownerNorm, patternsFor(org))) {
         matchingSilks.push(org.silks_url)
       }
     }
@@ -230,9 +262,8 @@ export function shouldShowSilks(
   }
 
   // For regular users: only show their own org's silks if they're one of the owners
-  const orgName = organization?.name
   const silksUrl = organization?.silks_url
-  if (orgName && silksUrl && owner.includes(orgName)) {
+  if (organization && silksUrl && ownerMatches(ownerNorm, patternsFor(organization))) {
     return { show: true, silksUrls: [silksUrl] }
   }
   return { show: false, silksUrls: [] }

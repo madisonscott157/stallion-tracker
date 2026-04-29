@@ -56,6 +56,7 @@ export interface Organization {
   secondary_color: string
   logo_url: string | null
   silks_url: string | null
+  owner_match_patterns: string[] | null
   allow_claiming_toggle: boolean
   show_race_activity: boolean
 }

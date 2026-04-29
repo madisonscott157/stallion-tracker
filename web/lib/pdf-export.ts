@@ -5,7 +5,7 @@
  */
 
 import type { Result, Entry } from './supabase'
-import { formatDate, formatDistance, formatHorseDescription, formatOrdinal, formatTrack, cleanRaceName } from './utils'
+import { formatDate, formatDistance, formatHorseDescription, formatOrdinal, formatTrack, cleanRaceName, shouldShowSilks } from './utils'
 import { formatPurse } from './currency'
 
 export type ExportType = 'all' | 'entries' | 'results' | 'stakes'
@@ -19,6 +19,7 @@ export interface ExportOptions {
 export interface OrgWithSilks {
   name: string
   silks_url: string | null
+  owner_match_patterns?: string[] | null
 }
 
 export interface ExportData {
@@ -31,6 +32,7 @@ export interface ExportData {
   isAdmin?: boolean
   userOrgName?: string
   userOrgSilksUrl?: string | null
+  userOrgPatterns?: string[] | null
 }
 
 function pipe(): string {
@@ -42,25 +44,14 @@ function getSilksForOwner(
   orgsWithSilks: OrgWithSilks[],
   isAdmin?: boolean,
   userOrgName?: string,
-  userOrgSilksUrl?: string | null
+  userOrgSilksUrl?: string | null,
+  userOrgPatterns?: string[] | null
 ): string[] {
-  if (!owner) return []
-
-  if (isAdmin && orgsWithSilks.length > 0) {
-    const matchingSilks: string[] = []
-    for (const org of orgsWithSilks) {
-      if (org.name && org.silks_url && owner.includes(org.name)) {
-        matchingSilks.push(org.silks_url)
-      }
-    }
-    return matchingSilks
-  }
-
-  if (userOrgName && userOrgSilksUrl && owner.includes(userOrgName)) {
-    return [userOrgSilksUrl]
-  }
-
-  return []
+  const userOrg = userOrgName
+    ? { name: userOrgName, silks_url: userOrgSilksUrl ?? null, owner_match_patterns: userOrgPatterns ?? null }
+    : undefined
+  const { silksUrls } = shouldShowSilks(userOrg, owner, orgsWithSilks, isAdmin)
+  return silksUrls
 }
 
 function silksImg(silksUrl: string): string {
@@ -76,6 +67,7 @@ interface BuildRowOptions {
   isAdmin?: boolean
   userOrgName?: string
   userOrgSilksUrl?: string | null
+  userOrgPatterns?: string[] | null
 }
 
 // Shared table row cell styles
@@ -85,7 +77,7 @@ const cellMain = `vertical-align:top;padding:6px 4px;`
 const cellRight = `vertical-align:top;text-align:right;white-space:nowrap;padding:6px 0 6px 8px;font-size:12px;color:#475569;`
 
 function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
-  const { orgsWithSilks = [], isAdmin, userOrgName, userOrgSilksUrl } = options
+  const { orgsWithSilks = [], isAdmin, userOrgName, userOrgSilksUrl, userOrgPatterns } = options
   const isWin = r.finish_position === 1
   const isStakes = r.is_stakes
 
@@ -103,7 +95,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
     ? `<a href="${r.horse_profile_url}" style="color:#0f172a;text-decoration:none;">${nameText}</a>`
     : nameText
   const desc = formatHorseDescription(r.horse_sex || null, r.horse_yob || null)
-  const ownerSilks = getSilksForOwner(r.owner, orgsWithSilks, isAdmin, userOrgName, userOrgSilksUrl)
+  const ownerSilks = getSilksForOwner(r.owner, orgsWithSilks, isAdmin, userOrgName, userOrgSilksUrl, userOrgPatterns)
   const track = formatTrack(r.track)
   const dateStr = formatDate(r.race_date)
 
@@ -140,14 +132,14 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
 function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
   if (e.scratched) return ''
 
-  const { orgsWithSilks = [], isAdmin, userOrgName, userOrgSilksUrl } = options
+  const { orgsWithSilks = [], isAdmin, userOrgName, userOrgSilksUrl, userOrgPatterns } = options
 
   const nameText = e.horse_name || `${e.horse_yob || ''} ${e.horse_dam || 'Unknown'}`.trim()
   const name = e.horse_profile_url
     ? `<a href="${e.horse_profile_url}" style="color:#0f172a;text-decoration:none;">${nameText}</a>`
     : nameText
   const desc = formatHorseDescription(e.horse_sex || null, e.horse_yob || null)
-  const ownerSilks = getSilksForOwner(e.owner, orgsWithSilks, isAdmin, userOrgName, userOrgSilksUrl)
+  const ownerSilks = getSilksForOwner(e.owner, orgsWithSilks, isAdmin, userOrgName, userOrgSilksUrl, userOrgPatterns)
   const track = formatTrack(e.track)
   const dateStr = formatDate(e.race_date)
   const distDisplay = formatDistance(e.distance || null)
@@ -259,6 +251,7 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
     isAdmin: data.isAdmin,
     userOrgName: data.userOrgName,
     userOrgSilksUrl: data.userOrgSilksUrl,
+    userOrgPatterns: data.userOrgPatterns,
   }
 
   // Build all rows as table rows in a single table

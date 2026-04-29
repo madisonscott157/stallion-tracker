@@ -99,6 +99,7 @@ export async function GET(request: NextRequest) {
     }))
 
   const response = NextResponse.json(entries)
-  response.headers.set('Cache-Control', 'private, s-maxage=300, stale-while-revalidate=600')
+  response.headers.set('Cache-Control', 'private, no-store')
+  response.headers.set('Vary', 'Cookie')
   return response
 }
