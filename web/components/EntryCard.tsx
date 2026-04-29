@@ -32,11 +32,22 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
   const trackDisplay = formatTrack(entry.track)
   const distanceDisplay = formatDistance(entry.distance || null)
 
+  // 'Listed' is treated visually like a non-graded stakes — no pill, navy
+  // accents — to match Equibase / TDN convention where only G1/G2/G3 get
+  // a colored grade badge.
+  const isGraded = entry.stakes_grade != null && entry.stakes_grade !== 'Listed'
+  const showGradeBadge = isGraded
+  const gradedAccent = isGraded
+    ? entry.stakes_grade === 'G1' ? 'text-gold-border'
+    : entry.stakes_grade === 'G2' ? 'text-silver-border'
+    : 'text-accent'
+    : ''
+
   // Determine border color based on stakes status
-  const borderClass = entry.stakes_grade
+  const borderClass = isGraded
     ? 'border-l-4 border-l-accent'  // Graded stakes: orange
     : entry.is_stakes
-    ? 'border-l-4 border-l-primary' // Non-graded stakes: navy
+    ? 'border-l-4 border-l-primary' // Non-graded stakes (incl. Listed): navy
     : ''                             // Non-stakes: no colored border
 
   return (
@@ -134,7 +145,7 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
           'flex flex-wrap items-center gap-1 sm:gap-2 -mt-0.5 sm:mt-1 text-sm',
           entry.scratched ? 'text-slate-400' : 'text-slate-500'
         )}>
-          {entry.stakes_grade && (
+          {showGradeBadge && (
             <span className={cn(
               'text-xs rounded font-medium inline-flex items-center justify-center text-white',
               entry.scratched
@@ -154,11 +165,9 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
                 rel="noopener noreferrer"
                 className={cn(
                   "font-medium hover:underline",
-                  entry.stakes_grade === 'G1' ? "text-gold-border" :
-                  entry.stakes_grade === 'G2' ? "text-silver-border" :
-                  entry.stakes_grade ? "text-accent" : ""
+                  isGraded ? gradedAccent : ""
                 )}
-                style={!entry.stakes_grade ? { color: 'var(--org-primary)' } : undefined}
+                style={!isGraded ? { color: 'var(--org-primary)' } : undefined}
               >
                 {stakesRaceName}
               </a>
@@ -166,10 +175,10 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
               <span className={cn(
                 "font-medium",
                 entry.scratched ? "text-slate-400" :
-                entry.stakes_grade === 'G1' ? "text-gold-border" :
-                entry.stakes_grade === 'G2' ? "text-silver-border" :
-                entry.stakes_grade ? "text-accent" : "text-slate-900"
-              )}>{stakesRaceName}</span>
+                isGraded ? gradedAccent : "text-slate-900"
+              )}
+                style={!entry.scratched && !isGraded ? { color: 'var(--org-primary)' } : undefined}
+              >{stakesRaceName}</span>
             )
           )}
         </div>

@@ -115,7 +115,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   const stakesName = isStakes && r.race_name ? cleanRaceName(r.race_name.replace(/^STAKES\s*/i, '').trim()) : null
   if (r.stakes_grade || stakesName) {
     const parts: string[] = []
-    if (r.stakes_grade) parts.push(stakesPill(r.stakes_grade))
+    if (r.stakes_grade && r.stakes_grade !== 'Listed') parts.push(stakesPill(r.stakes_grade))
     if (stakesName) parts.push(`<span style="font-weight:500;color:#334155;">${stakesName}</span>`)
     if (isWin && r.win_margin) parts.push(`<span style="color:#15803d;font-weight:500;">Won by ${r.win_margin}</span>`)
     subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${parts.join(' — ')}</div>`
@@ -162,7 +162,7 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
   let subLine = ''
   if (e.stakes_grade || stakesName) {
     const parts: string[] = []
-    if (e.stakes_grade) parts.push(stakesPill(e.stakes_grade))
+    if (e.stakes_grade && e.stakes_grade !== 'Listed') parts.push(stakesPill(e.stakes_grade))
     if (stakesName) parts.push(`<span style="font-weight:500;color:#334155;">${stakesName}</span>`)
     subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${parts.join(' — ')}</div>`
   }

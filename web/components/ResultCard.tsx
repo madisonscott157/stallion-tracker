@@ -43,13 +43,17 @@ export const ResultCard = memo(function ResultCard({ result, showSireName, suppr
   const isThird = result.finish_position === 3
   const isG1 = result.stakes_grade === 'G1'
   const isG2 = result.stakes_grade === 'G2'
+  // 'Listed' is treated visually like a non-graded stakes — no pill, navy
+  // accents — matching Equibase / TDN convention where only G1/G2/G3 are
+  // "graded".
+  const isGraded = result.stakes_grade != null && result.stakes_grade !== 'Listed'
 
   // Determine border color:
   // - WIN or G1: gold
   // - 2nd place or G2: silver
   // - 3rd place: bronze
-  // - G3 or other stakes: accent (orange)
-  // - Non-graded stakes: navy
+  // - G3: accent (orange)
+  // - Listed / non-graded stakes: navy
   // - Other: no border
   let borderClass = ''
   if (isWinner || isG1) {
@@ -58,7 +62,7 @@ export const ResultCard = memo(function ResultCard({ result, showSireName, suppr
     borderClass = 'border-l-4 border-l-silver-border'
   } else if (isThird) {
     borderClass = 'border-l-4 border-l-bronze-border'
-  } else if (result.stakes_grade) {
+  } else if (isGraded) {
     borderClass = 'border-l-4 border-l-accent'
   } else if (result.is_stakes) {
     borderClass = 'border-l-4 border-l-primary'
@@ -184,7 +188,7 @@ export const ResultCard = memo(function ResultCard({ result, showSireName, suppr
       {/* Row 3: Stakes info + Win margin */}
       {(result.stakes_grade || stakesRaceName || (isWinner && result.win_margin)) && (
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 -mt-0.5 sm:mt-1 text-sm">
-          {result.stakes_grade && (
+          {isGraded && (
             <span className={cn(
               "text-white text-xs rounded font-medium inline-flex items-center justify-center",
               isG1 ? "bg-gold" : isG2 ? "bg-silver" : "bg-accent"
@@ -196,9 +200,9 @@ export const ResultCard = memo(function ResultCard({ result, showSireName, suppr
             <span className={cn(
               "font-medium",
               isStakesWinner && "font-bold",
-              isG1 ? "text-gold-border" : isG2 ? "text-silver-border" : result.stakes_grade ? "text-accent" : ""
+              isG1 ? "text-gold-border" : isG2 ? "text-silver-border" : isGraded ? "text-accent" : ""
             )}
-              style={!result.stakes_grade ? { color: 'var(--org-primary)' } : undefined}
+              style={!isGraded ? { color: 'var(--org-primary)' } : undefined}
             >{stakesRaceName}</span>
           )}
           {isWinner && result.win_margin && (
