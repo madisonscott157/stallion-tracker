@@ -89,19 +89,42 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<UserProfile | null>(null)
+interface AuthProviderProps {
+  children: ReactNode
+  // SSR-hydrated initial state from app/layout.tsx so the first client render
+  // already knows the user. Without this, getSession() races caused brief
+  // {user:null, profile:null, isLoading:false} renders that surfaced the
+  // "Stallion Tracker" + bare Logout fallback for authenticated users.
+  initialUser?: { id: string; email?: string } | null
+  initialProfile?: UserProfile | null
+  initialOrgsWithSilks?: Organization[]
+}
+
+export function AuthProvider({
+  children,
+  initialUser = null,
+  initialProfile = null,
+  initialOrgsWithSilks = [],
+}: AuthProviderProps) {
+  // Cast SSR plain-object user back to the supabase User shape — only id/email
+  // are read by consumers; the rest is filled in once onAuthStateChange fires.
+  const seedUser = (initialUser as User | null) ?? null
+  const [user, setUser] = useState<User | null>(seedUser)
+  const [profile, setProfile] = useState<UserProfile | null>(initialProfile)
   const [session, setSession] = useState<Session | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [allOrgsWithSilks, setAllOrgsWithSilks] = useState<Organization[]>([])
+  // Start non-loading whenever SSR could give us a definitive answer (user
+  // present OR no auth cookie). The async getSession() call below still runs
+  // to refresh the in-memory session/token, but it can no longer flash the
+  // "logged out" UI for an authenticated user.
+  const [isLoading, setIsLoading] = useState(seedUser == null && initialProfile == null ? true : false)
+  const [allOrgsWithSilks, setAllOrgsWithSilks] = useState<Organization[]>(initialOrgsWithSilks)
   const [hasBookings, setHasBookings] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const signOutRef = useRef(false)
   // Tracks whether org colors have been successfully applied this session.
   // Once set, we never overwrite with defaults — profile can be transiently null
   // during back-navigation / token refresh without resetting the header colors.
-  const hasAppliedOrgColors = useRef(false)
+  const hasAppliedOrgColors = useRef(initialProfile?.organization != null)
 
   const supabase = createClientComponentClient()
 
@@ -261,37 +284,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Get initial session
+    // Refresh the in-memory session and re-load the profile if we don't already
+    // have one from SSR. We do NOT clobber the SSR-hydrated user just because
+    // getSession() came back null transiently — the cookie is the source of
+    // truth and onAuthStateChange will signal real changes. Critically we do
+    // NOT have a 5-second unconditional safety net any more: that timeout
+    // used to manufacture {user:null, isLoading:false} for any user whose
+    // getSession() was slow, which was the root cause of the recurring
+    // "Stallion Tracker + bare Logout" fallback for authenticated users.
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (isCancelled) return
 
-        setSession(session)
-        setUser(session?.user ?? null)
-
-        if (session?.user) {
-          await loadUserData(session.user.id)
-          // loadUserData's finally flips isLoading to false after setProfile
-          // — don't duplicate it here or we reintroduce the race.
-        } else if (!isCancelled) {
-          // No session → nothing to load, safe to mark complete.
+        if (session) {
+          setSession(session)
+          setUser(session.user)
+          // Only refetch the profile if we don't already have one from SSR.
+          // Avoids redundant work on first paint for the common case.
+          if (!initialProfile || initialProfile.id !== (session.user as any).id) {
+            await loadUserData(session.user.id)
+          } else {
+            // We already have the profile from SSR; just ensure bookings load.
+            checkBookings()
+            setIsLoading(false)
+          }
+        } else if (seedUser) {
+          // SSR said the user was authenticated but the browser client hasn't
+          // hydrated the session from cookies yet. Keep the SSR user visible
+          // and let onAuthStateChange deliver the session shortly.
+          setIsLoading(false)
+        } else {
+          // No SSR user, no session → genuinely signed out.
           setIsLoading(false)
         }
       } catch (error: unknown) {
         if (error instanceof Error && error.name === 'AbortError') return
         if (isCancelled) return
         console.error('Error initializing auth:', error)
+        // Don't downgrade an SSR-authenticated user to "signed out" on a
+        // transient client error. Just stop the loading spinner.
         if (!isCancelled) setIsLoading(false)
       }
     }
-
-    // Timeout safety net to prevent infinite loading
-    const timeout = setTimeout(() => {
-      if (!isCancelled) {
-        setIsLoading(false)
-      }
-    }, 5000)
 
     initAuth()
 
@@ -326,9 +361,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isCancelled = true
-      clearTimeout(timeout)
       subscription.unsubscribe()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const signIn = async (email: string, password: string) => {
