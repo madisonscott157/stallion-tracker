@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isAuthError, getUserPreferences, getOrgShowRaceActivity } from '@/lib/api-auth'
+import { isNaJumpsRace } from '@/lib/utils'
 
 /**
  * Combined endpoint that returns all data for a stallion page in a single request.
@@ -158,11 +159,15 @@ export async function GET(request: NextRequest) {
     )
   )
 
-  // Flatten entries, excluding any where a matching result already exists
+  const stallionRegion = (stallionIdRes.data as any)?.tdn_region ?? 'na'
+
+  // Flatten entries, excluding any where a matching result already exists,
+  // and (for NA stallions) any race longer than 1m6f — those are jumps races.
   const entries = (entriesRes.data || [])
     .filter((entry: any) => !resultKeys.has(
       `${entry.horse_id}|${entry.race_date}|${entry.track}|${entry.race_number}`
     ))
+    .filter((entry: any) => !isNaJumpsRace(entry.distance ?? null, stallionRegion))
     .map((entry: any) => ({
       ...entry,
       horse_name: entry.horses?.name,
@@ -174,8 +179,10 @@ export async function GET(request: NextRequest) {
       sire_name: entry.horses?.stallions?.name,
     }))
 
-  // Flatten results
-  const results = (resultsRes.data || []).map((result: any) => ({
+  // Flatten results, dropping NA jumps races (anything > 1m6f for NA stallions)
+  const results = (resultsRes.data || [])
+    .filter((result: any) => !isNaJumpsRace(result.distance ?? null, stallionRegion))
+    .map((result: any) => ({
     ...result,
     horse_name: result.horses?.name,
     horse_sex: result.horses?.sex,

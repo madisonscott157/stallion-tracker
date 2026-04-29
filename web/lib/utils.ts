@@ -200,6 +200,122 @@ export function formatDistance(distance: string | null): string {
   return cleaned
 }
 
+// Parse a distance string into furlongs (1 mile = 8f). Returns null if
+// the format isn't recognized. Used to detect NA jumps races, which by
+// convention are anything longer than 1m6f (14 furlongs).
+export function parseDistanceToFurlongs(distance: string | null): number | null {
+  if (!distance) return null
+  const raw = distance.trim()
+  if (!raw) return null
+
+  const wordToNum: Record<string, number> = {
+    one: 1, two: 2, three: 3, four: 4, five: 5,
+    six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+    eleven: 11, twelve: 12, thirteen: 13, fourteen: 14,
+    fifteen: 15, sixteen: 16,
+    twenty: 20, thirty: 30, forty: 40, fifty: 50,
+    sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+  }
+  const fractionMap: Record<string, number> = {
+    'half': 0.5, 'one half': 0.5, 'onehalf': 0.5,
+    'quarter': 0.25, 'one quarter': 0.25, 'onequarter': 0.25,
+    'eighth': 0.125, 'one eighth': 0.125, 'oneeighth': 0.125,
+    'sixteenth': 0.0625, 'one sixteenth': 0.0625, 'onesixteenth': 0.0625,
+    'three quarters': 0.75, 'threequarters': 0.75,
+    'three eighths': 0.375, 'threeeighths': 0.375,
+    'five eighths': 0.625, 'fiveeighths': 0.625,
+    'seven eighths': 0.875, 'seveneighths': 0.875,
+    'three sixteenths': 0.1875, 'five sixteenths': 0.3125,
+    'seven sixteenths': 0.4375, 'nine sixteenths': 0.5625,
+    'eleven sixteenths': 0.6875, 'thirteen sixteenths': 0.8125,
+    'fifteen sixteenths': 0.9375,
+  }
+  const parseWord = (w: string): number | null => {
+    const k = w.toLowerCase()
+    if (k in wordToNum) return wordToNum[k]
+    const n = parseFloat(w)
+    return isNaN(n) ? null : n
+  }
+  const parseFractionDisplay = (s: string): number => {
+    const m = s.match(/^(\d+)\/(\d+)$/)
+    return m ? parseInt(m[1]) / parseInt(m[2]) : 0
+  }
+
+  const cleaned = raw.replace(/^about\s+/i, '').trim()
+
+  // "7F", "6.5F", "7f"
+  let m = cleaned.match(/^([\d.]+)\s*F$/i)
+  if (m) return parseFloat(m[1])
+
+  // "1 1/8 miles", "2 1/8 miles"
+  m = cleaned.match(/^(\d+)\s+(\d+\/\d+)\s+miles?$/i)
+  if (m) return (parseFloat(m[1]) + parseFractionDisplay(m[2])) * 8
+
+  // "1 mile", "2 miles"
+  m = cleaned.match(/^(\d+(?:\.\d+)?)\s+miles?$/i)
+  if (m) return parseFloat(m[1]) * 8
+
+  // "1 mile 70 yds"
+  m = cleaned.match(/^(\d+)\s+miles?\s+(\d+)\s*yds?$/i)
+  if (m) return parseFloat(m[1]) * 8 + parseFloat(m[2]) / 220
+
+  // "Six Furlongs", "7 Furlongs"
+  m = cleaned.match(/^(\w+)\s+Furlongs?$/i)
+  if (m) {
+    const n = parseWord(m[1])
+    if (n !== null) return n
+  }
+
+  // "Six And One Half Furlongs"
+  m = cleaned.match(/^(\w+)\s+And\s+(\w+(?:\s+\w+)?)\s+Furlongs?$/i)
+  if (m) {
+    const whole = parseWord(m[1])
+    const frac = fractionMap[m[2].toLowerCase()] ?? 0
+    if (whole !== null) return whole + frac
+  }
+
+  // "One Mile" / "Two Miles"
+  m = cleaned.match(/^(\w+)\s+Miles?$/i)
+  if (m) {
+    const n = parseWord(m[1])
+    if (n !== null) return n * 8
+  }
+
+  // "One And One Eighth Miles"
+  m = cleaned.match(/^(\w+)\s+And\s+(\w+(?:\s+\w+)?)\s+Miles?$/i)
+  if (m) {
+    const whole = parseWord(m[1])
+    const frac = fractionMap[m[2].toLowerCase()] ?? 0
+    if (whole !== null) return (whole + frac) * 8
+  }
+
+  // "One Mile And Seventy Yards"
+  m = cleaned.match(/^(\w+)\s+(Miles?|Furlongs?)\s+And\s+(\w+)\s+Yards?$/i)
+  if (m) {
+    const whole = parseWord(m[1])
+    const yards = parseWord(m[3])
+    if (whole !== null && yards !== null) {
+      return (/mile/i.test(m[2]) ? whole * 8 : whole) + yards / 220
+    }
+  }
+
+  return null
+}
+
+// NA flat racing tops out at 1m6f. Anything longer in NA is a jumps race.
+// We don't apply this to international stallions — Ascot Gold Cup etc. are
+// legitimate flat races over 14f.
+export const NA_FLAT_MAX_FURLONGS = 14
+
+export function isNaJumpsRace(
+  distance: string | null,
+  tdnRegion: string | null | undefined
+): boolean {
+  if (tdnRegion && tdnRegion !== 'na') return false
+  const f = parseDistanceToFurlongs(distance)
+  return f !== null && f > NA_FLAT_MAX_FURLONGS
+}
+
 export function formatTrack(track: string): string {
   return track
     .toLowerCase()

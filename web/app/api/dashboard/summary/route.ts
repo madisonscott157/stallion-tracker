@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAuth, isAuthError } from '@/lib/api-auth'
+import { isNaJumpsRace } from '@/lib/utils'
 
 export async function GET() {
   const auth = await requireAuth()
@@ -71,12 +72,13 @@ export async function GET() {
 
   // 2-5. Parallel queries
   const [entriesRes, entryResultsRes, ytdRes, winnersRes, stakesRes, rankingsRes] = await Promise.all([
-    // Upcoming entries (all stallions, not scratched, from today)
+    // Upcoming entries (all stallions, not scratched, from today).
+    // Pull distance + sire's tdn_region so we can drop NA jumps races client-side.
     showRaceActivity
       ? applyClaimingFilter(
           supabase
             .from('entries')
-            .select('id, horse_id, race_date, track, race_number, horses!inner(sire_id)')
+            .select('id, horse_id, race_date, track, race_number, distance, horses!inner(sire_id, stallions!inner(tdn_region))')
             .eq('scratched', false)
             .gte('race_date', today)
         )
@@ -105,7 +107,7 @@ export async function GET() {
               *,
               horses!inner (
                 name, sex, yob, dam, equibase_profile_url,
-                stallions!inner ( name )
+                stallions!inner ( name, tdn_region )
               )
             `)
             .eq('finish_position', 1)
@@ -125,7 +127,7 @@ export async function GET() {
               *,
               horses!inner (
                 name, sex, yob, dam, equibase_profile_url,
-                stallions!inner ( name )
+                stallions!inner ( name, tdn_region )
               )
             `)
             .eq('is_stakes', true)
@@ -159,12 +161,15 @@ export async function GET() {
   )
 
   // Group entry counts by sire_id, excluding entries with matching results
+  // and NA jumps races (anything > 1m6f for NA-region sires).
   const entryCounts: Record<string, number> = {}
   if (entriesRes.data) {
     for (const entry of entriesRes.data) {
       const key = `${entry.horse_id}|${(entry as any).race_date}|${(entry as any).track}|${(entry as any).race_number}`
       if (resultKeys.has(key)) continue
       const sireId = (entry.horses as any)?.sire_id
+      const region = (entry.horses as any)?.stallions?.tdn_region ?? 'na'
+      if (isNaJumpsRace((entry as any).distance ?? null, region)) continue
       if (sireId && stallionIds.includes(sireId)) {
         entryCounts[sireId] = (entryCounts[sireId] || 0) + 1
       }
@@ -228,8 +233,13 @@ export async function GET() {
     sire_name: result.horses?.stallions?.name,
   })
 
-  const recent_winners = (winnersRes.data || []).map(flattenResult)
-  const recent_stakes = (stakesRes.data || []).map(flattenResult)
+  // Drop NA jumps races (>1m6f for NA-region sires). International stallions
+  // can legitimately race longer than 14f, so we only filter the NA case.
+  const dropNaJumps = (rows: any[]) =>
+    rows.filter(r => !isNaJumpsRace(r.distance ?? null, r.horses?.stallions?.tdn_region ?? 'na'))
+
+  const recent_winners = dropNaJumps(winnersRes.data || []).map(flattenResult)
+  const recent_stakes = dropNaJumps(stakesRes.data || []).map(flattenResult)
 
   const response = NextResponse.json({ stallions, recent_winners, recent_stakes })
   response.headers.set('Cache-Control', 'private, no-store')

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isAuthError, getUserPreferences } from '@/lib/api-auth'
+import { isNaJumpsRace } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth()
@@ -30,7 +31,8 @@ export async function GET(request: NextRequest) {
         is_unnamed,
         equibase_profile_url,
         stallions!inner (
-          name
+          name,
+          tdn_region
         )
       )
     `)
@@ -87,6 +89,7 @@ export async function GET(request: NextRequest) {
     .filter(entry => !resultKeys.has(
       `${entry.horse_id}|${entry.race_date}|${entry.track}|${entry.race_number}`
     ))
+    .filter((entry: any) => !isNaJumpsRace(entry.distance ?? null, entry.horses?.stallions?.tdn_region ?? 'na'))
     .map(entry => ({
       ...entry,
       horse_name: entry.horses?.name,

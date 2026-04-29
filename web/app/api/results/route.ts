@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isAuthError, getUserPreferences } from '@/lib/api-auth'
+import { isNaJumpsRace } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth()
@@ -27,7 +28,8 @@ export async function GET(request: NextRequest) {
         dam,
         equibase_profile_url,
         stallions!inner (
-          name
+          name,
+          tdn_region
         )
       )
     `)
@@ -64,8 +66,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Flatten the response for easier frontend consumption
-  const results = data?.map(result => ({
+  // Flatten the response, dropping NA jumps races (anything > 1m6f for NA stallions)
+  const results = data
+    ?.filter((result: any) => !isNaJumpsRace(result.distance ?? null, result.horses?.stallions?.tdn_region ?? 'na'))
+    .map(result => ({
     ...result,
     horse_name: result.horses?.name,
     horse_sex: result.horses?.sex,
