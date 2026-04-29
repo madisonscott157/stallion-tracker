@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isAuthError, getUserPreferences, getOrgShowRaceActivity } from '@/lib/api-auth'
 import { isNaJumpsRace } from '@/lib/utils'
+import { convertPostTimeToET } from '@/lib/timezones'
 
 /**
  * Combined endpoint that returns all data for a stallion page in a single request.
@@ -178,6 +179,15 @@ export async function GET(request: NextRequest) {
       horse_profile_url: entry.horses?.equibase_profile_url,
       sire_name: entry.horses?.stallions?.name,
     }))
+
+  // Re-sort entries by UTC instant — see entries/route.ts for the rationale.
+  entries.sort((a: any, b: any) => {
+    const ax = convertPostTimeToET(a.post_time, a.race_date, a.race_country, a.timezone)?.utcMs
+    const bx = convertPostTimeToET(b.post_time, b.race_date, b.race_country, b.timezone)?.utcMs
+    if (ax != null && bx != null) return ax - bx
+    if (a.race_date !== b.race_date) return a.race_date < b.race_date ? -1 : 1
+    return (a.post_time ?? '').localeCompare(b.post_time ?? '')
+  })
 
   // Flatten results, dropping NA jumps races (anything > 1m6f for NA stallions)
   const results = (resultsRes.data || [])

@@ -2,7 +2,7 @@
 
 import { memo } from 'react'
 import { cn, cleanRaceName, formatDate, formatDistance, formatHorseDescription, formatTrack, shouldShowSilks, isToday, isTomorrow } from '@/lib/utils'
-import { formatPostTimeET } from '@/lib/timezones'
+import { convertPostTimeToET } from '@/lib/timezones'
 import { formatPurse } from '@/lib/currency'
 import { useAuth } from '@/lib/auth-context'
 import type { Entry } from '@/lib/supabase'
@@ -19,11 +19,20 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
 
   const { show: showSilks, silksUrls } = shouldShowSilks(profile?.organization, entry.owner, allOrgsWithSilks, isAdmin)
 
-  const dateLabel = isToday(entry.race_date)
+  // Convert post time to ET. For zones east of ET (Asia, Gulf), the ET
+  // calendar date can fall a day BEFORE the source race_date — e.g. a Tokyo
+  // 10:00 race on Nov 23 is Nov 22 21:00 ET. We use the converted ET date
+  // for the displayed label so users don't see "Nov 23 | 9:00 PM ET" for a
+  // race that is, in their timezone, a Nov 22 evening event.
+  const etConverted = entry.post_time
+    ? convertPostTimeToET(entry.post_time, entry.race_date, entry.race_country, entry.timezone)
+    : null
+  const displayDate = etConverted?.etDate ?? entry.race_date
+  const dateLabel = isToday(displayDate)
     ? 'Today'
-    : isTomorrow(entry.race_date)
+    : isTomorrow(displayDate)
     ? 'Tomorrow'
-    : formatDate(entry.race_date)
+    : formatDate(displayDate)
 
   // Clean stakes race name (remove STAKES prefix and sponsor info)
   const stakesRaceName = entry.is_stakes && entry.race_name
@@ -108,17 +117,12 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
         <span className={cn('font-medium', entry.scratched ? 'text-slate-400' : 'text-slate-600')}>{dateLabel}</span>
         <span className="text-slate-300">|</span>
         <span>{trackDisplay} R{entry.race_number}</span>
-        {entry.post_time && (() => {
-          // Convert non-ET local times to ET so the user never has to do mental
-          // math. Falls back to the raw stored time if conversion fails.
-          const et = formatPostTimeET(entry.post_time, entry.race_date, entry.race_country, entry.timezone)
-          return (
-            <>
-              <span className="text-slate-300">|</span>
-              <span>{et ?? `${entry.post_time} ${entry.timezone}`}</span>
-            </>
-          )
-        })()}
+        {entry.post_time && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>{etConverted?.time ?? `${entry.post_time} ${entry.timezone}`}</span>
+          </>
+        )}
         {entry.race_type && (
           <>
             <span className="text-slate-300">|</span>

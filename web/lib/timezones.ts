@@ -65,6 +65,16 @@ const COUNTRY_TO_IANA: Record<string, string> = {
   'Chile': 'America/Santiago',
   'Brazil': 'America/Sao_Paulo',
   'South Africa': 'Africa/Johannesburg',
+  // Other Tier-1-eligible jurisdictions in the Arion feed
+  'South Korea': 'Asia/Seoul',
+  'Korea': 'Asia/Seoul',
+  'KOR': 'Asia/Seoul',
+  'Turkey': 'Europe/Istanbul',
+  'TUR': 'Europe/Istanbul',
+  'Morocco': 'Africa/Casablanca',
+  'Slovakia': 'Europe/Bratislava',
+  'Finland': 'Europe/Helsinki',
+  'Russia': 'Europe/Moscow',
 }
 
 // Abbreviation fallback when race_country isn't populated. These are the
@@ -163,15 +173,31 @@ function wallClockInZoneToUTC(
   return new Date(asUTC - offset)
 }
 
+export interface ConvertedPostTime {
+  // "3:20 PM ET"
+  time: string
+  // The ET calendar date (YYYY-MM-DD) corresponding to the post-time instant.
+  // May differ from the source race_date for east-of-ET zones (Asia, Gulf)
+  // when the local race time falls before the day's UTC offset to ET.
+  etDate: string
+  // The original race_date for comparison.
+  sourceDate: string
+  // True iff etDate !== sourceDate. Lets callers decide whether to show a
+  // shifted date label (e.g. "Nov 22" instead of "Nov 23").
+  dayShift: boolean
+  // The absolute UTC instant — handy for sorting after conversion.
+  utcMs: number
+}
+
 // Format an entry's local post time as Eastern. Returns null if we can't
 // determine the source zone or parse the time — caller should fall back to
 // showing whatever the parser stored.
-export function formatPostTimeET(
+export function convertPostTimeToET(
   postTime: string | null | undefined,
   raceDate: string | null | undefined,
   country?: string | null,
   tzAbbrev?: string | null
-): string | null {
+): ConvertedPostTime | null {
   if (!postTime || !raceDate) return null
   const sourceIana = getIanaTimezone(country, tzAbbrev)
   if (!sourceIana) return null
@@ -188,14 +214,40 @@ export function formatPostTimeET(
       Number(y), Number(mo), Number(d),
       tod.hour, tod.minute, sourceIana
     )
-    const formatted = new Intl.DateTimeFormat('en-US', {
+    const time = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/New_York',
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-    }).format(utc)
-    return `${formatted} ET`
+    }).format(utc) + ' ET'
+    // Derive the ET calendar date for the same instant. We extract Y/M/D from
+    // formatToParts so we don't have to deal with locale string ordering.
+    const dateParts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+      }).formatToParts(utc).map(p => [p.type, p.value])
+    )
+    const etDate = `${dateParts.year}-${dateParts.month}-${dateParts.day}`
+    return {
+      time,
+      etDate,
+      sourceDate: raceDate,
+      dayShift: etDate !== raceDate,
+      utcMs: utc.getTime(),
+    }
   } catch {
     return null
   }
+}
+
+// Backwards-compat shim: returns just the time string for callers that don't
+// need date / sort metadata.
+export function formatPostTimeET(
+  postTime: string | null | undefined,
+  raceDate: string | null | undefined,
+  country?: string | null,
+  tzAbbrev?: string | null
+): string | null {
+  return convertPostTimeToET(postTime, raceDate, country, tzAbbrev)?.time ?? null
 }

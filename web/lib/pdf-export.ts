@@ -6,7 +6,7 @@
 
 import type { Result, Entry } from './supabase'
 import { formatDate, formatDistance, formatHorseDescription, formatOrdinal, formatTrack, cleanRaceName, shouldShowSilks } from './utils'
-import { formatPostTimeET } from './timezones'
+import { convertPostTimeToET } from './timezones'
 import { formatPurse } from './currency'
 
 export type ExportType = 'all' | 'entries' | 'results' | 'stakes'
@@ -149,16 +149,23 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
   const desc = formatHorseDescription(e.horse_sex || null, e.horse_yob || null)
   const ownerSilks = getSilksForOwner(e.owner, orgsWithSilks, isAdmin, userOrgName, userOrgSilksUrl, userOrgPatterns)
   const track = formatTrack(e.track)
-  const dateStr = formatDate(e.race_date)
   const distDisplay = formatDistance(e.distance || null)
+
+  // Convert post time to ET, and use the converted ET date for the date
+  // column so east-of-ET races (Tokyo, Hong Kong, Gulf) don't show a
+  // contradictory date + ET time pair (e.g. "Nov 23 | 9:00 PM ET" for what
+  // is actually Nov 22 in ET).
+  const etConverted = e.post_time
+    ? convertPostTimeToET(e.post_time, e.race_date, e.race_country, e.timezone)
+    : null
+  const dateStr = formatDate(etConverted?.etDate ?? e.race_date)
 
   const raceParts = [e.race_type, formatPurse(e.purse, e.purse_currency), distDisplay || null].filter(Boolean).join(` ${pipe()} `)
 
-  // Time + track info — convert non-ET local times to ET in the export too
+  // Time + track info
   const rightParts = [`${track} R${e.race_number}`]
   if (e.post_time) {
-    const et = formatPostTimeET(e.post_time, e.race_date, e.race_country, e.timezone)
-    rightParts.push(et ?? `${e.post_time} ${e.timezone ?? ''}`.trim())
+    rightParts.push(etConverted?.time ?? `${e.post_time} ${e.timezone ?? ''}`.trim())
   }
 
   // Stakes sub-line

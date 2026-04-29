@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isAuthError, getUserPreferences } from '@/lib/api-auth'
 import { isNaJumpsRace } from '@/lib/utils'
+import { convertPostTimeToET } from '@/lib/timezones'
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth()
@@ -100,6 +101,19 @@ export async function GET(request: NextRequest) {
       horse_profile_url: entry.horses?.equibase_profile_url,
       sire_name: entry.horses?.stallions?.name,
     }))
+
+  // Re-sort by absolute UTC instant so east-of-ET races (Tokyo morning races
+  // that fall on the prior ET day) appear in correct chronological order
+  // alongside same-source-date NA races. The DB-side ORDER BY only saw the
+  // raw local clock so it can flip when display shifts to ET.
+  entries.sort((a: any, b: any) => {
+    const ax = convertPostTimeToET(a.post_time, a.race_date, a.race_country, a.timezone)?.utcMs
+    const bx = convertPostTimeToET(b.post_time, b.race_date, b.race_country, b.timezone)?.utcMs
+    if (ax != null && bx != null) return ax - bx
+    // Unparseable rows fall back to race_date + raw post_time string
+    if (a.race_date !== b.race_date) return a.race_date < b.race_date ? -1 : 1
+    return (a.post_time ?? '').localeCompare(b.post_time ?? '')
+  })
 
   const response = NextResponse.json(entries)
   response.headers.set('Cache-Control', 'private, no-store')
