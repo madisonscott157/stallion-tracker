@@ -8,6 +8,7 @@ import type { Workout } from '@/lib/supabase'
 
 interface WorkoutsSectionProps {
   workouts: Workout[]
+  tdnRegion?: 'na' | 'eu' | 'fr'
 }
 
 function cleanTrackForFilter(track: string | null): string {
@@ -17,7 +18,7 @@ function cleanTrackForFilter(track: string | null): string {
   return cleaned
 }
 
-export function WorkoutsSection({ workouts: allWorkouts }: WorkoutsSectionProps) {
+export function WorkoutsSection({ workouts: allWorkouts, tdnRegion = 'na' }: WorkoutsSectionProps) {
   const [trackFilter, setTrackFilter] = useState('')
 
   // Get unique tracks for dropdown from all workouts
@@ -42,7 +43,12 @@ export function WorkoutsSection({ workouts: allWorkouts }: WorkoutsSectionProps)
   return (
     <section className="mb-6 sm:mb-8">
       <div className="flex items-baseline justify-between mb-4">
-        <h2 className="section-header !mb-0">Recent Workouts</h2>
+        <h2 className="section-header !mb-0">
+          Recent Workouts
+          {tdnRegion !== 'na' && (
+            <span className="ml-2 text-xs font-normal normal-case tracking-normal text-slate-400">US / CAN only</span>
+          )}
+        </h2>
         <select
           value={trackFilter}
           onChange={e => setTrackFilter(e.target.value)}

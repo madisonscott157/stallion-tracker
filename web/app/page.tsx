@@ -296,7 +296,7 @@ function HomeContent() {
                 </section>
 
                 {/* Workouts */}
-                <WorkoutsSection workouts={workouts} />
+                <WorkoutsSection workouts={workouts} tdnRegion={tdnRegion} />
               </div>
             )}
 
