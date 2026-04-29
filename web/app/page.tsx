@@ -263,9 +263,11 @@ function HomeContent() {
               <div key="overview" className="tab-content-enter">
                 {/* Upcoming Entries */}
                 <section className="mb-6 sm:mb-8">
-                  <div className="flex items-center justify-between mb-4">
+                  {/* flex-wrap so the toggle cluster moves below the title
+                      instead of overflowing on narrow phones. */}
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-4">
                     <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming Entries</h2>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap">
                       <StakesToggle
                         onPreferenceChange={() => setFetchKey(k => k + 1)}
                         className="text-slate-500 hover:text-slate-700 transition-colors"

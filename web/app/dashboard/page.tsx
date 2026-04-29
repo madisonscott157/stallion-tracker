@@ -146,8 +146,10 @@ function DashboardContent() {
           </div>
         ) : (
           <>
-            {/* Stallion filter + mobile CLM toggle */}
-            <div className="mb-6 flex items-center gap-3">
+            {/* Stallion filter + toggles. flex-wrap so the row degrades
+                gracefully on tight mobile when select + CLM + Stakes Only
+                would otherwise overflow. */}
+            <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2">
               {stallionNames.length > 1 && (
                 <select
                   value={stallionFilter}
