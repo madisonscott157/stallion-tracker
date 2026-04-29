@@ -34,6 +34,12 @@ NH_COUNTRIES = {
     'Slovakia', 'Morocco',
 }
 
+# Tier-1 racing jurisdictions: every race here is included regardless of class.
+# In any other NH country a race is only kept if it's a stakes (Listed / Group).
+# Goal: surface meaningful European progeny activity without flooding the
+# dashboard with low-grade Czech / Moroccan / HK card races.
+TIER1_COUNTRIES = {'Great Britain', 'Ireland', 'France', 'USA', 'Canada'}
+
 # Southern-hemisphere / out-of-scope country headers — sections under these
 # are dropped, but seeing them resets the country state.
 SH_COUNTRIES = {'Australia', 'New Zealand', 'South Africa'}
@@ -223,6 +229,9 @@ def parse_arion_entry_email(
         m = HORSE_RE.match(line)
         if m and cur_race and cur_date and cur_track:
             if cur_race['is_jump']:
+                continue
+            # Tier-1 country: always include. Elsewhere: stakes only.
+            if cur_country not in TIER1_COUNTRIES and not cur_race['is_stakes']:
                 continue
             name, country, yob, sex, sire, dam, trainer = m.groups()
             if sire.strip().lower() not in tracked_sires:

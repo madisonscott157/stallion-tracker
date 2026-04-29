@@ -211,6 +211,17 @@ function HomeContent() {
         )
       })()}
 
+      {/* Coverage note for international stallions — explains the
+          country/stakes filter applied at ingest time. */}
+      {tdnRegion !== 'na' && (
+        <div className="bg-slate-50 border-b border-slate-200 px-4 py-2">
+          <div className="max-w-5xl mx-auto text-xs text-slate-500 text-center">
+            Showing all races from <span className="font-medium text-slate-600">USA, Canada, France, Great Britain, Ireland</span>;
+            and stakes only (Listed / Group) elsewhere. Jumps and Southern Hemisphere races excluded.
+          </div>
+        </div>
+      )}
+
       <PullToRefresh onRefresh={async () => setFetchKey(k => k + 1)}>
       <main className="flex-1 px-4 sm:px-6 py-4 sm:py-6 max-w-5xl mx-auto w-full">
         {(authLoading || loading || !stallionId) ? (
