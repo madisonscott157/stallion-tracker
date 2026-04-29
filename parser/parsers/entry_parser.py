@@ -135,8 +135,9 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
     stakes_grade = None
 
     # Look for graded stakes pattern: "STAKES   Race Name S. - Grade: 3"
+    # Supports Arabic (1/2/3) and Roman (I/II/III) grade numerals.
     graded_stakes_match = re.search(
-        r"(?:STAKES\s+)?([A-Za-z][A-Za-z\s\.']+?(?:S\.|Stakes))\s*-\s*Grade:\s*(\d)",
+        r"(?:STAKES\s+)?([A-Za-z][A-Za-z\s\.']+?(?:S\.|Stakes))\s*-\s*Grade:\s*(I{1,3}|[123])",
         text,
         re.IGNORECASE
     )
@@ -144,8 +145,9 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
         race_name = graded_stakes_match.group(1).strip()
         # Remove any leading "STAKES" that might have been captured
         race_name = re.sub(r'^STAKES\s+', '', race_name, flags=re.IGNORECASE)
-        grade_num = graded_stakes_match.group(2)
-        stakes_grade = f"G{grade_num}"
+        grade_num = graded_stakes_match.group(2).upper()
+        grade_map = {'I': 'G1', 'II': 'G2', 'III': 'G3', '1': 'G1', '2': 'G2', '3': 'G3'}
+        stakes_grade = grade_map.get(grade_num)
         is_stakes = True
         race_type = 'STK'
     else:
@@ -197,6 +199,27 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
                         grade = grade_match.group(1).upper()
                         grade_map = {'I': 'G1', 'II': 'G2', 'III': 'G3', '1': 'G1', '2': 'G2', '3': 'G3'}
                         stakes_grade = grade_map.get(grade)
+
+    # Belt-and-braces grade sweep across the whole email body. The patterns
+    # above each require a specific surrounding format (e.g. "S. - Grade: N",
+    # or that the grade appears within the matched race-type header line).
+    # Equibase Virtual Stable emails sometimes mention the grade elsewhere —
+    # e.g. "Charles Whittingham S. (Grade II)" or "Grade 2" on its own line —
+    # so as a fallback, after we've established it's a stakes race, scan the
+    # full text for any common grade marker.
+    if is_stakes and not stakes_grade:
+        grade_map = {'I': 'G1', 'II': 'G2', 'III': 'G3', '1': 'G1', '2': 'G2', '3': 'G3'}
+        # Patterns we accept (case-insensitive):
+        #   Grade: 2 / Grade 2 / Grade II
+        #   Gr. II / Gr 2 / Gr. 2
+        #   (G2) / (G II) / G2 Stakes
+        fallback = re.search(
+            r'(?:Grade\s*:?\s*|Gr\.?\s+|\(\s*G)\s*(I{1,3}|[123])\b',
+            text,
+            re.IGNORECASE
+        )
+        if fallback:
+            stakes_grade = grade_map.get(fallback.group(1).upper())
 
     # 5. Extract purse
     purse = None

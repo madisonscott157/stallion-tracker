@@ -163,9 +163,14 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
     is_stakes = False
     stakes_grade = None
 
-    if re.search(r'stakes|graded|grade [123I]', text, re.IGNORECASE):
+    if re.search(r'stakes|graded|grade[:\s]*[123I]', text, re.IGNORECASE):
         is_stakes = True
-        grade_match = re.search(r'Grade ([I1][I1]?[I1]?|[123])', text, re.IGNORECASE)
+        # Accept "Grade 2", "Grade: 2", "Grade II", "Gr. 2", "Gr II", "(G2)"
+        grade_match = re.search(
+            r'(?:Grade\s*:?\s*|Gr\.?\s+|\(\s*G)\s*(I{1,3}|[123])\b',
+            text,
+            re.IGNORECASE,
+        )
         if grade_match:
             grade = grade_match.group(1).upper()
             grade_map = {'I': 'G1', 'II': 'G2', 'III': 'G3', '1': 'G1', '2': 'G2', '3': 'G3'}
