@@ -216,7 +216,21 @@ class Database:
         return None
 
     def insert_entry(self, entry: EntryData, horse_id: str) -> Optional[str]:
-        """Insert a race entry."""
+        """Insert a race entry.
+
+        Preservation rule: when a row already exists at this upsert key
+        with stronger data than the incoming row, drop the weaker fields
+        from the upsert dict. Two scenarios this guards against:
+          1. PMU lands a structured race_type='HCP', then Arion's daily
+             email arrives with the keyword-fallback race_type='ALW' for
+             the same FR race — Arion would overwrite without this rule.
+          2. PMU lands jockey/weight/post_position from `participants`,
+             then Arion's email upserts with those fields null — Arion
+             would null them without this rule.
+        Postgres upsert (PostgREST `merge-duplicates`) only updates
+        columns present in the request body, so dropping keys preserves
+        the existing values in the row.
+        """
         insert_data = {
             "horse_id": horse_id,
             "race_date": entry.race_date.isoformat(),
@@ -252,6 +266,12 @@ class Database:
         if entry.purse_currency:
             insert_data["purse_currency"] = entry.purse_currency
 
+        existing = self._fetch_existing_entry(
+            horse_id, entry.race_date, entry.track, entry.race_number,
+        )
+        if existing:
+            self._drop_weaker_overwrites(insert_data, existing, kind="entry")
+
         try:
             result = self.client.table("entries") \
                 .upsert(insert_data, on_conflict="horse_id,race_date,track,race_number") \
@@ -263,6 +283,68 @@ class Database:
             print(f"Error inserting entry: {e}")
 
         return None
+
+    # Columns we never null-out: if existing has them and incoming is
+    # empty, drop the column from the upsert dict.
+    _ENTRY_PRESERVE_IF_EMPTY = (
+        "jockey", "trainer", "weight", "post_position",
+        "conditions", "stakes_grade", "post_time", "surface",
+    )
+    _RESULT_PRESERVE_IF_EMPTY = (
+        "jockey", "trainer", "post_position", "stakes_grade",
+        "beaten_lengths", "win_margin", "odds",
+    )
+
+    def _fetch_existing_entry(
+        self, horse_id: str, race_date, track: str, race_number: int,
+    ) -> Optional[dict]:
+        try:
+            r = self.client.table("entries") \
+                .select("id,race_type,jockey,trainer,weight,post_position,"
+                        "conditions,stakes_grade,post_time,surface") \
+                .eq("horse_id", horse_id) \
+                .eq("race_date", race_date.isoformat()) \
+                .eq("track", track) \
+                .eq("race_number", race_number) \
+                .execute()
+            return r.data[0] if r.data else None
+        except Exception:
+            return None
+
+    def _fetch_existing_result(
+        self, horse_id: str, race_date, track: str, race_number: int,
+    ) -> Optional[dict]:
+        try:
+            r = self.client.table("results") \
+                .select("id,race_type,jockey,trainer,post_position,"
+                        "stakes_grade,beaten_lengths,win_margin,odds") \
+                .eq("horse_id", horse_id) \
+                .eq("race_date", race_date.isoformat()) \
+                .eq("track", track) \
+                .eq("race_number", race_number) \
+                .execute()
+            return r.data[0] if r.data else None
+        except Exception:
+            return None
+
+    def _drop_weaker_overwrites(
+        self, insert_data: dict, existing: dict, kind: str,
+    ) -> None:
+        """Mutate insert_data in place to remove fields that would weaken
+        existing values. `kind` is 'entry' or 'result'."""
+        # 1. race_type: never overwrite a structured value with the 'ALW'
+        #    keyword fallback. Other transitions (NULL→anything, ALW→HCP,
+        #    same→same) flow through unchanged.
+        existing_rt = existing.get("race_type")
+        incoming_rt = insert_data.get("race_type")
+        if existing_rt and existing_rt != "ALW" and incoming_rt == "ALW":
+            insert_data.pop("race_type", None)
+        # 2. Free-text / structured fields we don't want nulled out.
+        cols = (self._ENTRY_PRESERVE_IF_EMPTY if kind == "entry"
+                else self._RESULT_PRESERVE_IF_EMPTY)
+        for col in cols:
+            if existing.get(col) and not insert_data.get(col):
+                insert_data.pop(col, None)
 
     def mark_entry_scratched(self, horse_id: str, race_date: date, track: str, race_number: int):
         """Mark an entry as scratched."""
@@ -335,6 +417,12 @@ class Database:
             insert_data["earnings"] = result_data.earnings
         if result_data.earnings_currency:
             insert_data["earnings_currency"] = result_data.earnings_currency
+
+        existing = self._fetch_existing_result(
+            horse_id, result_data.race_date, result_data.track, result_data.race_number,
+        )
+        if existing:
+            self._drop_weaker_overwrites(insert_data, existing, kind="result")
 
         try:
             result = self.client.table("results") \

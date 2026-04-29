@@ -44,3 +44,9 @@ coverage/
 # Misc
 *.bak
 *.tmp
+
+# PMU fixtures — recon snapshots; large and regenerable on demand
+parser/fixtures/pmu/
+
+# pytest cache
+.pytest_cache/
