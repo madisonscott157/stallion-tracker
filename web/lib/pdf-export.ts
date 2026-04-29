@@ -70,6 +70,13 @@ interface BuildRowOptions {
   userOrgPatterns?: string[] | null
 }
 
+// Stakes-grade pill matching the in-app badge: gold for G1, silver for G2,
+// orange (accent) for G3 / Listed / other graded.
+function stakesPill(grade: string): string {
+  const bg = grade === 'G1' ? '#d4af37' : grade === 'G2' ? '#a8a9ad' : '#b45309'
+  return `<span style="display:inline-block;background:${bg};color:#fff;font-weight:600;font-size:10px;padding:1px 5px;border-radius:3px;line-height:1;margin-right:2px;vertical-align:1px;">${grade}</span>`
+}
+
 // Shared table row cell styles
 const cellDate = `vertical-align:top;width:52px;padding:6px 8px 6px 0;white-space:nowrap;font-size:12px;font-weight:600;color:#475569;`
 const cellPos = `vertical-align:top;width:32px;padding:6px 4px 6px 0;white-space:nowrap;font-size:12px;text-align:center;`
@@ -108,7 +115,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   const stakesName = isStakes && r.race_name ? cleanRaceName(r.race_name.replace(/^STAKES\s*/i, '').trim()) : null
   if (r.stakes_grade || stakesName) {
     const parts: string[] = []
-    if (r.stakes_grade) parts.push(`<span style="font-weight:700;color:#475569;">${r.stakes_grade}</span>`)
+    if (r.stakes_grade) parts.push(stakesPill(r.stakes_grade))
     if (stakesName) parts.push(`<span style="font-weight:500;color:#334155;">${stakesName}</span>`)
     if (isWin && r.win_margin) parts.push(`<span style="color:#15803d;font-weight:500;">Won by ${r.win_margin}</span>`)
     subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${parts.join(' — ')}</div>`
@@ -155,7 +162,7 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
   let subLine = ''
   if (e.stakes_grade || stakesName) {
     const parts: string[] = []
-    if (e.stakes_grade) parts.push(`<span style="font-weight:700;color:#475569;">${e.stakes_grade}</span>`)
+    if (e.stakes_grade) parts.push(stakesPill(e.stakes_grade))
     if (stakesName) parts.push(`<span style="font-weight:500;color:#334155;">${stakesName}</span>`)
     subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${parts.join(' — ')}</div>`
   }

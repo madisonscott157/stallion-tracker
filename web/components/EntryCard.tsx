@@ -136,8 +136,12 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
         )}>
           {entry.stakes_grade && (
             <span className={cn(
-              'text-xs rounded font-medium inline-flex items-center justify-center',
-              entry.scratched ? 'bg-slate-300 text-slate-500' : 'bg-accent text-white'
+              'text-xs rounded font-medium inline-flex items-center justify-center text-white',
+              entry.scratched
+                ? 'bg-slate-300 text-slate-500'
+                : entry.stakes_grade === 'G1' ? 'bg-gold'
+                : entry.stakes_grade === 'G2' ? 'bg-silver'
+                : 'bg-accent'
             )} style={{ minWidth: '1.75rem', height: '1.25rem', lineHeight: 1, paddingLeft: '0.375rem', paddingRight: '0.375rem' }}>
               {entry.stakes_grade}
             </span>
