@@ -1,15 +1,16 @@
 'use client'
 
-import { formatMoney } from '@/lib/utils'
+import { currencyForRegion, formatMoneyCompact } from '@/lib/currency'
 
 interface StatsBarProps {
   year: number
   starters: number
   winners: number
   earnings: number
+  region?: string | null
 }
 
-export function StatsBar({ year, starters, winners, earnings }: StatsBarProps) {
+export function StatsBar({ year, starters, winners, earnings, region }: StatsBarProps) {
   return (
     <div className="bg-slate-50 border-b border-slate-200 px-4 py-3">
       <div className="flex flex-wrap items-center justify-center gap-x-2 sm:gap-x-4 gap-y-1 text-sm max-w-5xl mx-auto">
@@ -19,7 +20,7 @@ export function StatsBar({ year, starters, winners, earnings }: StatsBarProps) {
         <span className="text-slate-300 hidden sm:inline">|</span>
         <span className="text-slate-700">{winners} winners</span>
         <span className="text-slate-300 hidden sm:inline">|</span>
-        <span className="text-slate-700 font-medium">{formatMoney(earnings)}</span>
+        <span className="text-slate-700 font-medium">{formatMoneyCompact(earnings, currencyForRegion(region))}</span>
       </div>
     </div>
   )

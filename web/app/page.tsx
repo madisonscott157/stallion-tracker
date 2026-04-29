@@ -206,6 +206,7 @@ function HomeContent() {
             starters={currentYearRanking.starters || 0}
             winners={currentYearRanking.winners || 0}
             earnings={currentYearRanking.total_earnings || 0}
+            region={tdnRegion}
           />
         )
       })()}
