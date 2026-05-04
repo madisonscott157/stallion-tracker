@@ -110,15 +110,12 @@ def main() -> int:
     )
 
     stats: Counter[str] = Counter()
-    for yld in iter_pmu_window(start, days, tracked):
-        # iter_pmu_window already filters to FR PLAT + acceptable status,
-        # but we need the stricter `arriveeDefinitive=true + final statut`
-        # check before producing a result — pre-result rows are skipped
-        # silently inside participant_to_result() but we count them here
-        # so the run summary is honest.
-        if not is_finalized_course(yld.raw_course):
-            stats["course_not_finalized"] += 1
-            continue
+    # course_filter=is_finalized_course skips non-finalized courses BEFORE
+    # the participants endpoint is hit — cuts API calls by ~50% during
+    # the morning hours when most of the day's racing hasn't run yet.
+    for yld in iter_pmu_window(
+        start, days, tracked, course_filter=is_finalized_course,
+    ):
         stats[write_result(db, yld, args.dry_run)] += 1
 
     print()

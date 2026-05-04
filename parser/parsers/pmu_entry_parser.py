@@ -305,14 +305,20 @@ def iter_pmu_window(
     days: int,
     tracked_sires: set[str],
     session: Optional[requests.Session] = None,
+    course_filter: Optional[callable] = None,
 ) -> Iterator[PMUYield]:
     """Yield PMUYield rows for every Pur-Sang FR PLAT participant whose
     sire is tracked, across `days` consecutive days starting at start_date.
 
+    `course_filter` is an optional predicate `(course: dict) -> bool`
+    applied AFTER `is_target_course` and BEFORE the participants fetch.
+    Use it from the results poller to skip non-finalized courses without
+    paying for their participants endpoint — saves ~50% of API calls
+    when most of the day's racing hasn't run yet.
+
     Polite throttle of THROTTLE_SECONDS between every HTTP request.
-    Stops at the first 204 (day not yet published). Backfill callers
-    pass past dates and this still works because past data is fully
-    served.
+    Stops at 204 (day not yet published). Past dates are fully served
+    so backfill callers can pass historical start_dates.
     """
     if session is None:
         session = _build_session()
@@ -339,6 +345,8 @@ def iter_pmu_window(
                 continue
             for course in reunion.get("courses") or []:
                 if not is_target_course(course):
+                    continue
+                if course_filter is not None and not course_filter(course):
                     continue
                 num_reunion = reunion.get("numOfficiel")
                 num_course = course.get("numOrdre")
