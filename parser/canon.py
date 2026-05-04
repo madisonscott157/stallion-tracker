@@ -55,6 +55,30 @@ ACCEPTABLE_COURSE_STATUS = {
 }
 
 
+# PMU pays.code allowlist — countries where we ingest PLAT racing.
+# FRA gets all PLAT races (Tier 1); every other country in this set
+# gets stakes-only (Group I/II/III + Listed), matching the Arion
+# NH_COUNTRIES filter rule. Southern Hemisphere (AUS/NZL/ZAF) and
+# Latin America (ARG/BRA/CHL/URY) are deliberately omitted — their
+# tracked-stallion progeny activity is out of scope for this tracker.
+PMU_NH_COUNTRY_CODES = {
+    "FRA", "GBR", "IRL", "USA", "CAN",
+    "DEU", "ITA", "ESP",
+    "QAT", "SAU", "ARE", "BHR",
+    "JPN", "HKG", "KOR",
+    "TUR",
+    "CZE", "HUN", "POL", "SWE", "DNK", "NOR",
+    "BEL", "NLD", "CHE", "AUT", "SVK",
+    "MAR",
+}
+
+# categorieParticularite values that count as stakes. Used to gate
+# non-FR PMU ingestion to the "Group + Listed only" tier.
+PMU_STAKES_CATEGORIES = {
+    "GROUPE_I", "GROUPE_II", "GROUPE_III", "LISTED",
+}
+
+
 def map_pmu_category(category: Optional[str]) -> tuple[str, Optional[str]]:
     """PMU categorieParticularite → (race_type, stakes_grade).
     Unknown values fall through to ('ALW', None) + a warning log."""

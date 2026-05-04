@@ -181,10 +181,14 @@ def runner_to_result(
     pos_str = (runner.get("position") or "").strip()
     finish_position = _parse_int(pos_str)
     finish_status = None
+    # Finish positions are 1-indexed; treat 0 as "no finish" so a stray
+    # "0" never gets written as a real placement.
+    if finish_position is not None and finish_position <= 0:
+        finish_position = None
     if finish_position is None:
         # Non-numeric finish: PU (pulled up), F (fell), UR (unseated), etc.
         # Or void runner. Skip if empty; encode the code if present.
-        if not pos_str:
+        if not pos_str or pos_str == "0":
             return None
         finish_status = pos_str
 
@@ -273,6 +277,13 @@ def iter_today_tra_results(
         all_races.extend(races)
         time.sleep(THROTTLE_SECONDS)
 
+    if not all_races:
+        return
+
+    # Flat-only filter — same rule as Arion's parser. TRA's `type` field
+    # is one of {'Flat', 'Hurdle', 'Chase', 'NHF', 'Bumper'}. We never
+    # ingest jump races regardless of source.
+    all_races = [r for r in all_races if (r.get("type") or "").strip().lower() == "flat"]
     if not all_races:
         return
 

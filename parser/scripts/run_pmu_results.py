@@ -37,13 +37,49 @@ from scripts.run_pmu_daily import get_tracked_stallion_set
 
 def write_result(db: Database, yld, dry_run: bool) -> str:
     """Build + upsert ResultData if the course is finalized.
-    Returns one of {'result','no_result','dry_run','error'}."""
+    Returns one of {'result','no_result','dry_run','error','skipped_no_entry'}.
+
+    Looks up the matching entry by (horse_id, race_date) and inherits
+    its track + race_number — same pattern process_arion_result and the
+    TRA results poller use. For FR this is a no-op (PMU created the
+    entry hours earlier with the same values). For intl Group races,
+    this pulls Arion's race_number into our key so we don't fight
+    Arion's later result write. If no entry exists yet (Arion email
+    not arrived; intl race outside PMU's coverage zone), skip silently
+    — the next tick after Arion lands the entry will pick it up.
+    """
     rd = participant_to_result(yld)
     if rd is None:
         return "no_result"
 
+    sire_id = db.get_stallion_id(rd.horse.sire or "")
+    if not sire_id:
+        return "error"
+
+    horse_id = db.upsert_horse(rd.horse, sire_id)
+    if not horse_id:
+        return "error"
+
+    entry_row = db.find_entry_by_horse_date(
+        horse_id, rd.race_date,
+        purse=rd.purse, distance=rd.distance,
+    )
+    if not entry_row:
+        if dry_run:
+            print(
+                f"  DRY-skip (no entry yet): {rd.horse.name} "
+                f"@ {rd.track} R{rd.race_number} on {rd.race_date}"
+            )
+        return "skipped_no_entry"
+
+    # Inherit the entry's track + race_number so the upsert key matches
+    # whatever writer created the entry (PMU for FR, Arion for intl).
+    rd.track = entry_row["track"]
+    rd.race_number = entry_row["race_number"]
+
+    pos = rd.finish_position if rd.finish_position else (rd.finish_status or "?")
+
     if dry_run:
-        pos = rd.finish_position if rd.finish_position else (rd.finish_status or "?")
         print(
             f"  DRY {rd.race_date} {rd.track:20} R{rd.race_number}"
             f" {(rd.horse.name or '?'):25} pos={pos}  {rd.race_type}"
@@ -51,22 +87,11 @@ def write_result(db: Database, yld, dry_run: bool) -> str:
         )
         return "dry_run"
 
-    sire_id = db.get_stallion_id(rd.horse.sire or "")
-    if not sire_id:
-        print(f"  ! sire missing for {rd.horse.name} ({rd.horse.sire})")
-        return "error"
-
-    horse_id = db.upsert_horse(rd.horse, sire_id)
-    if not horse_id:
-        print(f"  ! upsert_horse failed for {rd.horse.name}")
-        return "error"
-
     rid = db.insert_result(rd, horse_id)
     if not rid:
         print(f"  ! insert_result failed for {rd.horse.name}")
         return "error"
 
-    pos = rd.finish_position if rd.finish_position else (rd.finish_status or "?")
     print(
         f"  R {rd.race_date} {rd.track:20} R{rd.race_number}"
         f" {(rd.horse.name or '?'):25} pos={pos}"

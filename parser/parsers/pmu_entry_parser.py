@@ -21,6 +21,8 @@ import requests
 
 from canon import (
     ACCEPTABLE_COURSE_STATUS,
+    PMU_NH_COUNTRY_CODES,
+    PMU_STAKES_CATEGORIES,
     is_french_msw,
     map_pmu_category,
     normalize_sire_name,
@@ -96,21 +98,32 @@ def fetch_participants(
 # ---------------------------------------------------------------------------
 
 def is_target_reunion(reunion: dict) -> bool:
-    """Keep FR meetings only. Off-shore meetings (Hong Kong / Belgium /
-    Argentina / etc.) PMU also lists are out of scope."""
-    return reunion.get("pays", {}).get("code") == "FRA"
+    """Keep meetings in any NH country we track. SH (AUS/NZL/ZAF) and
+    Latin America (ARG/BRA/CHL/URY) are excluded. Country-specific
+    course-level filtering (FR all PLAT vs intl stakes-only) happens
+    in the iterator, not here."""
+    return reunion.get("pays", {}).get("code") in PMU_NH_COUNTRY_CODES
 
 
 def is_target_course(course: dict) -> bool:
-    """Keep FR Pur-Sang flat (PLAT) races only, excluding cancelled
+    """Keep Pur-Sang flat (PLAT) races only, excluding cancelled
     races. Non-PLAT (TROT_*, OBSTACLE) and ANNULEE statuses are dropped
-    here so we don't even hit the participants endpoint for them."""
+    here so we don't even hit the participants endpoint for them.
+    Country-level + stakes-only gating happens at the iterator."""
     if course.get("specialite") != "PLAT":
         return False
     statut = course.get("statut")
     if statut and statut not in ACCEPTABLE_COURSE_STATUS:
         return False
     return True
+
+
+def is_intl_stakes_course(course: dict) -> bool:
+    """True iff a course's categorieParticularite is Group I/II/III or
+    Listed. Used to gate non-FR ingestion to stakes-only — matches the
+    Arion 'Other NH countries: stakes only' rule. FR meetings bypass
+    this check (all FR PLAT races flow through)."""
+    return course.get("categorieParticularite") in PMU_STAKES_CATEGORIES
 
 
 def is_target_participant(participant: dict, tracked_sires: set[str]) -> bool:
@@ -349,8 +362,13 @@ def iter_pmu_window(
         for reunion in reunions:
             if not is_target_reunion(reunion):
                 continue
+            country_code = (reunion.get("pays") or {}).get("code", "")
             for course in reunion.get("courses") or []:
                 if not is_target_course(course):
+                    continue
+                # Non-FR meetings: stakes-only (Group / Listed). FR keeps
+                # all PLAT races as before.
+                if country_code != "FRA" and not is_intl_stakes_course(course):
                     continue
                 if course_filter is not None and not course_filter(course):
                     continue

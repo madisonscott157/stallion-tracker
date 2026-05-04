@@ -35,6 +35,7 @@ from canon import (
 from parsers.pmu_entry_parser import (
     PMUYield,
     is_finalized_course,
+    is_intl_stakes_course,
     is_target_course,
     is_target_participant,
     is_target_reunion,
@@ -252,11 +253,32 @@ def test_late_evening_no_date_drift():
 # Filters
 # ---------------------------------------------------------------------------
 
-def test_is_target_reunion_keeps_fra_drops_others():
-    assert is_target_reunion({"pays": {"code": "FRA"}}) is True
-    assert is_target_reunion({"pays": {"code": "HKG"}}) is False
-    assert is_target_reunion({"pays": {"code": "BEL"}}) is False
+def test_is_target_reunion_accepts_nh_countries():
+    # Tier 1 + other NH countries: keep. Country-specific stakes-vs-all
+    # gating happens at the iterator, not here.
+    for code in ("FRA", "GBR", "IRL", "USA", "CAN",
+                 "DEU", "ITA", "ESP",
+                 "QAT", "SAU", "ARE",
+                 "JPN", "HKG"):
+        assert is_target_reunion({"pays": {"code": code}}) is True, code
+
+
+def test_is_target_reunion_drops_sh_and_latam():
+    # Southern Hemisphere + Latin America are out of scope (mirrors
+    # arion_entry_parser's NH_COUNTRIES set).
+    for code in ("AUS", "NZL", "ZAF", "ARG", "BRA", "CHL", "URY"):
+        assert is_target_reunion({"pays": {"code": code}}) is False, code
     assert is_target_reunion({}) is False
+    assert is_target_reunion({"pays": {}}) is False
+
+
+def test_is_intl_stakes_course():
+    # Group I/II/III + Listed → True; everything else → False.
+    for cat in ("GROUPE_I", "GROUPE_II", "GROUPE_III", "LISTED"):
+        assert is_intl_stakes_course({"categorieParticularite": cat}) is True, cat
+    for cat in ("HANDICAP_DIVISE", "COURSE_A_CONDITIONS",
+                "A_RECLAMER", "INCONNU", "HANDICAP_A_RECLAMER", None):
+        assert is_intl_stakes_course({"categorieParticularite": cat}) is False, cat
 
 
 def test_is_target_course_keeps_plat_drops_trot_and_obstacle():

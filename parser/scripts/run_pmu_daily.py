@@ -35,13 +35,32 @@ def get_tracked_stallion_set(db: Database) -> set[str]:
 
 def write_entry(db: Database, yld, dry_run: bool) -> str:
     """Write one PMUYield to the DB. Returns one of
-    {'inserted','skipped_no_sire','skipped_no_horse','dry_run','error'}.
-    Also handles NON_PARTANT scratch marking.
+    {'inserted','skipped_no_sire','skipped_no_horse','dry_run','error',
+    'skipped_intl'}. Also handles NON_PARTANT scratch marking.
+
+    Intl gating: PMU is the canonical *entry* source for FR only.
+    Arion creates entries for non-FR (UK/IRE/USA/CAN tier-1 + DEU/ITA/
+    QAT/HKG/etc. stakes-only). If both writers created entries for the
+    same intl race, they'd disagree on race_number (PMU uses numOrdre,
+    Arion uses the email's 'Race N' header) and produce duplicate
+    rows. So we skip intl yields here. The PMU *results* poller still
+    handles intl via find_entry_by_horse_date which reconciles against
+    Arion's already-written entry.
     """
     entry = yld.entry
     raw = yld.raw_participant
     sire = entry.horse.sire or ""
     horse_name = entry.horse.name or "?"
+
+    country_code = (yld.raw_reunion.get("pays") or {}).get("code", "")
+    if country_code != "FRA":
+        if dry_run:
+            print(
+                f"  DRY-skip-intl ({country_code}): {horse_name} "
+                f"@ {entry.track} R{entry.race_number} "
+                f"({entry.race_type}/{entry.stakes_grade or '-'})"
+            )
+        return "skipped_intl"
 
     if dry_run:
         scratched = raw.get("statut") == "NON_PARTANT"

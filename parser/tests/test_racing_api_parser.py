@@ -269,3 +269,96 @@ def test_runner_to_result_uk_handicap():
     assert rd.race_country == "Great Britain"
     assert rd.race_type == "HCP"
     assert rd.surface == "AW"
+
+
+# ---------------------------------------------------------------------------
+# Position-0 edge — never write a 0 placement
+# ---------------------------------------------------------------------------
+
+def test_runner_to_result_position_zero_skipped():
+    """Finish positions are 1-indexed. A literal '0' should be skipped,
+    not written as finish_position=0."""
+    runner, race = _synthetic_curragh_handicap_runner()
+    runner["position"] = "0"
+    rd = runner_to_result(runner, race, race_number=1)
+    assert rd is None
+
+
+# ---------------------------------------------------------------------------
+# Flat-only — jump races never make it through the iterator
+# ---------------------------------------------------------------------------
+
+def test_iter_filters_jump_races(monkeypatch):
+    """iter_today_tra_results must drop Hurdle / Chase / NHF / Bumper
+    races at the parse-time filter, regardless of tracked-sire match.
+    Mirror's Arion's own jump-race filter — flat-only is the project rule."""
+    from parsers import racing_api_parser as rap
+
+    fake_races_by_region = {
+        "gb": [
+            {
+                "race_id": "rac_jump",
+                "course": "Cheltenham",
+                "date": "2026-05-04",
+                "off": "14:00",
+                "off_dt": "2026-05-04T14:00:00+01:00",
+                "race_name": "Novices' Hurdle",
+                "type": "Hurdle",  # ← should drop the whole race
+                "pattern": "",
+                "dist_f": "16f",
+                "region": "GB",
+                "going": "Soft",
+                "surface": "Turf",
+                "runners": [{
+                    "horse_id": "h1", "horse": "Jumpy (IRE)",
+                    "age": "5", "sex": "G", "position": "1",
+                    "draw": "1", "weight": "11-2", "weight_lbs": "156",
+                    "headgear": "", "or": "", "jockey": "X",
+                    "jockey_id": "j", "trainer": "Y", "trainer_id": "t",
+                    "owner": "Z", "owner_id": "o",
+                    "sire": "Lope De Vega (IRE)", "sire_id": "s",
+                    "dam": "D", "dam_id": "d",
+                    "damsire": "DS", "damsire_id": "ds",
+                }],
+            },
+            {
+                "race_id": "rac_flat",
+                "course": "Newmarket",
+                "date": "2026-05-04",
+                "off": "15:00",
+                "off_dt": "2026-05-04T15:00:00+01:00",
+                "race_name": "Some Flat Stakes",
+                "type": "Flat",  # ← should pass
+                "pattern": "Listed",
+                "dist_f": "8f",
+                "region": "GB",
+                "going": "Good",
+                "surface": "Turf",
+                "runners": [{
+                    "horse_id": "h2", "horse": "Flatty (IRE)",
+                    "age": "3", "sex": "F", "position": "2",
+                    "draw": "5", "weight": "9-0", "weight_lbs": "126",
+                    "headgear": "", "or": "", "jockey": "X",
+                    "jockey_id": "j", "trainer": "Y", "trainer_id": "t",
+                    "owner": "Z", "owner_id": "o",
+                    "sire": "Lope De Vega (IRE)", "sire_id": "s",
+                    "dam": "D2", "dam_id": "d2",
+                    "damsire": "DS", "damsire_id": "ds",
+                }],
+            },
+        ],
+        "ire": [],
+    }
+
+    def fake_fetch(session, region=None, limit=100):
+        return fake_races_by_region.get(region, [])
+
+    monkeypatch.setattr(rap, "fetch_today_results", fake_fetch)
+    monkeypatch.setattr(rap, "_build_session", lambda: object())
+
+    yields = list(rap.iter_today_tra_results({"lope de vega"}, regions=("gb", "ire")))
+    # Only the flat race's tracked-progeny runner should yield.
+    assert len(yields) == 1
+    assert yields[0].result.horse.name == "Flatty"
+    assert yields[0].result.race_type == "STK"
+    assert yields[0].result.stakes_grade == "Listed"
