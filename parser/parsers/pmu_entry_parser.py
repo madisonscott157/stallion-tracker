@@ -33,7 +33,7 @@ from canon import (
     title_case_french,
     title_case_person,
 )
-from models import EntryData, HorseData
+from models import EntryData, HorseData, ResultData
 
 
 logger = logging.getLogger(__name__)
@@ -218,6 +218,80 @@ def participant_to_entry(
         weight=weight,
         race_country=race_country,
         equibase_email_id=provenance,
+        raw_email_subject="PMU France Galop",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Result projection (used by backfill + real-time results poller)
+# ---------------------------------------------------------------------------
+
+# Course statuses that mean the result is final and ordreArrivee is
+# trustworthy. PROGRAMMEE / DEPART_CONFIRME / FIN_COURSE are pre-result
+# states and must NOT produce result rows.
+FINAL_COURSE_STATUS = {
+    "ARRIVEE_DEFINITIVE",
+    "ARRIVEE_DEFINITIVE_COMPLETE",
+}
+
+
+def is_finalized_course(course: dict) -> bool:
+    """True iff the course's official result is published. Both
+    arriveeDefinitive=true and a final-status statut are required —
+    in recon we saw ANNULEE courses with arriveeDefinitive missing,
+    and FIN_COURSE statuses with the result still being computed."""
+    if not course.get("arriveeDefinitive"):
+        return False
+    return course.get("statut") in FINAL_COURSE_STATUS
+
+
+def participant_to_result(yld: PMUYield) -> Optional[ResultData]:
+    """Project a PMUYield (entry + raw participant + raw course) into a
+    ResultData for upsert. Returns None when the race isn't finalized
+    or the participant has no result to record (scratched).
+    """
+    course = yld.raw_course
+    raw = yld.raw_participant
+    entry = yld.entry
+
+    if not is_finalized_course(course):
+        return None
+
+    # NON_PARTANT means the horse was declared but didn't run; no result.
+    if raw.get("statut") == "NON_PARTANT":
+        return None
+
+    finish_position = raw.get("ordreArrivee")
+    finish_status = None
+    if not finish_position:
+        # Race ran but this horse didn't finish numerically (DNF, fell, ...).
+        finish_status = "DNF"
+        finish_position = None
+    else:
+        finish_position = int(finish_position)
+
+    return ResultData(
+        horse=entry.horse,
+        race_date=entry.race_date,
+        track=entry.track,
+        track_code=entry.track_code,
+        race_number=entry.race_number,
+        race_type=entry.race_type,
+        race_name=entry.race_name,
+        is_stakes=entry.is_stakes,
+        stakes_grade=entry.stakes_grade,
+        purse=entry.purse,
+        distance=entry.distance,
+        surface=entry.surface,
+        finish_position=finish_position,
+        finish_status=finish_status,
+        jockey=entry.jockey,
+        trainer=entry.trainer,
+        owner=entry.owner,
+        post_position=entry.post_position,
+        race_country=entry.race_country,
+        purse_currency=entry.purse_currency,
+        equibase_email_id=entry.equibase_email_id,
         raw_email_subject="PMU France Galop",
     )
 

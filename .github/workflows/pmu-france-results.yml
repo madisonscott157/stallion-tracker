@@ -1,0 +1,47 @@
+# PMU France results poller — every 15 min during racing hours.
+# Writes results for finalized FR PLAT races within ~15-25 min of post,
+# vs Arion's ~24h once-daily digest. Idempotent.
+
+name: PMU France results
+
+on:
+  schedule:
+    # Every 15 min between 09:00 and 22:59 UTC. Covers FR racing hours
+    # (12:00-22:00 Paris) plus a bit either side for early IRE/UK
+    # cards that occasionally show up. Outside this window the daily
+    # 02:00 UTC entries cron + the next morning's results catch-up
+    # cover any tail.
+    - cron: '*/15 9-22 * * *'
+  workflow_dispatch:
+
+# Don't queue overlapping runs — if a previous run hasn't finished
+# (rare, single-day walk should stay under a minute) skip the new one
+# rather than have two writers racing.
+concurrency:
+  group: pmu-france-results
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: ./parser
+        run: pip install -r requirements.txt
+
+      - name: Run PMU results poller
+        working-directory: ./parser
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python3 scripts/run_pmu_results.py

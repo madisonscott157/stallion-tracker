@@ -33,10 +33,13 @@ from canon import (
     title_case_person,
 )
 from parsers.pmu_entry_parser import (
+    PMUYield,
+    is_finalized_course,
     is_target_course,
     is_target_participant,
     is_target_reunion,
     participant_to_entry,
+    participant_to_result,
 )
 
 
@@ -415,6 +418,106 @@ def test_participant_to_entry_groupe_to_stk_with_grade():
 # Real-fixture smoke test — load a saved 28042026 R1C1 participants JSON
 # and confirm the parser doesn't crash on the actual shape.
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Result projection — finalized course → ResultData; everything else None
+# ---------------------------------------------------------------------------
+
+def _yield_for(participant_overrides=None, course_overrides=None):
+    """Build a PMUYield from the synthetic Chantilly handicap fixture."""
+    p, c, r = _synthetic_chantilly_handicap()
+    if participant_overrides:
+        p.update(participant_overrides)
+    if course_overrides:
+        c.update(course_overrides)
+    entry = participant_to_entry(p, c, r)
+    return PMUYield(entry=entry, raw_participant=p, raw_course=c, raw_reunion=r)
+
+
+def test_is_finalized_course_requires_both_flags():
+    # arriveeDefinitive + final statut must both be true.
+    assert is_finalized_course({
+        "arriveeDefinitive": True,
+        "statut": "ARRIVEE_DEFINITIVE_COMPLETE",
+    }) is True
+    assert is_finalized_course({
+        "arriveeDefinitive": True,
+        "statut": "FIN_COURSE",
+    }) is False  # FIN_COURSE is pre-result
+    assert is_finalized_course({
+        "arriveeDefinitive": False,
+        "statut": "ARRIVEE_DEFINITIVE",
+    }) is False
+    assert is_finalized_course({
+        "arriveeDefinitive": True,
+        "statut": "PROGRAMMEE",
+    }) is False
+
+
+def test_participant_to_result_finished_runner():
+    yld = _yield_for(
+        participant_overrides={"statut": "PARTANT", "ordreArrivee": 3},
+        course_overrides={
+            "arriveeDefinitive": True,
+            "statut": "ARRIVEE_DEFINITIVE_COMPLETE",
+        },
+    )
+    rd = participant_to_result(yld)
+    assert rd is not None
+    assert rd.finish_position == 3
+    assert rd.finish_status is None
+    assert rd.race_type == "HCP"
+    assert rd.horse.name == "Zelzari"
+    assert rd.race_country == "France"
+    assert rd.purse_currency == "EUR"
+
+
+def test_participant_to_result_dnf():
+    yld = _yield_for(
+        participant_overrides={"statut": "PARTANT", "ordreArrivee": None},
+        course_overrides={
+            "arriveeDefinitive": True,
+            "statut": "ARRIVEE_DEFINITIVE_COMPLETE",
+        },
+    )
+    rd = participant_to_result(yld)
+    assert rd is not None
+    assert rd.finish_position is None
+    assert rd.finish_status == "DNF"
+
+
+def test_participant_to_result_scratched_horse_no_result():
+    yld = _yield_for(
+        participant_overrides={"statut": "NON_PARTANT", "ordreArrivee": None},
+        course_overrides={
+            "arriveeDefinitive": True,
+            "statut": "ARRIVEE_DEFINITIVE_COMPLETE",
+        },
+    )
+    assert participant_to_result(yld) is None
+
+
+def test_participant_to_result_pre_race_no_result():
+    yld = _yield_for(
+        course_overrides={
+            "arriveeDefinitive": False,
+            "statut": "PROGRAMMEE",
+        },
+    )
+    assert participant_to_result(yld) is None
+
+
+def test_participant_to_result_fin_course_too_early():
+    # FIN_COURSE = race ended but result not yet official. Don't write.
+    yld = _yield_for(
+        participant_overrides={"statut": "PARTANT", "ordreArrivee": 1},
+        course_overrides={
+            "arriveeDefinitive": False,
+            "statut": "FIN_COURSE",
+        },
+    )
+    assert participant_to_result(yld) is None
+
 
 @pytest.mark.skipif(
     not (FIXTURES / "participants_20260428_R1C1.json").exists(),

@@ -26,68 +26,14 @@ from datetime import date, timedelta
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
 
 from db import Database
-from models import ResultData
-from parsers.pmu_entry_parser import iter_pmu_window
+from parsers.pmu_entry_parser import iter_pmu_window, participant_to_result
 from scripts.run_pmu_daily import write_entry, get_tracked_stallion_set
-
-
-def _participant_to_result(yld) -> ResultData | None:
-    """Project a yielded EntryData + raw participant into a ResultData
-    for the same race. Returns None if the race hasn't been finalized
-    or the participant has no finish_position to record."""
-    course = yld.raw_course
-    raw = yld.raw_participant
-    entry = yld.entry
-
-    # Only emit results for finalized races.
-    if not course.get("arriveeDefinitive"):
-        return None
-    if course.get("statut") not in (
-        "ARRIVEE_DEFINITIVE", "ARRIVEE_DEFINITIVE_COMPLETE", "FIN_COURSE",
-    ):
-        return None
-
-    finish_position = raw.get("ordreArrivee")
-    statut = raw.get("statut")
-    finish_status = None
-    # NON_PARTANT means the horse was scratched; no result row.
-    if statut == "NON_PARTANT":
-        return None
-    # If ordreArrivee is missing / 0 it usually means DNF — surface in
-    # finish_status for now and leave finish_position null.
-    if not finish_position:
-        finish_status = "DNF"
-
-    return ResultData(
-        horse=entry.horse,
-        race_date=entry.race_date,
-        track=entry.track,
-        track_code=entry.track_code,
-        race_number=entry.race_number,
-        race_type=entry.race_type,
-        race_name=entry.race_name,
-        is_stakes=entry.is_stakes,
-        stakes_grade=entry.stakes_grade,
-        purse=entry.purse,
-        distance=entry.distance,
-        surface=entry.surface,
-        finish_position=finish_position if finish_position else None,
-        finish_status=finish_status,
-        jockey=entry.jockey,
-        trainer=entry.trainer,
-        owner=entry.owner,
-        post_position=entry.post_position,
-        race_country=entry.race_country,
-        purse_currency=entry.purse_currency,
-        equibase_email_id=entry.equibase_email_id,
-        raw_email_subject="PMU France Galop backfill",
-    )
 
 
 def write_result(db: Database, yld, dry_run: bool) -> str:
     """Build + upsert ResultData. Returns one of
     {'result_inserted','no_result','dry_run_result','error_result'}."""
-    result_data = _participant_to_result(yld)
+    result_data = participant_to_result(yld)
     if result_data is None:
         return "no_result"
 
