@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Real-time PMU France results poller.
+"""Real-time PMU France results + scratch poller.
 
-Walks today's FR Pur-Sang flat racing and upserts results for any race
-where PMU has marked the official arrival final. Designed to run on a
-~15-minute cron during racing hours so finished races land on the
-dashboard within ~15-25 minutes of post.
+Walks today's FR + intl Pur-Sang flat racing every 15 min during
+racing hours and upserts:
+  • Results for finalized races (arriveeDefinitive=true)
+  • Scratches for participants flagged statut=NON_PARTANT in any race
+    state (the daily 02:00 UTC entries cron also catches scratches but
+    only once a day; this poller closes the same-day-morning gap.)
 
-Idempotent — re-running on the same finalized race upserts the same
-data. Doesn't write entries (run_pmu_daily.py handles that). Doesn't
-touch yesterday or earlier — the morning daily walker / a manual
-backfill cover anything older.
+Idempotent — re-running upserts the same rows. Doesn't write entries
+(run_pmu_daily.py handles that for FR; Arion handles intl entries).
 
 Run from parser/:
     python3 scripts/run_pmu_results.py            # write to DB
@@ -33,6 +33,56 @@ from parsers.pmu_entry_parser import (
     participant_to_result,
 )
 from scripts.run_pmu_daily import get_tracked_stallion_set
+
+
+def write_scratch(db: Database, yld, dry_run: bool) -> str:
+    """Mark a NON_PARTANT participant as scratched on its existing
+    entry row. Returns one of {'scratched','dry_run_scratch',
+    'skipped_no_entry','error'}.
+
+    Same horse-lookup pattern as write_result — find Arion's or PMU's
+    already-written entry, mark it scratched. If the entry doesn't
+    exist yet, skip silently and let a later tick (or tomorrow's
+    daily cron) catch it.
+    """
+    entry = yld.entry
+    sire_id = db.get_stallion_id(entry.horse.sire or "")
+    if not sire_id:
+        return "error"
+
+    horse_id = db.upsert_horse(entry.horse, sire_id)
+    if not horse_id:
+        return "error"
+
+    entry_row = db.find_entry_by_horse_date(
+        horse_id, entry.race_date,
+        purse=entry.purse, distance=entry.distance,
+    )
+    if not entry_row:
+        return "skipped_no_entry"
+
+    name = entry.horse.name or "?"
+    track = entry_row["track"]
+    race_number = entry_row["race_number"]
+
+    if dry_run:
+        print(
+            f"  DRY-S {entry.race_date} {track:20} R{race_number}"
+            f" {name:25} (NON_PARTANT)"
+        )
+        return "dry_run_scratch"
+
+    try:
+        db.mark_entry_scratched(horse_id, entry.race_date, track, race_number)
+    except Exception as e:
+        print(f"  ! mark_entry_scratched failed for {name}: {e}")
+        return "error"
+
+    print(
+        f"  S {entry.race_date} {track:20} R{race_number}"
+        f" {name:25} (scratched)"
+    )
+    return "scratched"
 
 
 def write_result(db: Database, yld, dry_run: bool) -> str:
@@ -99,6 +149,19 @@ def write_result(db: Database, yld, dry_run: bool) -> str:
     return "result"
 
 
+def dispatch(db: Database, yld, dry_run: bool) -> str:
+    """Decide whether a yielded participant should produce a scratch,
+    a result, or be skipped. Mutually exclusive: a NON_PARTANT horse
+    never gets a result row, and a finalized-race result never marks
+    the entry scratched."""
+    if yld.raw_participant.get("statut") == "NON_PARTANT":
+        return write_scratch(db, yld, dry_run)
+    if is_finalized_course(yld.raw_course):
+        return write_result(db, yld, dry_run)
+    # Pre-result, in-flight runner — nothing to write yet.
+    return "course_in_flight"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dry-run", action="store_true")
@@ -135,13 +198,11 @@ def main() -> int:
     )
 
     stats: Counter[str] = Counter()
-    # course_filter=is_finalized_course skips non-finalized courses BEFORE
-    # the participants endpoint is hit — cuts API calls by ~50% during
-    # the morning hours when most of the day's racing hasn't run yet.
-    for yld in iter_pmu_window(
-        start, days, tracked, course_filter=is_finalized_course,
-    ):
-        stats[write_result(db, yld, args.dry_run)] += 1
+    # No course_filter — we need to see participants in pre-race courses
+    # too, to catch NON_PARTANT scratches. dispatch() decides per-yield
+    # whether to write a result, mark a scratch, or skip.
+    for yld in iter_pmu_window(start, days, tracked):
+        stats[dispatch(db, yld, args.dry_run)] += 1
 
     print()
     print("PMU France results — summary:")

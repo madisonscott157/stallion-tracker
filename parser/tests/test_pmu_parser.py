@@ -573,6 +573,82 @@ def test_participant_to_result_fin_course_no_arrival_yet():
     assert participant_to_result(yld) is None
 
 
+# ---------------------------------------------------------------------------
+# Scratch dispatch — the results poller's per-yield routing
+# ---------------------------------------------------------------------------
+
+def test_dispatch_routes_non_partant_to_scratch():
+    """A NON_PARTANT runner should route to scratch handling regardless
+    of course statut. The race they were declared for might be in any
+    state when the scratch happens (PROGRAMMEE, FIN_COURSE, etc.)."""
+    from scripts import run_pmu_results
+
+    calls = {"scratch": 0, "result": 0}
+
+    class FakeDB:
+        pass
+
+    def fake_scratch(db, yld, dry_run):
+        calls["scratch"] += 1
+        return "scratched"
+
+    def fake_result(db, yld, dry_run):
+        calls["result"] += 1
+        return "result"
+
+    yld = _yield_for(
+        participant_overrides={"statut": "NON_PARTANT", "ordreArrivee": None},
+        course_overrides={"statut": "PROGRAMMEE", "arriveeDefinitive": False},
+    )
+    run_pmu_results.write_scratch = fake_scratch
+    run_pmu_results.write_result = fake_result
+    out = run_pmu_results.dispatch(FakeDB(), yld, dry_run=True)
+    assert out == "scratched"
+    assert calls == {"scratch": 1, "result": 0}
+
+
+def test_dispatch_routes_finalized_partant_to_result():
+    from scripts import run_pmu_results
+
+    calls = {"scratch": 0, "result": 0}
+
+    class FakeDB:
+        pass
+
+    def fake_scratch(db, yld, dry_run):
+        calls["scratch"] += 1
+        return "scratched"
+
+    def fake_result(db, yld, dry_run):
+        calls["result"] += 1
+        return "result"
+
+    yld = _yield_for(
+        participant_overrides={"statut": "PARTANT", "ordreArrivee": 1},
+        course_overrides={
+            "statut": "ARRIVEE_DEFINITIVE_COMPLETE",
+            "arriveeDefinitive": True,
+        },
+    )
+    run_pmu_results.write_scratch = fake_scratch
+    run_pmu_results.write_result = fake_result
+    out = run_pmu_results.dispatch(FakeDB(), yld, dry_run=True)
+    assert out == "result"
+    assert calls == {"scratch": 0, "result": 1}
+
+
+def test_dispatch_skips_in_flight_partant():
+    """A PARTANT in a non-finalized course is in-flight; nothing to write."""
+    from scripts import run_pmu_results
+
+    yld = _yield_for(
+        participant_overrides={"statut": "PARTANT", "ordreArrivee": None},
+        course_overrides={"statut": "PROGRAMMEE", "arriveeDefinitive": False},
+    )
+    out = run_pmu_results.dispatch(object(), yld, dry_run=True)
+    assert out == "course_in_flight"
+
+
 @pytest.mark.skipif(
     not (FIXTURES / "participants_20260428_R1C1.json").exists(),
     reason="recon fixture not available",
