@@ -226,23 +226,29 @@ def participant_to_entry(
 # Result projection (used by backfill + real-time results poller)
 # ---------------------------------------------------------------------------
 
-# Course statuses that mean the result is final and ordreArrivee is
-# trustworthy. PROGRAMMEE / DEPART_CONFIRME / FIN_COURSE are pre-result
-# states and must NOT produce result rows.
-FINAL_COURSE_STATUS = {
-    "ARRIVEE_DEFINITIVE",
-    "ARRIVEE_DEFINITIVE_COMPLETE",
-}
-
-
 def is_finalized_course(course: dict) -> bool:
-    """True iff the course's official result is published. Both
-    arriveeDefinitive=true and a final-status statut are required —
-    in recon we saw ANNULEE courses with arriveeDefinitive missing,
-    and FIN_COURSE statuses with the result still being computed."""
+    """True iff the course's official result is published.
+
+    PMU's course.statut transitions:
+        PROGRAMMEE → DEPART_CONFIRME → FIN_COURSE →
+        ARRIVEE_DEFINITIVE → ARRIVEE_DEFINITIVE_COMPLETE
+
+    Empirically (Chantilly Prix de Guiche 2026-05-04), `arriveeDefinitive`
+    flips true alongside `FIN_COURSE` — ordreArrivee is populated and
+    reliable from that moment. PMU only promotes the statut later as
+    administrative payout metadata lands. So `arriveeDefinitive` is the
+    single source of truth for "the finishing order is official";
+    statut is secondary and would create a false 5-15 min lag if we
+    waited for the promotion.
+
+    Cancelled races (statut=COURSE_ANNULEE) are gated explicitly — they
+    can never produce a real result.
+    """
     if not course.get("arriveeDefinitive"):
         return False
-    return course.get("statut") in FINAL_COURSE_STATUS
+    if course.get("statut") == "COURSE_ANNULEE":
+        return False
+    return True
 
 
 def participant_to_result(yld: PMUYield) -> Optional[ResultData]:

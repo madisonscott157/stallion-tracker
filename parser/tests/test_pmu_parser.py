@@ -434,22 +434,38 @@ def _yield_for(participant_overrides=None, course_overrides=None):
     return PMUYield(entry=entry, raw_participant=p, raw_course=c, raw_reunion=r)
 
 
-def test_is_finalized_course_requires_both_flags():
-    # arriveeDefinitive + final statut must both be true.
+def test_is_finalized_course_keys_off_arrivee_definitive():
+    # arriveeDefinitive is the single source of truth — it flips true as
+    # soon as the finishing order is official, regardless of whether the
+    # statut has been promoted from FIN_COURSE to ARRIVEE_DEFINITIVE_*.
     assert is_finalized_course({
         "arriveeDefinitive": True,
         "statut": "ARRIVEE_DEFINITIVE_COMPLETE",
     }) is True
     assert is_finalized_course({
         "arriveeDefinitive": True,
-        "statut": "FIN_COURSE",
-    }) is False  # FIN_COURSE is pre-result
-    assert is_finalized_course({
-        "arriveeDefinitive": False,
         "statut": "ARRIVEE_DEFINITIVE",
-    }) is False
+    }) is True
+    # FIN_COURSE with arriveeDefinitive=true happens for ~5-15 min after
+    # every race; ordreArrivee is reliable in that window.
     assert is_finalized_course({
         "arriveeDefinitive": True,
+        "statut": "FIN_COURSE",
+    }) is True
+    # arriveeDefinitive=false means the result isn't called yet.
+    assert is_finalized_course({
+        "arriveeDefinitive": False,
+        "statut": "FIN_COURSE",
+    }) is False
+    # Cancelled races are explicitly excluded even if arriveeDefinitive
+    # somehow gets set.
+    assert is_finalized_course({
+        "arriveeDefinitive": True,
+        "statut": "COURSE_ANNULEE",
+    }) is False
+    # Pre-race states.
+    assert is_finalized_course({
+        "arriveeDefinitive": False,
         "statut": "PROGRAMMEE",
     }) is False
 
@@ -507,8 +523,24 @@ def test_participant_to_result_pre_race_no_result():
     assert participant_to_result(yld) is None
 
 
-def test_participant_to_result_fin_course_too_early():
-    # FIN_COURSE = race ended but result not yet official. Don't write.
+def test_participant_to_result_fin_course_with_arrivee_definitive():
+    # FIN_COURSE + arriveeDefinitive=true is the common path — ordreArrivee
+    # is reliable. Verified empirically against Chantilly R4C2 PRIX DE
+    # GUICHE 2026-05-04.
+    yld = _yield_for(
+        participant_overrides={"statut": "PARTANT", "ordreArrivee": 4},
+        course_overrides={
+            "arriveeDefinitive": True,
+            "statut": "FIN_COURSE",
+        },
+    )
+    rd = participant_to_result(yld)
+    assert rd is not None
+    assert rd.finish_position == 4
+
+
+def test_participant_to_result_fin_course_no_arrival_yet():
+    # FIN_COURSE + arriveeDefinitive=false → still pending. Don't write.
     yld = _yield_for(
         participant_overrides={"statut": "PARTANT", "ordreArrivee": 1},
         course_overrides={
