@@ -303,6 +303,82 @@ def normalize_sire_name(name: Optional[str]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Display-case normalization for PMU's ALL-CAPS strings
+# (race names, horse names, dam, sire, jockey, trainer)
+# ---------------------------------------------------------------------------
+
+# French articles, prepositions, conjunctions that stay lowercase in the
+# middle of a title. First word is always capitalized regardless.
+FR_LOWERCASE_WORDS = frozenset({
+    "de", "du", "des", "le", "la", "les",
+    "un", "une", "au", "aux", "en", "et", "ou",
+    "à", "sur", "sous", "par", "pour", "avec", "sans",
+})
+
+
+def title_case_french(text: Optional[str]) -> Optional[str]:
+    """French title-case for race / horse / dam / sire names.
+
+    Rule (per French convention, e.g. 'Prix de la Foret'):
+      • First word always capitalized.
+      • Articles + prepositions in FR_LOWERCASE_WORDS stay lowercase
+        when they appear after the first word.
+      • Apostrophe-prefixed tokens like 'D'OMBRE' become 'd'Ombre'
+        when they aren't the first word, 'D'Ombre' when they are.
+      • Other tokens get their first letter capitalized.
+
+    PMU emits everything as ALL CAPS so .title() alone gives 'Prix De
+    La Foret'. Equibase / Arion already use Title Case so this function
+    is only called from PMU paths.
+    """
+    if not text:
+        return text
+    parts = text.split()
+    out: list[str] = []
+    for i, raw in enumerate(parts):
+        # Apostrophe-prefixed: D'OMBRE → d'Ombre / D'Ombre (first word).
+        if len(raw) > 2 and raw[1] == "'":
+            tail = raw[2:].lower().capitalize()
+            head = raw[0].upper() if i == 0 else raw[0].lower()
+            token = f"{head}'{tail}"
+        else:
+            token = raw.lower().capitalize()
+        if i > 0 and token.lower() in FR_LOWERCASE_WORDS:
+            token = token.lower()
+        out.append(token)
+    return " ".join(out)
+
+
+_INITIAL_RE = re.compile(r"^[A-Z]{1,3}\.?$")
+_PARENS_QUAL_RE = re.compile(r"^\([A-Za-z]+\)$")
+
+
+def title_case_person(name: Optional[str]) -> Optional[str]:
+    """Format a jockey / trainer name from PMU's compact 'A.LEMAITRE'
+    or 'HF.DEVIN (S)' style into 'A. Lemaitre' / 'HF. Devin (S)'.
+
+    Rules:
+      • Insert a space after any period that isn't followed by one.
+      • Tokens that are 1-3 capital letters (with optional trailing
+        period) are preserved as-is — they're initials.
+      • Parenthesized qualifiers like '(S)' are preserved verbatim.
+      • All other tokens get .capitalize() (first letter up, rest down).
+    """
+    if not name:
+        return name
+    s = re.sub(r"\.(?=\S)", ". ", name)
+    out: list[str] = []
+    for p in s.split():
+        if _INITIAL_RE.match(p):
+            out.append(p)
+        elif _PARENS_QUAL_RE.match(p):
+            out.append(p)
+        else:
+            out.append(p.lower().capitalize())
+    return " ".join(out)
+
+
+# ---------------------------------------------------------------------------
 # Date / time conversion from PMU epoch ms
 # ---------------------------------------------------------------------------
 

@@ -30,6 +30,8 @@ from canon import (
     pmu_race_date,
     pmu_sex_to_db,
     pmu_to_db_track,
+    title_case_french,
+    title_case_person,
 )
 from models import EntryData, HorseData
 
@@ -165,13 +167,16 @@ def participant_to_entry(
     if age and race_date:
         yob = race_date.year - int(age)
 
+    # PMU emits everything ALL CAPS; convert to French title-case for
+    # display so 'PRIX DE GUICHE' renders as 'Prix de Guiche' alongside
+    # Arion / Equibase rows that are already Title Case.
     horse = HorseData(
-        name=participant.get("nom"),
+        name=title_case_french(participant.get("nom")),
         sex=pmu_sex_to_db(participant.get("sexe")),
         yob=yob,
-        sire=participant.get("nomPere"),
-        dam=participant.get("nomMere"),
-        dam_sire=participant.get("nomPereMere"),
+        sire=title_case_french(participant.get("nomPere")),
+        dam=title_case_french(participant.get("nomMere")),
+        dam_sire=title_case_french(participant.get("nomPereMere")),
         country=horse_country,
         is_unnamed=False,
     )
@@ -198,7 +203,7 @@ def participant_to_entry(
         track_code=track_code,
         race_number=int(course.get("numOrdre", 0)),
         race_type=race_type,
-        race_name=course.get("libelle"),
+        race_name=title_case_french(course.get("libelle")),
         is_stakes=is_stakes,
         stakes_grade=stakes_grade,
         purse=course.get("montantPrix"),
@@ -207,9 +212,9 @@ def participant_to_entry(
         surface=surface,
         conditions=conditions_text,
         post_position=participant.get("placeCorde"),
-        jockey=participant.get("driver"),
-        trainer=participant.get("entraineur"),
-        owner=participant.get("proprietaire"),
+        jockey=title_case_person(participant.get("driver")),
+        trainer=title_case_person(participant.get("entraineur")),
+        owner=title_case_french(participant.get("proprietaire")),
         weight=weight,
         race_country=race_country,
         equibase_email_id=provenance,

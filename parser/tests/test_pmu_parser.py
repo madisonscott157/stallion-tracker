@@ -29,6 +29,8 @@ from canon import (
     pmu_race_date,
     pmu_sex_to_db,
     pmu_to_db_track,
+    title_case_french,
+    title_case_person,
 )
 from parsers.pmu_entry_parser import (
     is_target_course,
@@ -160,6 +162,52 @@ def test_normalize_sire_name():
     assert normalize_sire_name("LOPE DE VEGA") == "lope de vega"
     assert normalize_sire_name("  Hello Youmzain  ") == "hello youmzain"
     assert normalize_sire_name(None) == ""
+
+
+# ---------------------------------------------------------------------------
+# French display title-case
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("raw,expected", [
+    ("PRIX DE GUICHE",       "Prix de Guiche"),
+    ("PRIX DE LA FORET",     "Prix de la Foret"),
+    ("PRIX DU MOULIN",       "Prix du Moulin"),
+    ("PRIX DES CHENES",      "Prix des Chenes"),
+    ("PRIX D'OMBRE",         "Prix d'Ombre"),
+    ("MR LOPE CEN",          "Mr Lope Cen"),
+    ("LOPE DE VEGA",         "Lope de Vega"),
+    ("HELLO YOUMZAIN",       "Hello Youmzain"),
+    ("PLACE DE L'OPERA",     "Place de l'Opera"),
+    ("DE LA NUIT",           "De la Nuit"),  # stopword as first word stays capitalized
+    ("D'AMOUR",              "D'Amour"),     # apostrophe-prefixed as first word
+    ("L'ARC DE TRIOMPHE",    "L'Arc de Triomphe"),
+    ("",                     ""),
+    (None,                   None),
+])
+def test_title_case_french(raw, expected):
+    assert title_case_french(raw) == expected
+
+
+# ---------------------------------------------------------------------------
+# Person name (jockey / trainer)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("raw,expected", [
+    ("A.LEMAITRE",      "A. Lemaitre"),
+    ("M.GRANDIN",       "M. Grandin"),
+    ("HF.DEVIN (S)",    "HF. Devin (S)"),
+    ("D.MELE (S)",      "D. Mele (S)"),
+    ("M.DELZANGLES",    "M. Delzangles"),
+    ("M.BARZALONA",     "M. Barzalona"),
+    # No-period names should still title-case cleanly.
+    ("LEMAITRE",        "Lemaitre"),
+    # Already-formatted names should idempotently stay clean.
+    ("A. Lemaitre",     "A. Lemaitre"),
+    ("",                ""),
+    (None,              None),
+])
+def test_title_case_person(raw, expected):
+    assert title_case_person(raw) == expected
 
 
 # ---------------------------------------------------------------------------
@@ -297,10 +345,10 @@ def _synthetic_chantilly_handicap():
 def test_participant_to_entry_full_handicap():
     p, c, r = _synthetic_chantilly_handicap()
     entry = participant_to_entry(p, c, r)
-    assert entry.horse.name == "ZELZARI"
-    assert entry.horse.sire == "LOPE DE VEGA"
-    assert entry.horse.dam == "TEST DAM"
-    assert entry.horse.dam_sire == "TEST DAMSIRE"
+    assert entry.horse.name == "Zelzari"
+    assert entry.horse.sire == "Lope de Vega"
+    assert entry.horse.dam == "Test Dam"
+    assert entry.horse.dam_sire == "Test Damsire"
     assert entry.horse.country == "FR"
     assert entry.horse.sex == "g"  # HONGRES → gelding
     assert entry.horse.yob == 2021  # 2026 race year - 5 yo
@@ -317,8 +365,8 @@ def test_participant_to_entry_full_handicap():
     assert entry.purse == 50900
     assert entry.purse_currency == "EUR"
     assert entry.distance == "1900m"
-    assert entry.jockey == "M.GRANDIN"
-    assert entry.trainer == "D.MELE"
+    assert entry.jockey == "M. Grandin"
+    assert entry.trainer == "D. Mele"
     assert entry.weight == 610
     assert entry.post_position == 9
     assert entry.equibase_email_id == "pmu:28042026/R1/C1"
