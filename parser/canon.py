@@ -351,6 +351,25 @@ def title_case_french(text: Optional[str]) -> Optional[str]:
 
 _INITIAL_RE = re.compile(r"^[A-Z]{1,3}\.?$")
 _PARENS_QUAL_RE = re.compile(r"^\([A-Za-z]+\)$")
+_COUNTRY_SUFFIX_RE = re.compile(r"^(.*?)\s*\(([A-Z]{2,4})\)\s*$")
+
+
+def split_country_suffix(name: Optional[str]) -> tuple[str, Optional[str]]:
+    """Split 'Lope De Vega (IRE)' into ('Lope De Vega', 'IRE'); return
+    ('Lope De Vega', None) if there's no suffix.
+
+    The Racing API encodes country of origin / surface marker in
+    trailing parens for horses ('Bubbles Wonky (IRE)'), sires
+    ('Lope De Vega (IRE)'), and tracks ('Curragh (IRE)', 'Kempton (AW)').
+    Same helper handles all three so the value we store / compare
+    against matches Arion's no-suffix form.
+    """
+    if not name:
+        return ("", None)
+    m = _COUNTRY_SUFFIX_RE.match(name)
+    if m:
+        return m.group(1).strip(), m.group(2)
+    return name.strip(), None
 
 
 def title_case_person(name: Optional[str]) -> Optional[str]:
