@@ -3,7 +3,7 @@
 Thoroughbred stallion progeny tracker. Aggregates racing entries, results, workouts, sales stats, and sire rankings from Equibase Virtual Stable emails, TDN, and Equineline.
 
 **Live site:** https://stallions.solislitt.com
-**Tracked stallions:** McKinzie, Olympiad, Idol, Life Is Good, Mo Donegal
+**Tracked stallions:** McKinzie, Olympiad, Idol, Life Is Good, Mo Donegal, Twirling Candy, Lope de Vega, Constitution, Good Magic, Hello Youmzain
 
 ## Architecture
 
@@ -20,6 +20,7 @@ digest/      Python daily HTML digest email (Resend + Jinja2)
 - **Auth:** Supabase Auth + custom middleware; admin role check on /admin routes
 - **Parser:** Python 3.11+, imaplib, BeautifulSoup4, pdfplumber, Pydantic v2, schedule
 - **Scrapers:** Python + Selenium (TDN), requests (Equineline); run via GitHub Actions daily at 12:30 AM UTC
+- **Europe pipeline:** PMU France daily entries cron (02:00 UTC, T+0..T+3), PMU France results+scratch poller (*/15 min, 09:00–22:59 UTC), Racing API UK/IRE results poller (*/15 min, 09:00–22:59 UTC). See `europe-ingestion.md` for full architecture.
 - **PDF export:** jsPDF + html2canvas (client-side)
 - **Hosting:** Vercel (frontend), Fly.io (parser, app: `stallion-tracker-parser`, region: ord), GitHub Actions (scrapers)
 

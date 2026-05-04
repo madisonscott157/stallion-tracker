@@ -225,6 +225,29 @@ write the same row — the rules below keep them from fighting.
   withdrawn runners. A separate poller against `/v1/racecards/free`
   comparing declared vs running could close this; not in scope until
   a stale entry causes user pain.
+- **`COURSE_ANNULEE` (cancelled FR meetings) leave Arion-written
+  entries stranded.** `is_finalized_course` deliberately excludes
+  cancelled courses (no result to write), and PMU drops cancelled
+  participants from the scratch dispatch path too. If Arion created
+  an entry the day before for a meeting that PMU later cancels, the
+  row sits `scratched=false` until `race_date < today` removes it
+  from the upcoming view (~24h self-correction). Low-impact;
+  document only.
+- **Tracked-stallion source asymmetry.** Arion's parser reads the
+  `TRACKED_STALLIONS` env var; PMU + TRA pollers query
+  `stallions.name_normalized` directly. They're aligned today but
+  can drift if someone adds a stallion to the DB without updating
+  the env (or vice versa). The runbook step "Add a new tracked
+  stallion" mandates updating env in three places — keep that
+  discipline.
+- **`ALW` residue on provincial FR cards.** PMU only cards meetings
+  with parimutuel handle, so very small provincial tracks (Vannes,
+  Langon-Libourne, Savenay, etc.) never enter the PMU programme.
+  Their entries come from Arion's email and fall through to the
+  `_infer_race_type()` keyword fallback → `ALW`. Acceptable
+  trade-off: these races are rare and low-priority for the
+  dashboard; adding France Galop scraping for them is currently
+  blocked by the CIAM login wall.
 - **Track-name aliases.** `parser/canon.py:PMU_TRACK_TO_DB` covers
   the FR + the most-common UK / IRE / DEU tracks. Unknown tracks
   fall back to a deterministic Title-Case-Hyphenated form and log a
