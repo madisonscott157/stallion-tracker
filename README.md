@@ -1,6 +1,8 @@
 # Stallion Progeny Tracker
 
-Track racing entries, results, and workouts for stallion progeny. Data is ingested from Equibase Virtual Stable emails and presented via a daily digest email and mobile-first web dashboard.
+Track racing entries, results, and workouts for stallion progeny. Data is ingested from Equibase Virtual Stable emails (US/CAN), Arion Pedigrees emails (international fallback), the PMU JSON API (real-time French entries + results + scratches), and The Racing API (real-time UK/IRE results). Presented via a daily digest email and mobile-first web dashboard.
+
+For European pipeline details see `europe-ingestion.md`. For Arion fallback see `arion-ingestion.md`.
 
 ## Quick Start
 
@@ -116,8 +118,11 @@ Run parser and dashboard locally, use Supabase cloud for database.
 
 ### Production
 - **Frontend**: Vercel (auto-deploys on push)
-- **Email Parser**: Fly.io (runs 24/7)
-- **Scrapers**: GitHub Actions (daily at 12:30 AM UTC)
+- **Email Parser**: Fly.io (runs 24/7, polls Gmail every 1 minute for Equibase + Arion)
+- **Scrapers (US)**: GitHub Actions, daily at 12:30 AM UTC (TDN, Equineline)
+- **PMU France daily entries**: GitHub Actions, daily at 02:00 UTC
+- **PMU France results + scratches**: GitHub Actions, every 15 min between 09:00–22:59 UTC
+- **Racing API UK/IRE results**: GitHub Actions, every 15 min between 09:00–22:59 UTC
 
 ## Tech Stack
 

@@ -2,11 +2,12 @@
 
 ## Overview
 
-The Stallion Tracker has three main components:
+The Stallion Tracker has four main components:
 
-1. **Email Parser** - Polls Gmail for Equibase Virtual Stable emails, extracts race entries, results, workouts, and scratches
-2. **Scrapers** - Pull sales stats, sire rankings, and Equineline stats from TDN and Equineline
-3. **Web Dashboard** - Next.js app deployed to Vercel, shows all data per stallion
+1. **Email Parser** - Polls Gmail for Equibase Virtual Stable emails (US/CAN) and Arion Pedigrees emails (international); extracts race entries, results, workouts, and scratches
+2. **Scrapers (US)** - Pull sales stats, sire rankings, and Equineline stats from TDN and Equineline
+3. **Europe pipeline** - Real-time French entries + results + scratches from PMU's JSON API; real-time UK/IRE results from The Racing API. See `europe-ingestion.md` for full architecture.
+4. **Web Dashboard** - Next.js app deployed to Vercel, shows all data per stallion
 
 All data is stored in Supabase (PostgreSQL).
 
@@ -14,10 +15,15 @@ All data is stored in Supabase (PostgreSQL).
 
 | Data | Source | Frequency | Platform |
 |------|--------|-----------|----------|
-| Entries | Equibase emails | Every 1 minute | Fly.io |
-| Results | Equibase emails | Every 1 minute | Fly.io |
+| Entries (US/CAN) | Equibase emails | Every 1 minute | Fly.io |
+| Results (US/CAN) | Equibase emails | Every 1 minute | Fly.io |
 | Workouts | Equibase emails | Every 1 minute | Fly.io |
-| Scratches | Equibase emails | Every 1 minute | Fly.io |
+| Scratches (US/CAN) | Equibase emails | Every 1 minute | Fly.io |
+| Entries (international fallback) | Arion Pedigrees emails | Every 1 minute | Fly.io |
+| Results (international fallback) | Arion Pedigrees emails | Every 1 minute | Fly.io |
+| Entries (FR) | PMU JSON API (T+0..T+3) | Daily at 02:00 UTC | GitHub Actions |
+| Results + scratches (FR) | PMU JSON API | Every 15 min, 09:00–22:59 UTC | GitHub Actions |
+| Results (GB/IRE) | The Racing API (free tier) | Every 15 min, 09:00–22:59 UTC | GitHub Actions |
 | Sales stats | TDN Insta-tistics | Daily at 12:30 AM UTC | GitHub Actions |
 | Sire rankings | TDN Sire Lists | Daily at 12:30 AM UTC | GitHub Actions |
 | Racing stats | Equineline | Daily at 12:30 AM UTC | GitHub Actions |
@@ -220,7 +226,15 @@ SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_SERVICE_KEY=eyJ...  # Service role key
 
 # Tracked stallion names (comma-separated, case-insensitive)
-TRACKED_STALLIONS=McKinzie,Olympiad
+# Used by Arion + Equibase email parsers. PMU + Racing API pollers
+# read the stallions table directly, so they auto-discover new
+# stallions on next run; this env var only needs to stay in sync for
+# the email-driven side.
+TRACKED_STALLIONS=McKinzie,Olympiad,Idol,Life Is Good,Mo Donegal,Twirling Candy,Lope de Vega,Constitution,Good Magic,Hello Youmzain
+
+# The Racing API (UK/IRE results poller, free tier)
+RACING_API_USERNAME=...
+RACING_API_PASSWORD=...
 ```
 
 ### Web App `web/.env.local`
@@ -427,6 +441,12 @@ The scrapers run daily at 12:30 AM UTC via GitHub Actions. This includes:
 **Required GitHub Secrets** (Settings → Secrets → Actions):
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_KEY`
+- `RACING_API_USERNAME` (Racing API workflow only)
+- `RACING_API_PASSWORD` (Racing API workflow only)
+
+(PMU workflows need no auth — the API is open. PMU + Racing API
+pollers query `stallions.name_normalized` directly, so they don't
+need `TRACKED_STALLIONS` in GitHub Secrets.)
 
 **Troubleshooting GitHub Secrets:**
 If you see errors like `Invalid header value` or authentication failures:

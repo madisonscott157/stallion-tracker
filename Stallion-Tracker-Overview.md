@@ -38,12 +38,19 @@ Additionally, the system pulls supplementary data from:
 - Equibase - Race entry links, charts, replay links (for wins), and horse profiles
 - TDN - Sire list rankings and sales statistics
 - Equineline - Lifetime performance statistics
+- PMU France - Real-time French racing entries (3 days ahead), results, and scratches
+- The Racing API - Real-time UK and Ireland race results
+- Arion Pedigrees - International coverage (Germany, Italy, Hong Kong, Japan, Qatar, etc. for stakes races)
 
 ### Data Refresh Frequency
 
 | Data Type | Source | Frequency |
 |-----------|--------|-----------|
-| Entries, Results, Workouts, Scratches | Equibase emails | Every 1 minute |
+| US/CAN entries, results, workouts, scratches | Equibase emails | Every 1 minute |
+| France entries (3 days ahead) | PMU JSON API | Daily at 02:00 UTC |
+| France results + scratches | PMU JSON API | Every 15 min, ~09:00–23:00 UTC |
+| UK / Ireland results | The Racing API | Every 15 min, ~09:00–23:00 UTC |
+| International fallback (entries + results) | Arion Pedigrees emails | Every 1 minute |
 | Sales statistics | TDN Insta-tistics | Daily at 12:30 AM UTC |
 | Sire rankings | TDN Sire Lists | Daily at 12:30 AM UTC |
 | Racing statistics | Equineline | Daily at 12:30 AM UTC |
@@ -121,7 +128,7 @@ Administrators can:
 - Add new stallions and link them to stables from the Users & Stables admin page
 - Manage stallion details (stud fee, scraping URLs) from the Stallions admin page
 - **Important:** When adding a new stallion, update `TRACKED_STALLIONS` on **Fly.io** (parser), **Vercel** (web), and local `.env` files
-  - Fly.io: `flyctl secrets set "TRACKED_STALLIONS=McKinzie,Olympiad,Idol,Life Is Good,Mo Donegal"`
+  - Fly.io: `flyctl secrets set "TRACKED_STALLIONS=McKinzie,Olympiad,Idol,Life Is Good,Mo Donegal,Twirling Candy,Lope de Vega,Constitution,Good Magic,Hello Youmzain"`
   - Vercel: `vercel env add TRACKED_STALLIONS production`
   - Local: Update `.env` and `web/.env.local`
 - Manage which horses appear in each stable�s dashboard

@@ -1,9 +1,16 @@
 # Arion Horse Tracker ingestion
 
-**Status:** shipped 2026-04-28, refined 2026-04-29.
-**Scope:** adds entry + result ingestion for international stallions
-(initially Lope de Vega and Hello Youmzain) via Arion Pedigrees Horse
-Tracker emails delivered to `stalliontracker108@gmail.com`.
+**Status:** shipped 2026-04-28, refined 2026-04-29. **Partially
+superseded 2026-05-04** by the Europe pipeline (`europe-ingestion.md`)
+for FR entries (now PMU-primary, T+3 forward) and FR/GB/IRE results
+(now PMU + Racing API at ≤15 min latency). Arion is the fallback +
+catch-all for everything those don't cover (intl tier-2 stakes,
+provincial FR cards PMU doesn't carry, the long-tail jurisdictions in
+`NH_COUNTRIES`).
+**Scope:** entry + result ingestion via Arion Pedigrees Horse
+Tracker emails delivered to `stalliontracker108@gmail.com`. Initially
+launched for Lope de Vega + Hello Youmzain; tracked roster has since
+grown to ten stallions (see CLAUDE.md).
 
 ## Why
 
@@ -142,10 +149,11 @@ the stallion's `tdn_region` at render time — there's no
 - **Per-currency YTD aggregation.** The fix-shipped view zeros out Euro
   stallions. A proper view would partition by currency and return one
   row per (stallion, currency).
-- **Arion scratch detection.** Arion doesn't appear to send explicit
-  scratch notifications; we rely on the `entries.scratched` flag being
-  set elsewhere. The result-lookup filter is in place so the moment
-  scratches *do* propagate, the right entry gets matched.
+- **Arion scratch detection.** Arion doesn't send explicit scratch
+  notifications. For FR this is now covered by the PMU results poller
+  (`run_pmu_results.py`, ≤15 min via `participant.statut=NON_PARTANT`).
+  For UK/IRE the gap remains — see `europe-ingestion.md` known
+  limitations for the planned `/v1/racecards/free` poller.
 - **Unknown jurisdictions.** Country names are matched literally
   against an allowlist. New countries appearing in Arion will be
   silently skipped until added to `NH_COUNTRIES` in
