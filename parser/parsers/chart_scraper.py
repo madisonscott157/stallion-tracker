@@ -226,29 +226,33 @@ def extract_race_details(text: str) -> ChartData:
         data.purse = int(purse_match.group(1).replace(',', ''))
 
     # Extract position payouts from "Value of Race" line
-    # Format: "ValueofRace:$55,0001st$33,000,2nd$11,000,3rd$6,050,4th$3,300,5th$1,650"
-    # Note: Numbers run together without spaces
-    # Find the section containing position payouts (1st through 5th typically)
+    # US format:  "ValueofRace:$55,0001st$33,000,2nd$11,000,3rd$6,050,4th$3,300,5th$1,650"
+    # CAN format: "ValueofRace:$150,000(US$110,371)1st$90,000(US$66,223),2nd$30,000(US$22,074),..."
+    # Canadian charts annotate each amount with a USD conversion in parens.
+    # Numbers run together without spaces. The optional `(?:\(US\$[\d,]+\))?`
+    # in the outer regex skips the race-level USD conversion that appears
+    # between the purse and the first position.
     value_match = re.search(
-        r'Value\s*of\s*Race[:\s]*\$[\d,]+(1st.+?)(?:Weather|Track:|Offat|LastRaced)',
+        r'Value\s*of\s*Race[:\s]*\$[\d,]+(?:\(US\$[\d,]+\))?(1st.+?)(?:Weather|Track:|Offat|LastRaced)',
         text,
         re.IGNORECASE
     )
     if value_match:
         payouts_text = value_match.group(1)
-        # Find all position payouts - match single digit positions followed by suffix
-        # Use lookahead (?=...) to not consume the next position marker
+        # Match position + native amount + optional (US$X) USD conversion.
+        # When the USD figure is present we store that, so position_payouts is
+        # always in USD regardless of whether the chart was for a US or
+        # Canadian track.
         payout_matches = re.findall(
-            r'([1-9])(?:st|nd|rd|th)\s*\$\s*([\d,]+?)(?=,?[1-9](?:st|nd|rd|th)|\s|$)',
+            r'([1-9])(?:st|nd|rd|th)\s*\$\s*([\d,]+?)(?:\s*\(US\$([\d,]+)\))?(?=,?[1-9](?:st|nd|rd|th)|\s|$)',
             payouts_text,
             re.IGNORECASE
         )
         if payout_matches:
             data.position_payouts = {}
-            for pos, amount in payout_matches:
-                # Clean the amount - remove trailing comma if present
-                amount = amount.rstrip(',')
-                data.position_payouts[int(pos)] = int(amount.replace(',', ''))
+            for pos, native, usd in payout_matches:
+                amount = (usd or native).rstrip(',').replace(',', '')
+                data.position_payouts[int(pos)] = int(amount)
 
     # Extract race type - MSW, MCL, CLM, AOC, ALW, STK
     # Order matters - more specific patterns first
