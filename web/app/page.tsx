@@ -266,11 +266,12 @@ function HomeContent() {
               <div key="overview" className="tab-content-enter">
                 {/* Upcoming Entries */}
                 <section className="mb-6 sm:mb-8">
-                  {/* flex-wrap so the toggle cluster moves below the title
-                      instead of overflowing on narrow phones. */}
-                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-4">
-                    <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming Entries</h2>
-                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap">
+                  {/* Header + toggles share a single row at every breakpoint.
+                      The mobile "STK" abbreviation in StakesToggle keeps it
+                      narrow enough to fit on a phone. */}
+                  <div className="flex items-center justify-between gap-x-3 mb-4">
+                    <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Upcoming Entries</h2>
+                    <div className="flex items-center gap-x-3 shrink-0">
                       <StakesToggle
                         context={stallionId || ''}
                         onPreferenceChange={() => setFetchKey(k => k + 1)}
