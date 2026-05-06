@@ -339,7 +339,14 @@ export function isNaJumpsRace(
   return f !== null && f > NA_FLAT_MAX_FURLONGS
 }
 
+// Display aliases for tracks whose official name is a mouthful.
+const TRACK_DISPLAY_ALIASES: Record<string, string> = {
+  'hollywood casino at charles town races': 'Charles Town',
+}
+
 export function formatTrack(track: string): string {
+  const key = track.toLowerCase().trim()
+  if (TRACK_DISPLAY_ALIASES[key]) return TRACK_DISPLAY_ALIASES[key]
   return track
     .toLowerCase()
     .split(' ')
