@@ -13,6 +13,10 @@ export function cleanRaceName(name: string | null): string | null {
     .replace(/\s+presented\s+by\s+.*/i, '')
     .replace(/\s+sponsored\s+by\s+.*/i, '')
     .replace(/\s+-\s+.*/i, '') // Remove anything after " - "
+    // Strip empty parens, e.g. "Cheshire Oaks () (Fillies)" -> "Cheshire Oaks  (Fillies)"
+    .replace(/\(\s*\)/g, '')
+    // Collapse runs of whitespace left behind by the removals above
+    .replace(/\s{2,}/g, ' ')
     .trim()
 }
 

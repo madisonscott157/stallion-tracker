@@ -73,9 +73,16 @@ interface BuildRowOptions {
 
 // Stakes-grade pill matching the in-app badge: gold for G1, silver for G2,
 // orange (accent) for G3 / Listed / other graded.
+// html2canvas vertically clips inline-block badges that rely on padding +
+// line-height for height. The live EntryCard/ResultCard set explicit
+// height: 1.25rem and a matching line-height so text is vertically centered
+// without padding tricks. Mirror that exactly here, in pixels (1.25rem ≈ 18px
+// at the 14px base font-size used in this offscreen wrapper). Use a single
+// line-height equal to the box height so text vertically centers natively
+// inside an inline-block, which html2canvas rasterizes faithfully.
 function stakesPill(grade: string): string {
   const bg = grade === 'G1' ? '#d4af37' : grade === 'G2' ? '#a8a9ad' : '#b45309'
-  return `<span style="display:inline-block;background:${bg};color:#fff;font-weight:600;font-size:10px;padding:1px 5px;border-radius:3px;line-height:1;margin-right:2px;vertical-align:1px;">${grade}</span>`
+  return `<span style="display:inline-block;background:${bg};color:#fff;font-weight:600;font-size:10px;height:16px;line-height:16px;min-width:22px;padding:0 5px;border-radius:3px;text-align:center;margin-right:4px;vertical-align:middle;box-sizing:border-box;">${grade}</span>`
 }
 
 // Shared table row cell styles
@@ -115,11 +122,15 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   let subLine = ''
   const stakesName = isStakes && r.race_name ? cleanRaceName(r.race_name.replace(/^STAKES\s*/i, '').trim()) : null
   if (r.stakes_grade || stakesName) {
-    const parts: string[] = []
-    if (r.stakes_grade && r.stakes_grade !== 'Listed') parts.push(stakesPill(r.stakes_grade))
-    if (stakesName) parts.push(`<span style="font-weight:500;color:#334155;">${stakesName}</span>`)
-    if (isWin && r.win_margin) parts.push(`<span style="color:#15803d;font-weight:500;">Won by ${r.win_margin}</span>`)
-    subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${parts.join(' — ')}</div>`
+    // Build pill (no separator after — its own margin-right handles spacing)
+    // and join the remaining text parts with a slate-grey bullet so a
+    // clipped/missing pill can never look like a stray leading em-dash.
+    const pillHtml = (r.stakes_grade && r.stakes_grade !== 'Listed') ? stakesPill(r.stakes_grade) : ''
+    const textParts: string[] = []
+    if (stakesName) textParts.push(`<span style="font-weight:500;color:#334155;">${stakesName}</span>`)
+    if (isWin && r.win_margin) textParts.push(`<span style="color:#15803d;font-weight:500;">Won by ${r.win_margin}</span>`)
+    const sep = `<span style="color:#cbd5e1;margin:0 6px;">·</span>`
+    subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${pillHtml}${textParts.join(sep)}</div>`
   } else if (isWin && r.win_margin) {
     subLine = `<div style="font-size:11px;margin-top:1px;color:#15803d;font-weight:500;">Won by ${r.win_margin}</div>`
   }
@@ -172,10 +183,12 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
   const stakesName = e.is_stakes && e.race_name ? cleanRaceName(e.race_name.replace(/^STAKES\s*/i, '').trim()) : null
   let subLine = ''
   if (e.stakes_grade || stakesName) {
-    const parts: string[] = []
-    if (e.stakes_grade && e.stakes_grade !== 'Listed') parts.push(stakesPill(e.stakes_grade))
-    if (stakesName) parts.push(`<span style="font-weight:500;color:#334155;">${stakesName}</span>`)
-    subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${parts.join(' — ')}</div>`
+    // Pill carries its own right-margin; render race name immediately after
+    // it (no em-dash separator) to mirror the live EntryCard layout and
+    // avoid a stray leading dash if html2canvas clips the badge.
+    const pillHtml = (e.stakes_grade && e.stakes_grade !== 'Listed') ? stakesPill(e.stakes_grade) : ''
+    const nameHtml = stakesName ? `<span style="font-weight:500;color:#334155;">${stakesName}</span>` : ''
+    subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${pillHtml}${nameHtml}</div>`
   }
 
   // Trainer/Jockey
@@ -186,10 +199,16 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
     ? `<div style="font-size:11px;margin-top:1px;color:#94a3b8;">${connections.join(`${pipe()}`)}</div>`
     : ''
 
+  // Entries have no finish position — emit an empty fixed-width cell where
+  // the position would go so the main column aligns column-for-column with
+  // result rows in the same table. (Previously this row used colspan=2,
+  // which made the entry's main column start ~32px to the left of every
+  // result's main column, causing the visible column-width drift.)
   return `
     <tr style="border-bottom:1px solid #e2e8f0;">
       <td style="${cellDate}">${dateStr}</td>
-      <td style="${cellMain}" colspan="2">
+      <td style="${cellPos}"></td>
+      <td style="${cellMain}">
         <span style="font-size:13px;font-weight:600;color:#0f172a;">${name}</span>${desc ? `<span style="color:#94a3b8;font-size:12px;margin-left:4px;">${desc}</span>` : ''}${ownerSilks.length > 0 ? silksImgs(ownerSilks) : ''}
         ${raceParts ? `<span style="font-size:12px;color:#64748b;margin-left:6px;">${raceParts}</span>` : ''}
         ${subLine}${connectionsLine}
