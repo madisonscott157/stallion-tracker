@@ -272,18 +272,22 @@ function HomeContent() {
                   <div className="flex items-center justify-between gap-x-3 mb-4">
                     <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Upcoming Entries</h2>
                     <div className="flex items-center gap-x-3 shrink-0">
-                      <StakesToggle
-                        context={stallionId || ''}
-                        onPreferenceChange={() => setFetchKey(k => k + 1)}
-                        className="text-slate-500 hover:text-slate-700 transition-colors"
-                        checkboxClassName="accent-slate-600"
-                      />
-                      <ClmToggle
-                        context={stallionId || ''}
-                        onPreferenceChange={() => setFetchKey(k => k + 1)}
-                        className="text-slate-500 hover:text-slate-700 transition-colors"
-                        checkboxClassName="accent-slate-600"
-                      />
+                      {stallionId && (
+                        <>
+                          <StakesToggle
+                            context={stallionId}
+                            onPreferenceChange={() => setFetchKey(k => k + 1)}
+                            className="text-slate-500 hover:text-slate-700 transition-colors"
+                            checkboxClassName="accent-slate-600"
+                          />
+                          <ClmToggle
+                            context={stallionId}
+                            onPreferenceChange={() => setFetchKey(k => k + 1)}
+                            className="text-slate-500 hover:text-slate-700 transition-colors"
+                            checkboxClassName="accent-slate-600"
+                          />
+                        </>
+                      )}
                     </div>
                   </div>
                   {entries.length > 0 ? (

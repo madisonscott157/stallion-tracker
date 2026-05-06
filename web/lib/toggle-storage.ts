@@ -11,6 +11,7 @@ function key(name: 'clm' | 'stakes', context: string): string {
 
 export function readToggle(name: 'clm' | 'stakes', context: string): boolean {
   if (typeof window === 'undefined') return false
+  if (!context) return false
   try {
     return window.localStorage.getItem(key(name, context)) === '1'
   } catch {
@@ -20,6 +21,7 @@ export function readToggle(name: 'clm' | 'stakes', context: string): boolean {
 
 export function writeToggle(name: 'clm' | 'stakes', context: string, value: boolean): void {
   if (typeof window === 'undefined') return
+  if (!context) return
   try {
     if (value) {
       window.localStorage.setItem(key(name, context), '1')
