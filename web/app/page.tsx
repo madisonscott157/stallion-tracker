@@ -21,6 +21,7 @@ import type { Entry, Result, StallionStats, SalesStats, SireRanking, EquinelineS
 import { EmptyState } from '@/components/EmptyState'
 import { ClmToggle } from '@/components/ClmToggle'
 import { StakesToggle } from '@/components/StakesToggle'
+import { readToggle } from '@/lib/toggle-storage'
 import type { ExportOptions, OrgWithSilks } from '@/lib/pdf-export'
 
 export default function Home() {
@@ -112,8 +113,10 @@ function HomeContent() {
         const param = stallion && stallion !== 'Loading...'
           ? `stallion=${encodeURIComponent(stallion)}`
           : `id=${encodeURIComponent(stallionId!)}`
+        const showClm = readToggle('clm', stallionId!)
+        const stakesOnly = readToggle('stakes', stallionId!)
         const res = await fetch(
-          `/api/stallion-data?${param}`,
+          `/api/stallion-data?${param}&show_clm=${showClm}&stakes_only=${stakesOnly}`,
           { signal: controller.signal }
         )
         clearTimeout(timer)
@@ -269,11 +272,13 @@ function HomeContent() {
                     <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming Entries</h2>
                     <div className="flex items-center gap-x-3 gap-y-1 flex-wrap">
                       <StakesToggle
+                        context={stallionId || ''}
                         onPreferenceChange={() => setFetchKey(k => k + 1)}
                         className="text-slate-500 hover:text-slate-700 transition-colors"
                         checkboxClassName="accent-slate-600"
                       />
                       <ClmToggle
+                        context={stallionId || ''}
                         onPreferenceChange={() => setFetchKey(k => k + 1)}
                         className="text-slate-500 hover:text-slate-700 transition-colors"
                         checkboxClassName="accent-slate-600"

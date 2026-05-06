@@ -12,6 +12,24 @@ interface UserPreferences {
   show_stakes_only: boolean
 }
 
+// Resolves the effective filter values for a request. The CLM/stakes toggles
+// are now per-context (stallion or dashboard) and live in client localStorage,
+// so the client passes the desired state via ?show_clm and ?stakes_only.
+// `users.show_claiming_races` is the admin-granted permission — without it
+// we silently force CLM off regardless of what the client asked for.
+export function resolveToggles(
+  searchParams: URLSearchParams,
+  prefs: UserPreferences
+): { show_claiming_races: boolean; show_stakes_only: boolean } {
+  const clmParam = searchParams.get('show_clm')
+  const stakesParam = searchParams.get('stakes_only')
+  // Permission gate: if the user can't view CLM, server always filters it out.
+  // Otherwise the client value wins; missing param defaults to off.
+  const showClaiming = prefs.show_claiming_races && clmParam === 'true'
+  const stakesOnly = stakesParam === 'true'
+  return { show_claiming_races: showClaiming, show_stakes_only: stakesOnly }
+}
+
 export async function requireAuth(): Promise<AuthResult | NextResponse> {
   const supabase = createServerComponentClient()
   const { data: { session } } = await supabase.auth.getSession()

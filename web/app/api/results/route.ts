@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, isAuthError, getUserPreferences } from '@/lib/api-auth'
+import { requireAuth, isAuthError, getUserPreferences, resolveToggles } from '@/lib/api-auth'
 import { isNaJumpsRace } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
@@ -7,9 +7,10 @@ export async function GET(request: NextRequest) {
   if (isAuthError(auth)) return auth
   const { supabase, userId } = auth
 
-  const prefs = await getUserPreferences(supabase, userId)
+  const userPrefs = await getUserPreferences(supabase, userId)
 
   const { searchParams } = new URL(request.url)
+  const prefs = resolveToggles(searchParams, userPrefs)
   const stallion = searchParams.get('stallion')
   const limit = parseInt(searchParams.get('limit') || '20')
   const winnersOnly = searchParams.get('winners') === 'true'

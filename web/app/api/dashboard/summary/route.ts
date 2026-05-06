@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
-import { requireAuth, isAuthError } from '@/lib/api-auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth, isAuthError, resolveToggles } from '@/lib/api-auth'
 import { isNaJumpsRace } from '@/lib/utils'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const auth = await requireAuth()
   if (isAuthError(auth)) return auth
   const { supabase, userId } = auth
@@ -10,7 +10,7 @@ export async function GET() {
   // Single query for both prefs and profile — avoids two roundtrips to the same table
   const { data: userRow } = await supabase
     .from('users')
-    .select('role, organization_id, show_claiming_races, show_stakes_only, organizations(allow_claiming_toggle, show_race_activity)')
+    .select('role, organization_id, show_claiming_races, organizations(allow_claiming_toggle, show_race_activity)')
     .eq('auth_id', userId)
     .single()
 
@@ -19,10 +19,12 @@ export async function GET() {
   }
 
   const orgAllowsToggle = (userRow.organizations as any)?.allow_claiming_toggle ?? true
-  const prefs = {
+  const userPrefs = {
     show_claiming_races: orgAllowsToggle ? (userRow.show_claiming_races ?? true) : false,
-    show_stakes_only: userRow.show_stakes_only ?? false,
+    show_stakes_only: false,
   }
+  const { searchParams } = new URL(request.url)
+  const prefs = resolveToggles(searchParams, userPrefs)
   const showRaceActivity = (userRow.organizations as any)?.show_race_activity !== false
   const profile = userRow
 

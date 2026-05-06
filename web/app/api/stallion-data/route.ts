@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, isAuthError, getUserPreferences, getOrgShowRaceActivity } from '@/lib/api-auth'
+import { requireAuth, isAuthError, getUserPreferences, getOrgShowRaceActivity, resolveToggles } from '@/lib/api-auth'
 import { isNaJumpsRace } from '@/lib/utils'
 import { convertPostTimeToET } from '@/lib/timezones'
 
@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Single auth + preferences query (was duplicated across 6 routes)
-  const prefs = await getUserPreferences(supabase, userId)
+  const userPrefs = await getUserPreferences(supabase, userId)
+  const prefs = resolveToggles(searchParams, userPrefs)
   const showRaceActivity = await getOrgShowRaceActivity(supabase, userId)
 
   const today = new Date().toISOString().split('T')[0]

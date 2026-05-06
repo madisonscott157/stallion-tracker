@@ -1,44 +1,43 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { cn } from '@/lib/utils'
+import { readToggle, writeToggle } from '@/lib/toggle-storage'
 
 interface StakesToggleProps {
+  // Stallion id, or "_dashboard" on the cross-stallion dashboard.
+  context: string
   onPreferenceChange: () => void
   className?: string
   checkboxClassName?: string
 }
 
-// "Stakes only" toggle — when checked, the entries / results / dashboard
-// endpoints filter to is_stakes=true. Mirrors ClmToggle but is always
-// available (no org-level allow_* gate).
-export function StakesToggle({ onPreferenceChange, className, checkboxClassName }: StakesToggleProps) {
-  const { profile, updateProfile } = useAuth()
-  const [updating, setUpdating] = useState(false)
+// Stakes-only filter — sticky per-stallion in localStorage, defaults off.
+// Always visible (no admin gate).
+export function StakesToggle({ context, onPreferenceChange, className, checkboxClassName }: StakesToggleProps) {
+  const { profile } = useAuth()
+  const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    setChecked(readToggle('stakes', context))
+  }, [context])
 
   if (!profile) return null
 
-  const handleToggle = async () => {
-    if (updating) return
-    setUpdating(true)
-    try {
-      await updateProfile({ show_stakes_only: !profile.show_stakes_only })
-      onPreferenceChange()
-    } catch (err) {
-      console.error('Failed to update stakes-only preference:', err)
-    } finally {
-      setUpdating(false)
-    }
+  const handleToggle = () => {
+    const next = !checked
+    setChecked(next)
+    writeToggle('stakes', context, next)
+    onPreferenceChange()
   }
 
   return (
     <label className={cn('inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium uppercase tracking-wide', className)}>
       <input
         type="checkbox"
-        checked={profile.show_stakes_only ?? false}
+        checked={checked}
         onChange={handleToggle}
-        disabled={updating}
         className={cn('w-4 h-4 rounded', checkboxClassName || 'accent-white')}
       />
       Stakes Only

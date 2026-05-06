@@ -9,6 +9,7 @@ import { ResultCard } from '@/components/ResultCard'
 import { PullToRefresh } from '@/components/PullToRefresh'
 import { ClmToggle } from '@/components/ClmToggle'
 import { StakesToggle } from '@/components/StakesToggle'
+import { readToggle } from '@/lib/toggle-storage'
 import { useAuth } from '@/lib/auth-context'
 import { EmptyState } from '@/components/EmptyState'
 import type { Entry, Result } from '@/lib/supabase'
@@ -76,10 +77,13 @@ function DashboardContent() {
       }
 
       try {
+        const showClm = readToggle('clm', '_dashboard')
+        const stakesOnly = readToggle('stakes', '_dashboard')
+        const qs = `show_clm=${showClm}&stakes_only=${stakesOnly}`
         const [dashRes, entriesRes, resultsRes] = await Promise.allSettled([
-          fetchWithTimeout('/api/dashboard/summary'),
-          fetchWithTimeout('/api/entries'),
-          fetchWithTimeout('/api/results?limit=50&days=14'),
+          fetchWithTimeout(`/api/dashboard/summary?${qs}`),
+          fetchWithTimeout(`/api/entries?${qs}`),
+          fetchWithTimeout(`/api/results?limit=50&days=14&${qs}`),
         ])
 
         if (controller.signal.aborted) return
@@ -162,8 +166,8 @@ function DashboardContent() {
                   ))}
                 </select>
               )}
-              <ClmToggle onPreferenceChange={() => setFetchKey(k => k + 1)} className="sm:hidden text-slate-500" checkboxClassName="accent-slate-600" />
-              <StakesToggle onPreferenceChange={() => setFetchKey(k => k + 1)} className="text-slate-500" checkboxClassName="accent-slate-600" />
+              <ClmToggle context="_dashboard" onPreferenceChange={() => setFetchKey(k => k + 1)} className="sm:hidden text-slate-500" checkboxClassName="accent-slate-600" />
+              <StakesToggle context="_dashboard" onPreferenceChange={() => setFetchKey(k => k + 1)} className="text-slate-500" checkboxClassName="accent-slate-600" />
             </div>
 
             {/* Stallion Summary Cards */}

@@ -96,7 +96,7 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
           </h1>
           <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--org-secondary)' }}>
             {onPreferenceChange && (
-              <ClmToggle onPreferenceChange={onPreferenceChange} className="opacity-80 hover:opacity-100 transition-opacity" />
+              <ClmToggle context="_dashboard" onPreferenceChange={onPreferenceChange} className="opacity-80 hover:opacity-100 transition-opacity" />
             )}
             {isAdmin && (
               <Link href="/admin" className="hover:text-white transition-colors inline-flex items-center">
