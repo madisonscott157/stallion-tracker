@@ -228,15 +228,22 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
         purse = int(purse_match.group(1).replace(',', ''))
 
     # 6. Extract distance
+    # The conditions block contains eligibility phrases like "Non-winners Of Two
+    # Races At A Mile Or Over" that look like distances to the regex. Real race
+    # distances appear at the end of the block ("One Mile. (Turf)") and never
+    # include the word "Races", so collect all matches, drop ones that captured
+    # eligibility text, and keep the last one.
     distance = None
-    distance_match = re.search(
+    distance_matches = list(re.finditer(
         r"((?:About\s+)?(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten)"
         r"[\w\s]+(?:Furlongs?|Miles?|Yards?))",
         text,
         re.IGNORECASE
-    )
-    if distance_match:
-        distance = distance_match.group(1).strip()
+    ))
+    filtered = [m for m in distance_matches if not re.search(r'\bRaces?\b', m.group(1), re.IGNORECASE)]
+    candidates = filtered or distance_matches
+    if candidates:
+        distance = candidates[-1].group(1).strip()
         # Strip concatenated surface text: "YardsOnTheAllWeather" → "Yards"
         distance = re.sub(
             r'(Furlongs?|Miles?|Yards?)OnThe.*$',
