@@ -80,7 +80,7 @@ export function formatDistance(distance: string | null): string {
   // Clean any parsing garbage (from workout emails) and strip concatenated surface text
   let cleaned = distance.split(/Time:|Track Condition:/i)[0]?.trim() || distance.trim()
   // Strip surface info concatenated to distance: "FurlongsOnTheAllWeather" → "Furlongs"
-  cleaned = cleaned.replace(/On\s*The\s*(All\s*Weather(?:\s*Track)?|Turf|Dirt|Main\s*Track)\s*$/i, '').trim()
+  cleaned = cleaned.replace(/\s*On\s+(?:The\s+)?(?:Outer|Inner)?\s*(?:Turf|Dirt|Main\s*Track|All\s*Weather(?:\s*Track)?|Polytrack|Tapeta|Synthetic).*$/i, '').trim()
   // Split concatenated number+unit: "SeventyYards" → "Seventy Yards"
   cleaned = cleaned.replace(/([a-z])(Furlongs?|Miles?|Yards?)\s*$/i, '$1 $2').trim()
 
@@ -113,6 +113,8 @@ export function formatDistance(distance: string | null): string {
     'onesixteenth': 0.0625,
     'three quarters': 0.75,
     'threequarters': 0.75,
+    'three sixteenth': 0.1875,
+    'three sixteenths': 0.1875,
     'three eighths': 0.375,
     'threeeighths': 0.375,
     'five eighths': 0.625,
@@ -143,6 +145,8 @@ export function formatDistance(distance: string | null): string {
     'onesixteenth': '1/16',
     'three quarters': '3/4',
     'threequarters': '3/4',
+    'three sixteenth': '3/16',
+    'three sixteenths': '3/16',
     'three eighths': '3/8',
     'threeeighths': '3/8',
     'five eighths': '5/8',
@@ -245,6 +249,7 @@ export function parseDistanceToFurlongs(distance: string | null): number | null 
     'seven sixteenths': 0.4375, 'nine sixteenths': 0.5625,
     'eleven sixteenths': 0.6875, 'thirteen sixteenths': 0.8125,
     'fifteen sixteenths': 0.9375,
+    'three sixteenth': 0.1875, 'five sixteenth': 0.3125,
   }
   const parseWord = (w: string): number | null => {
     const k = w.toLowerCase()

@@ -45,6 +45,8 @@ FRACTIONS['fourth'] = FRACTIONS['quarter']
 FRACTIONS['one fourth'] = FRACTIONS['quarter']
 FRACTIONS['three fourth'] = FRACTIONS['three quarters']
 FRACTIONS['three fourths'] = FRACTIONS['three quarters']
+FRACTIONS['three sixteenth'] = FRACTIONS['three sixteenths']
+FRACTIONS['five sixteenth'] = FRACTIONS['five sixteenths']
 
 
 def _word_to_number(word: str) -> Optional[int]:
@@ -91,9 +93,12 @@ def normalize_distance(raw: str) -> str:
     if re.match(r'^\d', text):
         return text
 
-    # Strip surface suffixes that may be concatenated
+    # Strip surface suffixes that may be concatenated. Includes Outer/Inner turf
+    # course variants and the "-Originally Scheduled For ..." rescheduling note
+    # the chart parser sometimes appends. Hurdle/Steeplechase are intentionally
+    # NOT stripped here — the jumps filter relies on those keywords downstream.
     text = re.sub(
-        r'\s*On\s*The\s*(Turf|Dirt|Main\s*Track|All\s*Weather(?:\s*Track)?)\s*$',
+        r'\s*On\s+(?:The\s+)?(?:Outer|Inner)?\s*(?:Turf|Dirt|Main\s*Track|All\s*Weather(?:\s*Track)?|Polytrack|Tapeta|Synthetic).*$',
         '', text, flags=re.IGNORECASE
     )
 
@@ -121,7 +126,10 @@ def normalize_distance(raw: str) -> str:
         text, re.IGNORECASE
     )
     if compound_match:
-        primary_text = compound_match.group(1) + ' ' + re.search(r'(Miles?|Furlongs?)', text, re.IGNORECASE).group(1)
+        unit_search = re.search(r'(Miles?|Furlongs?)', text, re.IGNORECASE)
+        if not unit_search:
+            return f"{about}{text}"
+        primary_text = compound_match.group(1) + ' ' + unit_search.group(1)
         secondary_num_text = compound_match.group(2)
         secondary_unit = compound_match.group(3)
 
