@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, isAuthError, getUserPreferences, resolveToggles } from '@/lib/api-auth'
+import { requireAuth, isAuthError, getUserPreferences, resolveToggles, applyHideLowLevelHandicaps } from '@/lib/api-auth'
 import { isNaJumpsRace } from '@/lib/utils'
 import { convertPostTimeToET } from '@/lib/timezones'
 
@@ -60,6 +60,8 @@ export async function GET(request: NextRequest) {
   if (prefs.show_stakes_only) {
     query = query.eq('is_stakes', true)
   }
+
+  query = applyHideLowLevelHandicaps(query)
 
   // Fetch entries and results with matching dates in parallel
   // so we can exclude entries whose race has already run

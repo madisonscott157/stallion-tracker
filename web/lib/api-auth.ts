@@ -30,6 +30,17 @@ export function resolveToggles(
   return { show_claiming_races: showClaiming, show_stakes_only: stakesOnly }
 }
 
+// Hide non-stakes European handicaps (race_type=HCP + is_stakes=false). Only
+// affects FR/GB/IRE-style data — US races aren't tagged HCP, US handicap
+// stakes are STK with is_stakes=true, and Listed/Group handicaps upstream
+// are tagged STK regardless of "Handicap" in the name. Nurseries (NUR),
+// maidens, novices, conditions, and allowances are unaffected.
+export function applyHideLowLevelHandicaps<T extends {
+  or: (filters: string) => T
+}>(query: T): T {
+  return query.or('race_type.is.null,race_type.neq.HCP,is_stakes.eq.true')
+}
+
 export async function requireAuth(): Promise<AuthResult | NextResponse> {
   const supabase = createServerComponentClient()
   const { data: { session } } = await supabase.auth.getSession()
