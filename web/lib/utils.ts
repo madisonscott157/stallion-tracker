@@ -98,6 +98,13 @@ export function formatDistance(distance: string | null): string {
     'quarter': 0.25,
     'one quarter': 0.25,
     'onequarter': 0.25,
+    'fourth': 0.25,
+    'one fourth': 0.25,
+    'onefourth': 0.25,
+    'three fourth': 0.75,
+    'three fourths': 0.75,
+    'threefourth': 0.75,
+    'threefourths': 0.75,
     'eighth': 0.125,
     'one eighth': 0.125,
     'oneeighth': 0.125,
@@ -121,6 +128,13 @@ export function formatDistance(distance: string | null): string {
     'quarter': '1/4',
     'one quarter': '1/4',
     'onequarter': '1/4',
+    'fourth': '1/4',
+    'one fourth': '1/4',
+    'onefourth': '1/4',
+    'three fourth': '3/4',
+    'three fourths': '3/4',
+    'threefourth': '3/4',
+    'threefourths': '3/4',
     'eighth': '1/8',
     'one eighth': '1/8',
     'oneeighth': '1/8',
@@ -219,6 +233,8 @@ export function parseDistanceToFurlongs(distance: string | null): number | null 
   const fractionMap: Record<string, number> = {
     'half': 0.5, 'one half': 0.5, 'onehalf': 0.5,
     'quarter': 0.25, 'one quarter': 0.25, 'onequarter': 0.25,
+    'fourth': 0.25, 'one fourth': 0.25, 'onefourth': 0.25,
+    'three fourth': 0.75, 'three fourths': 0.75,
     'eighth': 0.125, 'one eighth': 0.125, 'oneeighth': 0.125,
     'sixteenth': 0.0625, 'one sixteenth': 0.0625, 'onesixteenth': 0.0625,
     'three quarters': 0.75, 'threequarters': 0.75,
@@ -241,7 +257,14 @@ export function parseDistanceToFurlongs(distance: string | null): number | null 
     return m ? parseInt(m[1]) / parseInt(m[2]) : 0
   }
 
-  const cleaned = raw.replace(/^about\s+/i, '').trim()
+  // Strip jumps-race suffix so the underlying distance still parses.
+  // Equibase chart text emits e.g. "Two And One Eighth Miles On The Hurdle"
+  // — without this the whole string fails to match any pattern below and
+  // the row would be wrongly classified as non-jumps.
+  const cleaned = raw
+    .replace(/^about\s+/i, '')
+    .replace(/\s*(?:On\s+The\s+)?(?:Hurdle|Steeplechase|Jump)s?\s*$/i, '')
+    .trim()
 
   // "7F", "6.5F", "7f"
   let m = cleaned.match(/^([\d.]+)\s*F$/i)

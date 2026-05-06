@@ -61,10 +61,10 @@ def parse_comments(comments: str) -> ParsedComments:
             after_paren = paren_match.group(2).strip()
             if after_paren:
                 # Stop at common patterns that indicate end of owner name
-                owner_match = re.match(r'^([A-Za-z][A-Za-z\s&,\.]+?)(?:\s*Full Entries|\s*Overnight|\s*Race:|\s*$)', after_paren)
+                owner_match = re.match(r'^([A-Za-z][A-Za-z/\s&,\.]+?)(?:\s*Full Entries|\s*Overnight|\s*Race:|\s*Date:|\s*If you would like|\s*This message was sent|\s*Copyright|\s*$)', after_paren)
                 if owner_match:
                     result.notes = owner_match.group(1).strip() or None
-                elif len(after_paren) < 50 and not any(x in after_paren for x in ['Full Entries', 'Overnight', 'Race:']):
+                elif len(after_paren) < 50 and re.search(r'[A-Za-z]{2,}', after_paren) and not any(x in after_paren for x in ['Full Entries', 'Overnight', 'Race:', 'Date:', 'If you would like']):
                     # Short text without email content patterns - likely just the owner
                     result.notes = after_paren
                 if result.notes:
