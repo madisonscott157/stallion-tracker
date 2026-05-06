@@ -40,7 +40,8 @@ export function StakesToggle({ context, onPreferenceChange, className, checkboxC
         onChange={handleToggle}
         className={cn('w-4 h-4 rounded', checkboxClassName || 'accent-white')}
       />
-      Stakes Only
+      <span className="sm:hidden">STK</span>
+      <span className="hidden sm:inline">Stakes Only</span>
     </label>
   )
 }
