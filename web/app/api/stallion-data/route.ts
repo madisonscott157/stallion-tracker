@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isAuthError, getUserPreferences, getOrgShowRaceActivity } from '@/lib/api-auth'
+import { applyExcludeJumps } from '@/lib/jumps-filter'
 
 /**
  * Combined endpoint that returns all data for a stallion page in a single request.
@@ -71,6 +72,7 @@ export async function GET(request: NextRequest) {
         .gte('race_date', today)
         .ilike('horses.stallions.name', stallion)
       if (claimingFilter) q = q.or(claimingFilter)
+      q = applyExcludeJumps(q)
       return q.order('race_date', { ascending: true }).order('post_time', { ascending: true })
     })() : emptyQuery,
 
@@ -81,6 +83,7 @@ export async function GET(request: NextRequest) {
         .select('*, horses!inner ( name, sex, yob, dam, equibase_profile_url, stallions!inner ( name ) )')
         .ilike('horses.stallions.name', stallion)
       if (claimingFilter) q = q.or(claimingFilter)
+      q = applyExcludeJumps(q)
       return q.order('race_date', { ascending: false }).order('race_number', { ascending: false }).limit(1000)
     })() : emptyQuery,
 

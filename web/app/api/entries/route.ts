@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isAuthError, getUserPreferences } from '@/lib/api-auth'
+import { applyExcludeJumps } from '@/lib/jumps-filter'
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth()
@@ -51,6 +52,8 @@ export async function GET(request: NextRequest) {
   if (!prefs.show_claiming_races) {
     query = query.or('race_type.is.null,race_type.not.in.("MCL","CLM")')
   }
+
+  query = applyExcludeJumps(query)
 
   // Fetch entries and results with matching dates in parallel
   // so we can exclude entries whose race has already run

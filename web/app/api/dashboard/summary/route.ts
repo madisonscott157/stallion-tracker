@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAuth, isAuthError } from '@/lib/api-auth'
+import { applyExcludeJumps } from '@/lib/jumps-filter'
 
 export async function GET() {
   const auth = await requireAuth()
@@ -73,21 +74,23 @@ export async function GET() {
   const [entriesRes, entryResultsRes, ytdRes, winnersRes, stakesRes, rankingsRes] = await Promise.all([
     // Upcoming entries (all stallions, not scratched, from today)
     showRaceActivity
-      ? applyClaimingFilter(
+      ? applyExcludeJumps(applyClaimingFilter(
           supabase
             .from('entries')
             .select('id, horse_id, race_date, track, race_number, horses!inner(sire_id)')
             .eq('scratched', false)
             .gte('race_date', today)
-        )
+        ))
       : emptyQuery,
 
     // Results for today+ (to exclude entries whose race has already run)
     showRaceActivity
-      ? supabase
-          .from('results')
-          .select('horse_id, race_date, track, race_number')
-          .gte('race_date', today)
+      ? applyExcludeJumps(
+          supabase
+            .from('results')
+            .select('horse_id, race_date, track, race_number')
+            .gte('race_date', today)
+        )
       : emptyQuery,
 
     // YTD stats from view (use stallion_name since view may not have stallion_id)
@@ -98,7 +101,7 @@ export async function GET() {
 
     // Recent winners (last 14 days, limit 15)
     showRaceActivity
-      ? applyClaimingFilter(
+      ? applyExcludeJumps(applyClaimingFilter(
           supabase
             .from('results')
             .select(`
@@ -110,7 +113,7 @@ export async function GET() {
             `)
             .eq('finish_position', 1)
             .gte('race_date', fourteenDaysAgo)
-        )
+        ))
           .order('race_date', { ascending: false })
           .order('race_number', { ascending: false })
           .limit(15)
@@ -118,7 +121,7 @@ export async function GET() {
 
     // Recent stakes (last 14 days, limit 15)
     showRaceActivity
-      ? applyClaimingFilter(
+      ? applyExcludeJumps(applyClaimingFilter(
           supabase
             .from('results')
             .select(`
@@ -130,7 +133,7 @@ export async function GET() {
             `)
             .eq('is_stakes', true)
             .gte('race_date', fourteenDaysAgo)
-        )
+        ))
           .order('race_date', { ascending: false })
           .order('race_number', { ascending: false })
           .limit(15)

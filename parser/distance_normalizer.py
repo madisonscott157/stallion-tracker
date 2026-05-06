@@ -41,6 +41,10 @@ FRACTIONS['one quarter'] = FRACTIONS['quarter']
 FRACTIONS['one eighth'] = FRACTIONS['eighth']
 FRACTIONS['one sixteenth'] = FRACTIONS['sixteenth']
 FRACTIONS['a half'] = FRACTIONS['half']
+FRACTIONS['fourth'] = FRACTIONS['quarter']
+FRACTIONS['one fourth'] = FRACTIONS['quarter']
+FRACTIONS['three fourth'] = FRACTIONS['three quarters']
+FRACTIONS['three fourths'] = FRACTIONS['three quarters']
 
 
 def _word_to_number(word: str) -> Optional[int]:

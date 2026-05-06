@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isAuthError, getUserPreferences } from '@/lib/api-auth'
+import { applyExcludeJumps } from '@/lib/jumps-filter'
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth()
@@ -53,6 +54,8 @@ export async function GET(request: NextRequest) {
   if (!prefs.show_claiming_races) {
     query = query.or('race_type.is.null,race_type.not.in.("MCL","CLM")')
   }
+
+  query = applyExcludeJumps(query)
 
   const { data, error } = await query
     .order('race_date', { ascending: false })
