@@ -151,12 +151,23 @@ export const ResultCard = memo(function ResultCard({ result, showSireName, suppr
             <span className={cn(isStakesWinner && "font-semibold text-slate-700")}>{result.race_type}</span>
           </>
         )}
-        {result.purse != null && (
-          <>
-            <span className="text-slate-300">|</span>
-            <span>{formatPurse(result.purse, result.purse_currency)}</span>
-          </>
-        )}
+        {(() => {
+          // For European rows (PMU / Racing API), `purse` holds the total race
+          // pot and `earnings` holds the horse's individual cut once Arion has
+          // enriched the row. For US/CA rows, the chart-scraper parser writes
+          // the horse's earnings directly into `purse` and leaves `earnings`
+          // null. Prefer `earnings` when present so we always show the horse's
+          // share rather than the race purse.
+          const amt = result.earnings ?? result.purse
+          const ccy = result.earnings != null ? result.earnings_currency : result.purse_currency
+          if (amt == null) return null
+          return (
+            <>
+              <span className="text-slate-300">|</span>
+              <span>{formatPurse(amt, ccy)}</span>
+            </>
+          )
+        })()}
         {result.distance && (
           <>
             <span className="text-slate-300">|</span>
