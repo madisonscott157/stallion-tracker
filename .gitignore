@@ -50,3 +50,14 @@ parser/fixtures/pmu/
 
 # pytest cache
 .pytest_cache/
+
+# Untracked files accidentally committed in ca24473, removed from repo on this commit
+Stallion Tracker Overview.docx
+Stallion Tracker Overview.pdf
+Scrapers already built/
+progeny-leaderboard-feature.md
+sso-implementation.md
+stallion-bookings-feature.md
+web/app/api/auth/sso/
+wordpress/
+
