@@ -244,7 +244,7 @@ def extract_race_details(text: str) -> ChartData:
         # always in USD regardless of whether the chart was for a US or
         # Canadian track.
         payout_matches = re.findall(
-            r'([1-9])(?:st|nd|rd|th)\s*\$\s*([\d,]+?)(?:\s*\(US\$([\d,]+)\))?(?=,?[1-9](?:st|nd|rd|th)|\s|$)',
+            r'([1-9][0-9]?)(?:st|nd|rd|th)\s*\$\s*([\d,]+?)(?:\s*\(US\$([\d,]+)\))?(?=,?[1-9][0-9]?(?:st|nd|rd|th)|\s|$)',
             payouts_text,
             re.IGNORECASE
         )
