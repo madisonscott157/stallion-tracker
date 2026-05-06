@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, isAuthError, getUserPreferences, resolveToggles, applyHideLowLevelHandicaps } from '@/lib/api-auth'
+import { requireAuth, isAuthError, getUserPreferences, resolveToggles } from '@/lib/api-auth'
 import { isNaJumpsRace } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
@@ -61,8 +61,6 @@ export async function GET(request: NextRequest) {
   if (prefs.show_stakes_only) {
     query = query.eq('is_stakes', true)
   }
-
-  query = applyHideLowLevelHandicaps(query)
 
   const { data, error } = await query
     .order('race_date', { ascending: false })

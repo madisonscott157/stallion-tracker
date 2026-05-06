@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, isAuthError, getUserPreferences, getOrgShowRaceActivity, resolveToggles, applyHideLowLevelHandicaps } from '@/lib/api-auth'
+import { requireAuth, isAuthError, getUserPreferences, getOrgShowRaceActivity, resolveToggles } from '@/lib/api-auth'
 import { isNaJumpsRace } from '@/lib/utils'
 import { convertPostTimeToET } from '@/lib/timezones'
 
@@ -75,7 +75,6 @@ export async function GET(request: NextRequest) {
         .ilike('horses.stallions.name', stallion)
       if (claimingFilter) q = q.or(claimingFilter)
       if (prefs.show_stakes_only) q = q.eq('is_stakes', true)
-      q = applyHideLowLevelHandicaps(q)
       return q.order('race_date', { ascending: true }).order('post_time', { ascending: true })
     })() : emptyQuery,
 
@@ -87,7 +86,6 @@ export async function GET(request: NextRequest) {
         .ilike('horses.stallions.name', stallion)
       if (claimingFilter) q = q.or(claimingFilter)
       if (prefs.show_stakes_only) q = q.eq('is_stakes', true)
-      q = applyHideLowLevelHandicaps(q)
       return q.order('race_date', { ascending: false }).order('race_number', { ascending: false }).limit(1000)
     })() : emptyQuery,
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, isAuthError, resolveToggles, applyHideLowLevelHandicaps } from '@/lib/api-auth'
+import { requireAuth, isAuthError, resolveToggles } from '@/lib/api-auth'
 import { isNaJumpsRace } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
@@ -88,13 +88,13 @@ export async function GET(request: NextRequest) {
     // Upcoming entries (all stallions, not scratched, from today).
     // Pull distance + sire's tdn_region so we can drop NA jumps races client-side.
     showRaceActivity
-      ? applyHideLowLevelHandicaps(applyStakesFilter(applyClaimingFilter(
+      ? applyStakesFilter(applyClaimingFilter(
           supabase
             .from('entries')
             .select('id, horse_id, race_date, track, race_number, distance, horses!inner(sire_id, stallions!inner(tdn_region))')
             .eq('scratched', false)
             .gte('race_date', today)
-        )))
+        ))
       : emptyQuery,
 
     // Results for today+ (to exclude entries whose race has already run)
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
 
     // Recent winners (last 14 days, limit 15)
     showRaceActivity
-      ? applyHideLowLevelHandicaps(applyStakesFilter(applyClaimingFilter(
+      ? applyStakesFilter(applyClaimingFilter(
           supabase
             .from('results')
             .select(`
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
             `)
             .eq('finish_position', 1)
             .gte('race_date', fourteenDaysAgo)
-        )))
+        ))
           .order('race_date', { ascending: false })
           .order('race_number', { ascending: false })
           .limit(15)
