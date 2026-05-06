@@ -349,6 +349,34 @@ const TRACK_DISPLAY_ALIASES: Record<string, string> = {
   'hollywood casino at charles town races': 'Charles Town',
 }
 
+// Build an Equibase static-entry URL that deep-links to a specific race.
+// Equibase only covers US and Canadian racing — for European tracks the
+// caller should fall through and render the track text plain. Returns null
+// when we don't have enough info to build a working link.
+//
+// URL format: http://www.equibase.com/static/entry/{TC}{MMDDYY}{CTRY}-EQB.html#RACE{N}
+export function buildEquibaseRaceUrl(
+  trackCode: string | null | undefined,
+  raceDate: string | null | undefined,
+  raceCountry: string | null | undefined,
+  raceNumber: number | null | undefined,
+): string | null {
+  if (!trackCode || !raceDate || !raceNumber) return null
+  // Only US/Canada are on Equibase. The Equibase parser leaves race_country
+  // null for US rows and sets it explicitly for foreign rows.
+  const ctry = raceCountry == null
+    ? 'USA'
+    : raceCountry === 'Canada' ? 'CAN'
+    : raceCountry === 'USA' || raceCountry === 'CAN' ? raceCountry
+    : null
+  if (!ctry) return null
+  const m = raceDate.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!m) return null
+  const yy = m[1].slice(2)
+  const mmddyy = `${m[2]}${m[3]}${yy}`
+  return `http://www.equibase.com/static/entry/${trackCode}${mmddyy}${ctry}-EQB.html#RACE${raceNumber}`
+}
+
 export function formatTrack(track: string): string {
   const key = track.toLowerCase().trim()
   if (TRACK_DISPLAY_ALIASES[key]) return TRACK_DISPLAY_ALIASES[key]

@@ -1,7 +1,7 @@
 'use client'
 
 import { memo } from 'react'
-import { cn, cleanRaceName, formatDate, formatDistance, formatHorseDescription, formatTrack, shouldShowSilks, isToday, isTomorrow } from '@/lib/utils'
+import { cn, cleanRaceName, formatDate, formatDistance, formatHorseDescription, formatTrack, shouldShowSilks, isToday, isTomorrow, buildEquibaseRaceUrl } from '@/lib/utils'
 import { convertPostTimeToET } from '@/lib/timezones'
 import { formatPurse } from '@/lib/currency'
 import { useAuth } from '@/lib/auth-context'
@@ -116,7 +116,16 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
       )}>
         <span className={cn('font-medium', entry.scratched ? 'text-slate-400' : 'text-slate-600')}>{dateLabel}</span>
         <span className="text-slate-300">|</span>
-        <span>{trackDisplay} R{entry.race_number}</span>
+        {(() => {
+          const trackText = `${trackDisplay} R${entry.race_number}`
+          const raceUrl = entry.entries_url
+            ?? buildEquibaseRaceUrl(entry.track_code, entry.race_date, entry.race_country, entry.race_number)
+          return raceUrl && !entry.scratched ? (
+            <a href={raceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">{trackText}</a>
+          ) : (
+            <span>{trackText}</span>
+          )
+        })()}
         {entry.post_time && (
           <>
             <span className="text-slate-300">|</span>

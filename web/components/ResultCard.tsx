@@ -1,7 +1,7 @@
 'use client'
 
 import { memo } from 'react'
-import { cn, cleanRaceName, formatDistance, formatHorseDescription, formatDate, formatOrdinal, formatTrack, shouldShowSilks, isToday, isTomorrow } from '@/lib/utils'
+import { cn, cleanRaceName, formatDistance, formatHorseDescription, formatDate, formatOrdinal, formatTrack, shouldShowSilks, isToday, isTomorrow, buildEquibaseRaceUrl } from '@/lib/utils'
 import { formatPurse } from '@/lib/currency'
 import { useAuth } from '@/lib/auth-context'
 import type { Result } from '@/lib/supabase'
@@ -136,7 +136,15 @@ export const ResultCard = memo(function ResultCard({ result, showSireName, suppr
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 -mt-0.5 sm:mt-1 text-sm text-slate-500">
         <span className="font-medium text-slate-600">{dateLabel}</span>
         <span className="text-slate-300">|</span>
-        <span>{trackDisplay} R{result.race_number}</span>
+        {(() => {
+          const trackText = `${trackDisplay} R${result.race_number}`
+          const raceUrl = buildEquibaseRaceUrl(result.track_code, result.race_date, result.race_country, result.race_number)
+          return raceUrl ? (
+            <a href={raceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">{trackText}</a>
+          ) : (
+            <span>{trackText}</span>
+          )
+        })()}
         {result.race_type && (
           <>
             <span className="text-slate-300">|</span>
