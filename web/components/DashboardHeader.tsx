@@ -3,14 +3,15 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
-import { ClmToggle } from './ClmToggle'
 import { Spinner } from './Spinner'
 
 interface DashboardHeaderProps {
   onPreferenceChange?: () => void
 }
 
-export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
+// onPreferenceChange is kept in the prop list because the dashboard page still
+// passes it; the CLM toggle moved next to Stakes Only and lives in page.tsx.
+export function DashboardHeader({ onPreferenceChange: _onPreferenceChange }: DashboardHeaderProps) {
   const { user, profile, signOut, isSigningOut, isAdmin, hasBookings, isLoading } = useAuth()
   const pathname = usePathname()
   const isBookingsPage = pathname === '/dashboard/bookings'
@@ -95,9 +96,6 @@ export function DashboardHeader({ onPreferenceChange }: DashboardHeaderProps) {
             {orgName}
           </h1>
           <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--org-secondary)' }}>
-            {onPreferenceChange && (
-              <ClmToggle context="_dashboard" onPreferenceChange={onPreferenceChange} className="opacity-80 hover:opacity-100 transition-opacity" />
-            )}
             {isAdmin && (
               <Link href="/admin" className="hover:text-white transition-colors inline-flex items-center">
                 Admin

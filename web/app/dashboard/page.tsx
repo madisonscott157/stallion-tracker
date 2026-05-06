@@ -166,8 +166,8 @@ function DashboardContent() {
                   ))}
                 </select>
               )}
-              <ClmToggle context="_dashboard" onPreferenceChange={() => setFetchKey(k => k + 1)} className="sm:hidden text-slate-500" checkboxClassName="accent-slate-600" />
               <StakesToggle context="_dashboard" onPreferenceChange={() => setFetchKey(k => k + 1)} className="text-slate-500" checkboxClassName="accent-slate-600" />
+              <ClmToggle context="_dashboard" onPreferenceChange={() => setFetchKey(k => k + 1)} className="text-slate-500" checkboxClassName="accent-slate-600" />
             </div>
 
             {/* Stallion Summary Cards */}
