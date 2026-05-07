@@ -46,7 +46,15 @@ export async function GET() {
     .order('report_date', { ascending: false })
 
   if (user?.role !== 'admin' && user?.organization_id) {
-    bookingsQuery = bookingsQuery.eq('organization_id', user.organization_id)
+    // Own org plus any source orgs granted via organization_booking_access
+    const { data: accessRows } = await supabase
+      .from('organization_booking_access')
+      .select('source_organization_id')
+      .eq('viewer_organization_id', user.organization_id)
+
+    const sourceIds = (accessRows ?? []).map(r => r.source_organization_id as string)
+    const visibleOrgIds = [user.organization_id, ...sourceIds]
+    bookingsQuery = bookingsQuery.in('organization_id', visibleOrgIds)
   }
 
   // Bookings query and org themes fetch run in parallel
