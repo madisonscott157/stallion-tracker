@@ -96,11 +96,10 @@ interface BuildRowOptions {
 // rather than the page's Inter.
 function stakesPill(grade: string): string {
   const bg = grade === 'G1' ? '#d4af37' : grade === 'G2' ? '#a8a9ad' : '#b45309'
-  // Alignment: badge is sized to fit within the 11px line (line-height ≈13.2px)
-  // and `vertical-align:middle` centres it against the line's middle. The 2px
-  // `translateY` drops the box so its cap-line sits on the race-name baseline
-  // — without it the badge floats slightly above the surrounding text.
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="12" viewBox="0 0 24 12" style="display:inline-block;vertical-align:middle;margin-right:4px;transform:translateY(2px);"><rect x="0" y="0" width="24" height="12" rx="3" fill="${bg}"/><text x="12" y="9" text-anchor="middle" font-size="9" font-weight="600" fill="#fff" font-family="Arial, sans-serif">${grade}</text></svg>`
+  // Alignment: badge is sized to fit within the 11px line. The 1px translateY
+  // drops the box so its cap-line sits on the race-name baseline (2px overshot
+  // and clipped the badge bottom; 0px floated it above the text).
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="12" viewBox="0 0 24 12" style="display:inline-block;vertical-align:middle;margin-right:4px;transform:translateY(1px);"><rect x="0" y="0" width="24" height="12" rx="3" fill="${bg}"/><text x="12" y="9" text-anchor="middle" font-size="9" font-weight="600" fill="#fff" font-family="Arial, sans-serif">${grade}</text></svg>`
 }
 
 // Shared table row cell styles
@@ -110,7 +109,12 @@ const cellDate = `vertical-align:top;width:52px;padding:6px 8px 6px 0;white-spac
 // padding-top, so matching the font-size makes the first-line glyph
 // baselines coincide without any hardcoded line-height tweak.
 const cellPos = `vertical-align:top;width:32px;padding:6px 4px 6px 0;white-space:nowrap;font-size:13px;text-align:center;`
-const cellMain = `vertical-align:top;padding:6px 4px;`
+// font-size:13px on the main cell matches cellPos so both cells share the
+// same line-height. Without it, the cell inherits the wrapper's default
+// (~16px) and the first-line baseline sits visibly lower than the position
+// label's. line-height:1.4 leaves room for the sub-line stakes badge SVG
+// without clipping its bottom.
+const cellMain = `vertical-align:top;padding:6px 4px;font-size:13px;line-height:1.4;`
 const cellRight = `vertical-align:top;text-align:right;white-space:nowrap;padding:6px 0 6px 8px;font-size:12px;color:#475569;`
 
 function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
