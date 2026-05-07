@@ -96,15 +96,12 @@ interface BuildRowOptions {
 // rather than the page's Inter.
 function stakesPill(grade: string): string {
   const bg = grade === 'G1' ? '#d4af37' : grade === 'G2' ? '#a8a9ad' : '#b45309'
-  // Alignment: html2canvas places this SVG with `vertical-align:middle`,
-  // which puts the SVG's vertical centre at the surrounding line's
-  // baseline + x-height/2. For 11px text that left the SVG text baseline
-  // visibly below the race-name baseline. Switch to `vertical-align:baseline`
-  // and shift the SVG up by 3px so the rect frames the cap-height of the
-  // adjacent text and the SVG <text> baseline (y=14, near the rect bottom)
-  // sits close to the surrounding text baseline — predictable, no font-metric
-  // guesswork beyond the single 3px nudge.
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="16" viewBox="0 0 28 16" style="display:inline-block;vertical-align:baseline;margin-right:4px;transform:translateY(3px);"><rect x="0" y="0" width="28" height="16" rx="3" fill="${bg}"/><text x="14" y="12" text-anchor="middle" font-size="10" font-weight="600" fill="#fff" font-family="Arial, sans-serif">${grade}</text></svg>`
+  // Alignment: badge is sized to fit within the 11px line (line-height ≈13.2px)
+  // so `vertical-align:middle` naturally centres it against the text x-height
+  // without overflowing the line or needing a translate nudge. Height 12 with
+  // text y=9 puts the SVG text baseline near the rect's vertical centre, which
+  // lines up with the race-name baseline.
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="12" viewBox="0 0 24 12" style="display:inline-block;vertical-align:middle;margin-right:4px;"><rect x="0" y="0" width="24" height="12" rx="3" fill="${bg}"/><text x="12" y="9" text-anchor="middle" font-size="9" font-weight="600" fill="#fff" font-family="Arial, sans-serif">${grade}</text></svg>`
 }
 
 // Shared table row cell styles
