@@ -96,12 +96,24 @@ interface BuildRowOptions {
 // rather than the page's Inter.
 function stakesPill(grade: string): string {
   const bg = grade === 'G1' ? '#d4af37' : grade === 'G2' ? '#a8a9ad' : '#b45309'
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="16" viewBox="0 0 28 16" style="display:inline-block;vertical-align:middle;margin-right:4px;"><rect x="0" y="0" width="28" height="16" rx="3" fill="${bg}"/><text x="14" y="11" text-anchor="middle" font-size="10" font-weight="600" fill="#fff" font-family="Arial, sans-serif">${grade}</text></svg>`
+  // Alignment: html2canvas places this SVG with `vertical-align:middle`,
+  // which puts the SVG's vertical centre at the surrounding line's
+  // baseline + x-height/2. For 11px text that left the SVG text baseline
+  // visibly below the race-name baseline. Switch to `vertical-align:baseline`
+  // and shift the SVG up by 3px so the rect frames the cap-height of the
+  // adjacent text and the SVG <text> baseline (y=14, near the rect bottom)
+  // sits close to the surrounding text baseline — predictable, no font-metric
+  // guesswork beyond the single 3px nudge.
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="16" viewBox="0 0 28 16" style="display:inline-block;vertical-align:baseline;margin-right:4px;transform:translateY(3px);"><rect x="0" y="0" width="28" height="16" rx="3" fill="${bg}"/><text x="14" y="12" text-anchor="middle" font-size="10" font-weight="600" fill="#fff" font-family="Arial, sans-serif">${grade}</text></svg>`
 }
 
 // Shared table row cell styles
 const cellDate = `vertical-align:top;width:52px;padding:6px 8px 6px 0;white-space:nowrap;font-size:12px;font-weight:600;color:#475569;`
-const cellPos = `vertical-align:top;width:32px;padding:6px 4px 6px 0;white-space:nowrap;font-size:12px;text-align:center;`
+// Position cell uses font-size:13px to match the horse-name span in the
+// adjacent main cell. Both cells use vertical-align:top + identical
+// padding-top, so matching the font-size makes the first-line glyph
+// baselines coincide without any hardcoded line-height tweak.
+const cellPos = `vertical-align:top;width:32px;padding:6px 4px 6px 0;white-space:nowrap;font-size:13px;text-align:center;`
 const cellMain = `vertical-align:top;padding:6px 4px;`
 const cellRight = `vertical-align:top;text-align:right;white-space:nowrap;padding:6px 0 6px 8px;font-size:12px;color:#475569;`
 
@@ -157,7 +169,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   return `
     <tr style="border-bottom:1px solid #e2e8f0;">
       <td style="${cellDate}">${dateStr}</td>
-      <td style="${cellPos}"><span style="${posStyle}font-size:12px;">${posText}</span></td>
+      <td style="${cellPos}"><span style="${posStyle}font-size:13px;">${posText}</span></td>
       <td style="${cellMain}">
         <span style="font-size:13px;${nameWeight}color:#0f172a;">${name}</span>${desc ? `<span style="color:#94a3b8;font-size:12px;margin-left:4px;">${desc}</span>` : ''}${ownerSilks.length > 0 ? silksImgs(ownerSilks) : ''}
         ${raceParts ? `<span style="font-size:12px;color:#64748b;margin-left:6px;">${raceParts}</span>` : ''}
