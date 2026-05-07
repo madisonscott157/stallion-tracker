@@ -182,6 +182,13 @@ function HomeContent() {
         stallionName: stallion,
         results,
         entries,
+        stats: stats ? {
+          year: stats.year,
+          starters: stats.starters,
+          winners: stats.winners,
+          earnings: stats.total_earnings,
+          region: tdnRegion,
+        } : null,
         options,
         orgsWithSilks,
         isAdmin,
