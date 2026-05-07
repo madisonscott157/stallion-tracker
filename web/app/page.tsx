@@ -178,17 +178,22 @@ function HomeContent() {
           owner_match_patterns: profile.organization.owner_match_patterns,
         })
       }
+      // Match the live StatsBar header — pulls from sire_rankings (TDN) for
+      // the current year. Falling back to the YTD stats view would show
+      // different numbers than the user sees on the page.
+      const currentYearRanking = rankings.find(r => r.year === currentYear)
+      const exportStats = currentYearRanking ? {
+        year: currentYear,
+        starters: currentYearRanking.starters || 0,
+        winners: currentYearRanking.winners || 0,
+        earnings: currentYearRanking.total_earnings || 0,
+        region: tdnRegion,
+      } : null
       await exportDashboardToPDF({
         stallionName: stallion,
         results,
         entries,
-        stats: stats ? {
-          year: stats.year,
-          starters: stats.starters,
-          winners: stats.winners,
-          earnings: stats.total_earnings,
-          region: tdnRegion,
-        } : null,
+        stats: exportStats,
         options,
         orgsWithSilks,
         isAdmin,
