@@ -76,22 +76,27 @@ interface BuildRowOptions {
 }
 
 // Stakes-grade pill matching the in-app badge: gold for G1, silver for G2,
-// orange (accent) for G3 / Listed / other graded.
+// orange (accent) for G3 / other graded. ('Listed' is filtered out by
+// callers, so we only handle G1/G2/G3 here — fallback colour kept for
+// safety.)
 //
-// html2canvas issue #2107 (niklasvh/html2canvas): when `line-height` is set
-// equal to `height` on an inline-block to vertically center text, the
-// rasterizer mispositions the glyph — text gets clipped, shifted, or
-// disappears entirely. Padding-based sizing also misbehaves because
-// html2canvas's box model handling for inline-blocks is unreliable.
+// Third attempt: render as inline SVG. Prior attempts using
+//   1. inline-block + height + line-height — text vertically clipped.
+//   2. <table style="display:inline-table"> + <td> — coloured box rendered
+//      but the "G1"/"G2"/"G3" text inside disappeared entirely.
+// Both failure modes trace back to html2canvas's unreliable handling of
+// inline-block / table-cell text positioning when rasterizing into an
+// offscreen canvas.
 //
-// Workaround: render the pill as an `inline-table` with a single `<td>`
-// using `vertical-align:middle`. Table-cell vertical centering is part of
-// html2canvas's table layout path and rasterizes faithfully. The table
-// flows inline with surrounding text via `display:inline-table` and
-// `vertical-align:middle` on the table itself.
+// html2canvas walks SVG <rect> and <text> nodes through its dedicated SVG
+// rendering path (see niklasvh/html2canvas issues #95, #267, #1709), which
+// honours explicit x/y, text-anchor, and width/height attributes
+// faithfully. Caveat from issue #1709: SVG <text> ignores @font-face
+// stylesheets — so we must use a baseline system font family (Arial) here
+// rather than the page's Inter.
 function stakesPill(grade: string): string {
   const bg = grade === 'G1' ? '#d4af37' : grade === 'G2' ? '#a8a9ad' : '#b45309'
-  return `<table style="display:inline-table;border-collapse:collapse;margin-right:4px;vertical-align:middle;background:${bg};border-radius:3px;"><tr><td style="padding:1px 6px;color:#fff;font-weight:600;font-size:10px;line-height:1.2;text-align:center;vertical-align:middle;min-width:14px;">${grade}</td></tr></table>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="16" viewBox="0 0 28 16" style="display:inline-block;vertical-align:middle;margin-right:4px;"><rect x="0" y="0" width="28" height="16" rx="3" fill="${bg}"/><text x="14" y="11" text-anchor="middle" font-size="10" font-weight="600" fill="#fff" font-family="Arial, sans-serif">${grade}</text></svg>`
 }
 
 // Shared table row cell styles
