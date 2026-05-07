@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 from dataclasses import dataclass
 from datetime import date as date_cls
@@ -150,15 +151,17 @@ def _map_race_type(race: dict) -> tuple[str, Optional[str]]:
         return PATTERN_TO_GRADE[pattern]
     name = (race.get("race_name") or "")
     low = name.lower()
-    if "handicap" in low:
+    # Word boundaries on every keyword so substrings like "disclaiming" or
+    # "handicapped" can't trigger a false positive.
+    if re.search(r"\bhandicap\b", low):
         return ("HCP", None)
-    if "nursery" in low:
+    if re.search(r"\bnursery\b", low):
         return ("NUR", None)
-    if "auction maiden" in low or "maiden" in low:
+    if re.search(r"\bmaiden\b", low):
         return ("MSW", None)
-    if "claiming" in low or "claimer" in low or "selling" in low:
+    if re.search(r"\b(?:claiming|claimer|selling)\b", low):
         return ("CLM", None)
-    if "novice" in low:
+    if re.search(r"\bnovices?\b", low):
         return ("NOV", None)
     return ("CON", None)
 

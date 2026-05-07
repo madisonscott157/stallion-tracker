@@ -37,11 +37,8 @@ from supabase import create_client
 from parsers.chart_scraper import scrape_chart
 
 
-SUSPECT_RACE_TYPES = {"ALW", "AOC", "MSW"}
-
-
 def fetch_suspect_rows(client, stallion_filter: str | None, limit: int | None):
-    """Return rows whose race_type may be wrong, scoped to US-parsed results."""
+    """Return all US-parsed rows that have a chart_url — chart is source of truth."""
     query = (
         client.table("results")
         .select(
@@ -49,7 +46,6 @@ def fetch_suspect_rows(client, stallion_filter: str | None, limit: int | None):
             "chart_url, replay_url, race_country, "
             "horses(name, sire_id, stallions(name))"
         )
-        .in_("race_type", list(SUSPECT_RACE_TYPES))
         .is_("race_country", "null")  # US-parsed rows only
         .not_.is_("chart_url", "null")
         .order("race_date", desc=True)
