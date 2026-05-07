@@ -61,9 +61,26 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 })
   }
 
-  const { id, ...updates } = await request.json()
+  const body = await request.json()
+  const { id } = body
   if (!id) {
     return NextResponse.json({ error: 'Stallion id is required' }, { status: 400 })
+  }
+
+  // Whitelist editable fields. Anything else in the body (e.g. id, created_at,
+  // sire_id, owner) is silently dropped so a malicious or buggy caller can't
+  // mutate columns the admin UI doesn't intend to expose.
+  const ALLOWED_FIELDS = [
+    'name', 'yob', 'sire', 'dam', 'dam_sire',
+    'stud_farm', 'stud_fee', 'fee_currency', 'tdn_region',
+    'equineline_url', 'tdn_url', 'equibase_profile_url',
+  ] as const
+  const updates: Record<string, unknown> = {}
+  for (const k of ALLOWED_FIELDS) {
+    if (k in body) updates[k] = body[k]
+  }
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'No editable fields supplied' }, { status: 400 })
   }
 
   const { data, error } = await adminClient.from('stallions').update(updates).eq('id', id).select()

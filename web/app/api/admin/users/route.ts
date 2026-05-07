@@ -21,7 +21,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden - admin only' }, { status: 403 })
   }
 
-  const { email, name, password, organization_id, role = 'user', show_claiming_races = true } = await request.json()
+  const { email, name, password, organization_id, show_claiming_races = true } = await request.json()
+  // Always create as 'user'. Promoting someone to admin is a deliberate
+  // operation that doesn't belong in the create-user flow — it should be
+  // done out-of-band (DB update or a future dedicated endpoint).
+  const role = 'user'
 
   if (!email || !password || !organization_id) {
     return NextResponse.json({ error: 'Email, password, and organization_id are required' }, { status: 400 })

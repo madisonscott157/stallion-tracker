@@ -114,8 +114,13 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   const track = formatTrack(r.track)
   const dateStr = formatDate(r.race_date)
 
-  // Race details
-  const raceParts = [r.race_type, formatPurse(r.purse, r.purse_currency), formatDistance(r.distance || null) || null].filter(Boolean).join(` ${pipe()} `)
+  // Race details. Prefer per-horse earnings (filled in for European rows by
+  // Arion) over the total race purse — matches the live ResultCard. US/CA
+  // rows have earnings=null because the chart-scraper writes per-horse
+  // earnings into purse, so the fallback covers them.
+  const earnAmt = r.earnings ?? r.purse
+  const earnCcy = r.earnings != null ? r.earnings_currency : r.purse_currency
+  const raceParts = [r.race_type, formatPurse(earnAmt, earnCcy), formatDistance(r.distance || null) || null].filter(Boolean).join(` ${pipe()} `)
   const nameWeight = isWin ? 'font-weight:700;' : 'font-weight:600;'
 
   // Sub-details
