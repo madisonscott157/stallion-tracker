@@ -97,11 +97,10 @@ interface BuildRowOptions {
 function stakesPill(grade: string): string {
   const bg = grade === 'G1' ? '#d4af37' : grade === 'G2' ? '#a8a9ad' : '#b45309'
   // Alignment: badge is sized to fit within the 11px line (line-height ≈13.2px)
-  // so `vertical-align:middle` naturally centres it against the text x-height
-  // without overflowing the line or needing a translate nudge. Height 12 with
-  // text y=9 puts the SVG text baseline near the rect's vertical centre, which
-  // lines up with the race-name baseline.
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="12" viewBox="0 0 24 12" style="display:inline-block;vertical-align:middle;margin-right:4px;"><rect x="0" y="0" width="24" height="12" rx="3" fill="${bg}"/><text x="12" y="9" text-anchor="middle" font-size="9" font-weight="600" fill="#fff" font-family="Arial, sans-serif">${grade}</text></svg>`
+  // and `vertical-align:middle` centres it against the line's middle. The 2px
+  // `translateY` drops the box so its cap-line sits on the race-name baseline
+  // — without it the badge floats slightly above the surrounding text.
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="12" viewBox="0 0 24 12" style="display:inline-block;vertical-align:middle;margin-right:4px;transform:translateY(2px);"><rect x="0" y="0" width="24" height="12" rx="3" fill="${bg}"/><text x="12" y="9" text-anchor="middle" font-size="9" font-weight="600" fill="#fff" font-family="Arial, sans-serif">${grade}</text></svg>`
 }
 
 // Shared table row cell styles
