@@ -286,10 +286,44 @@ def extract_race_details(text: str) -> ChartData:
     has_maiden = bool(re.search(r'\bMAIDEN\b', text, re.IGNORECASE))
     has_claiming = bool(re.search(r'\bCLAIMING\b', text, re.IGNORECASE))
 
-    for pattern, race_type in race_type_patterns:
-        if re.search(pattern, text, re.IGNORECASE):
-            data.race_type = race_type
-            break
+    # Primary signal: Equibase charts have an authoritative header line
+    # "<RACE TYPE> - Thoroughbred" (e.g., "CLAIMING - Thoroughbred",
+    # "ALLOWANCE - Thoroughbred"). After whitespace collapse this lives
+    # near the start of `text`. Anchor on the " - Thoroughbred" marker so
+    # the conditions paragraph below (which can mention "claiming" or
+    # "allowance" loosely) can never override the header.
+    header_match = re.search(
+        r'(MAIDEN\s+SPECIAL\s+WEIGHT|MAIDEN\s+CLAIMING|'
+        r'STARTER\s+OPTIONAL\s+CLAIMING|STARTER\s+ALLOWANCE|'
+        r'ALLOWANCE\s+OPTIONAL\s+CLAIMING|OPTIONAL\s+CLAIMING|'
+        r'GRADED\s+STAKES|STAKES|ALLOWANCE|CLAIMING)\s*-\s*Thoroughbred',
+        text,
+        re.IGNORECASE,
+    )
+    if header_match:
+        header_word = re.sub(r'\s+', ' ', header_match.group(1).upper())
+        header_to_type = {
+            'MAIDEN SPECIAL WEIGHT': 'MSW',
+            'MAIDEN CLAIMING': 'MCL',
+            'ALLOWANCE OPTIONAL CLAIMING': 'AOC',
+            'OPTIONAL CLAIMING': 'AOC',
+            'STARTER OPTIONAL CLAIMING': 'SOC',
+            'STARTER ALLOWANCE': 'SOC',
+            'GRADED STAKES': 'STK',
+            'STAKES': 'STK',
+            'ALLOWANCE': 'ALW',
+            'CLAIMING': 'CLM',
+        }
+        data.race_type = header_to_type.get(header_word)
+
+    # Fallback: only if the header marker wasn't found (older charts, foreign
+    # races, off-the-turf reschedules, etc.) do we fall back to pattern search
+    # over the full text.
+    if not data.race_type:
+        for pattern, race_type in race_type_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                data.race_type = race_type
+                break
 
     # Override: if we found MAIDEN but not CLAIMING, and got CLM, it's actually MSW
     if data.race_type == 'CLM' and has_maiden and not has_claiming:
