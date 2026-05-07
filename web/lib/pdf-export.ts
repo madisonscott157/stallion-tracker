@@ -7,7 +7,7 @@
 import type { Result, Entry } from './supabase'
 import { formatDate, formatDistance, formatHorseDescription, formatOrdinal, formatTrack, cleanRaceName, shouldShowSilks } from './utils'
 import { convertPostTimeToET } from './timezones'
-import { formatPurse } from './currency'
+import { formatPurse, formatMoneyCompact, currencyForRegion } from './currency'
 
 export type ExportType = 'all' | 'entries' | 'results' | 'stakes'
 
@@ -27,6 +27,10 @@ export interface ExportData {
   stallionName: string
   results: Result[]
   entries: Entry[]
+  // Overall year-to-date stats for the stallion. The summary bar at the top
+  // of the PDF always shows these regardless of any filter the user picked,
+  // matching the StatsBar in the live header.
+  stats?: { year: number; starters: number; winners: number; earnings: number; region?: string | null } | null
   filename?: string
   options?: ExportOptions
   orgsWithSilks?: OrgWithSilks[]
@@ -73,16 +77,21 @@ interface BuildRowOptions {
 
 // Stakes-grade pill matching the in-app badge: gold for G1, silver for G2,
 // orange (accent) for G3 / Listed / other graded.
-// html2canvas vertically clips inline-block badges that rely on padding +
-// line-height for height. The live EntryCard/ResultCard set explicit
-// height: 1.25rem and a matching line-height so text is vertically centered
-// without padding tricks. Mirror that exactly here, in pixels (1.25rem ≈ 18px
-// at the 14px base font-size used in this offscreen wrapper). Use a single
-// line-height equal to the box height so text vertically centers natively
-// inside an inline-block, which html2canvas rasterizes faithfully.
+//
+// html2canvas issue #2107 (niklasvh/html2canvas): when `line-height` is set
+// equal to `height` on an inline-block to vertically center text, the
+// rasterizer mispositions the glyph — text gets clipped, shifted, or
+// disappears entirely. Padding-based sizing also misbehaves because
+// html2canvas's box model handling for inline-blocks is unreliable.
+//
+// Workaround: render the pill as an `inline-table` with a single `<td>`
+// using `vertical-align:middle`. Table-cell vertical centering is part of
+// html2canvas's table layout path and rasterizes faithfully. The table
+// flows inline with surrounding text via `display:inline-table` and
+// `vertical-align:middle` on the table itself.
 function stakesPill(grade: string): string {
   const bg = grade === 'G1' ? '#d4af37' : grade === 'G2' ? '#a8a9ad' : '#b45309'
-  return `<span style="display:inline-block;background:${bg};color:#fff;font-weight:600;font-size:10px;height:16px;line-height:16px;min-width:22px;padding:0 5px;border-radius:3px;text-align:center;margin-right:4px;vertical-align:middle;box-sizing:border-box;">${grade}</span>`
+  return `<table style="display:inline-table;border-collapse:collapse;margin-right:4px;vertical-align:middle;background:${bg};border-radius:3px;"><tr><td style="padding:1px 6px;color:#fff;font-weight:600;font-size:10px;line-height:1.2;text-align:center;vertical-align:middle;min-width:14px;">${grade}</td></tr></table>`
 }
 
 // Shared table row cell styles
@@ -226,14 +235,13 @@ function sectionHeader(text: string): string {
   return `<tr><td colspan="4" style="padding:16px 0 6px 0;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #334155;">${text}</td></tr>`
 }
 
-function buildSummarySection(results: Result[], entries: Entry[]): string {
-  const totalResults = results.length
-  const winners = results.filter(r => r.finish_position === 1).length
-  const winPct = totalResults > 0 ? ((winners / totalResults) * 100).toFixed(1) : '0.0'
-  const stakesWinners = results.filter(r => r.finish_position === 1 && r.is_stakes).length
-  const gradedStakesWinners = results.filter(r => r.finish_position === 1 && r.stakes_grade).length
-  const totalPurses = results.reduce((sum, r) => sum + (r.purse || 0), 0)
-  const totalEntries = entries.length
+function buildSummarySection(stats: NonNullable<ExportData['stats']> | null | undefined): string {
+  // Mirror the live StatsBar component: year | starters | winners | earnings.
+  // Always show the stallion's overall season stats regardless of any filter
+  // the export modal applied to entries / results.
+  if (!stats) return ''
+  const ccy = currencyForRegion(stats.region)
+  const earnings = formatMoneyCompact(stats.earnings ?? 0, ccy)
 
   const cell = (label: string, value: string) =>
     `<td style="padding:6px 14px 6px 0;vertical-align:top;">
@@ -245,13 +253,10 @@ function buildSummarySection(results: Result[], entries: Entry[]): string {
     <tr><td colspan="4" style="padding:0 0 12px 0;">
       <div style="padding:8px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;">
         <table style="border-collapse:collapse;width:100%;"><tr>
-          ${cell('Results', String(totalResults))}
-          ${cell('Winners', String(winners))}
-          ${cell('Win %', `${winPct}%`)}
-          ${cell('SW', String(stakesWinners))}
-          ${cell('GSW', String(gradedStakesWinners))}
-          ${cell('Purses', `$${totalPurses.toLocaleString('en-US')}`)}
-          ${cell('Entries', String(totalEntries))}
+          ${cell('Year', String(stats.year))}
+          ${cell('Starters', String(stats.starters))}
+          ${cell('Winners', String(stats.winners))}
+          ${cell('Earnings', earnings)}
         </tr></table>
       </div>
     </td></tr>`
@@ -319,8 +324,9 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
   // We'll wrap everything in a table, but we need to handle blocks individually for pagination
   // So we build an array of "row groups" that can be measured individually
 
-  // Summary stats (wrapped in table row)
-  const summaryHtml = buildSummarySection(filteredResults, filteredEntries)
+  // Summary stats (wrapped in table row). Always reflects the stallion's
+  // overall season — never the filtered subset.
+  const summaryHtml = buildSummarySection(data.stats)
 
   // Build all content as individual blocks for pagination
   // Block type: 'header-div' for the header, 'table-row' for table rows
