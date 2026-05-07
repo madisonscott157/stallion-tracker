@@ -236,9 +236,12 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
             # If chart indicates stakes race, update is_stakes and try to get grade
             if chart_data.race_type == 'STK' or (race_name and 'stakes' in race_name.lower()):
                 is_stakes = True
-            # Try to extract stakes grade from chart text or race conditions
-            if chart_data.stakes_grade and not stakes_grade:
-                stakes_grade = chart_data.stakes_grade
+            # Chart's stakes_grade is authoritative — including chart_data.stakes_grade
+            # being None, which means the chart didn't find a grade marker (i.e., the
+            # race is ungraded). The email body's loose grade-regex search can match
+            # "Grade 2" inside eligibility conditions like "non-winners of a Grade 2
+            # stakes since X" and produce a wrong grade for an ungraded stakes.
+            stakes_grade = chart_data.stakes_grade
             print(f"  -> Distance: {distance}, Surface: {surface}, Earnings: ${earnings:,}" if earnings else f"  -> Distance: {distance}, Surface: {surface}, Earnings: None")
 
     # Build replay URL for winners — only for stakes races. Bloodhorse Stallion

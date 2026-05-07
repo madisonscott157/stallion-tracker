@@ -65,7 +65,7 @@ def main() -> int:
         page = (
             client.table("results")
             .select(
-                "id, race_date, track, race_number, race_type, is_stakes, chart_url, "
+                "id, race_date, track, race_number, race_type, is_stakes, stakes_grade, chart_url, "
                 "horses(name, stallions(name))"
             )
             .is_("race_country", "null")
@@ -115,8 +115,13 @@ def main() -> int:
         )
         stored_type = row["race_type"]
         stored_stakes = row["is_stakes"]
+        stored_grade = row.get("stakes_grade")
 
-        if chart.race_type == stored_type and chart_is_stakes == stored_stakes:
+        if (
+            chart.race_type == stored_type
+            and chart_is_stakes == stored_stakes
+            and chart.stakes_grade == stored_grade
+        ):
             matches += 1
             if i % 20 == 0:
                 print(f"  [{i}/{len(rows)}] checking... ({matches} matches so far)")
@@ -128,14 +133,15 @@ def main() -> int:
                     "date": row["race_date"],
                     "track": row["track"],
                     "race": row["race_number"],
-                    "stored": f"{stored_type}/stakes={stored_stakes}",
-                    "chart": f"{chart.race_type}/stakes={chart_is_stakes}",
+                    "stored": f"{stored_type}/stakes={stored_stakes}/grade={stored_grade}",
+                    "chart": f"{chart.race_type}/stakes={chart_is_stakes}/grade={chart.stakes_grade}",
                 }
             )
             print(
                 f"  [{i}/{len(rows)}] MISMATCH: {sire} / {horse} {row['race_date']} "
                 f"R{row['race_number']} @ {row['track']}: "
-                f"stored={stored_type}/{stored_stakes} chart={chart.race_type}/{chart_is_stakes}"
+                f"stored={stored_type}/{stored_stakes}/{stored_grade} "
+                f"chart={chart.race_type}/{chart_is_stakes}/{chart.stakes_grade}"
             )
 
     print("=" * 80)

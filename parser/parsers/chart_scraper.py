@@ -335,19 +335,28 @@ def extract_race_details(text: str) -> ChartData:
     # Extract stakes race name if present (only for stakes races)
     # Look for explicit stakes indicators first
     if data.race_type == 'STK' or re.search(r'STAKES|GRADED', text, re.IGNORECASE):
-        # Extract stakes grade - "Grade I", "Grade II", "Grade III" or "G1", "G2", "G3"
+        # Extract stakes grade. Only match explicit forms:
+        #   "Grade I/II/III/1/2/3"  — "Grade" is the explicit prefix
+        #   "(G1)" / "(G2)" / "(G3)" — parenthesized abbreviation
+        #   "Listed" — anchored to "-Thoroughbred" header to avoid false matches
+        # NEVER match a bare "G[123]" anywhere in text — Equibase chart PDFs
+        # concatenate words with numbers (e.g. "paying2.5%"), so bare "g2"
+        # appears all over the place as a coincidence.
         grade_match = re.search(
-            r'Grade\s*([I1][I1]?[I1]?|[123])|([GG])([123])',
+            r'Grade\s*(I{1,3}|[123])\b|\(\s*G\s*([123])\s*\)',
             text,
-            re.IGNORECASE
+            re.IGNORECASE,
         )
         if grade_match:
-            if grade_match.group(1):
-                grade = grade_match.group(1).upper()
-                grade_map = {'I': 'G1', 'II': 'G2', 'III': 'G3', '1': 'G1', '2': 'G2', '3': 'G3'}
-                data.stakes_grade = grade_map.get(grade)
-            elif grade_match.group(3):
-                data.stakes_grade = f'G{grade_match.group(3)}'
+            grade_token = grade_match.group(1) or grade_match.group(2)
+            grade_map = {
+                'I': 'G1', 'II': 'G2', 'III': 'G3',
+                '1': 'G1', '2': 'G2', '3': 'G3',
+            }
+            data.stakes_grade = grade_map.get(grade_token.upper())
+        elif re.search(r'\bListed\b\s*-?\s*Thoroughbred', text, re.IGNORECASE):
+            # Listed stakes: chart header has "<RaceName>Listed-Thoroughbred"
+            data.stakes_grade = 'Listed'
 
         # Pattern: Look for text ending in "S." or "Stakes" or "H." (handicap)
         # But avoid matching long condition texts

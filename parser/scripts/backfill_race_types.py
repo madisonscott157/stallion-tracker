@@ -42,7 +42,7 @@ def fetch_suspect_rows(client, stallion_filter: str | None, limit: int | None):
     query = (
         client.table("results")
         .select(
-            "id, race_date, track, race_number, race_type, is_stakes, "
+            "id, race_date, track, race_number, race_type, is_stakes, stakes_grade, "
             "chart_url, replay_url, race_country, "
             "horses(name, sire_id, stallions(name))"
         )
@@ -64,8 +64,8 @@ def fetch_suspect_rows(client, stallion_filter: str | None, limit: int | None):
     return rows
 
 
-def reclassify_row(row: dict) -> tuple[str | None, bool] | None:
-    """Re-scrape the chart and return (race_type, is_stakes) or None on failure."""
+def reclassify_row(row: dict) -> tuple[str | None, bool, str | None] | None:
+    """Re-scrape the chart and return (race_type, is_stakes, stakes_grade) or None on failure."""
     chart_url = row.get("chart_url")
     if not chart_url:
         return None
@@ -75,7 +75,7 @@ def reclassify_row(row: dict) -> tuple[str | None, bool] | None:
     is_stakes = chart.race_type == "STK" or bool(
         chart.race_name and "stakes" in chart.race_name.lower()
     )
-    return chart.race_type, is_stakes
+    return chart.race_type, is_stakes, chart.stakes_grade
 
 
 def main() -> int:
@@ -107,6 +107,7 @@ def main() -> int:
         horse = (row.get("horses") or {}).get("name", "?")
         old_type = row["race_type"]
         old_stakes = row["is_stakes"]
+        old_grade = row.get("stakes_grade")
 
         result = reclassify_row(row)
         if result is None:
@@ -117,11 +118,11 @@ def main() -> int:
             failed += 1
             continue
 
-        new_type, new_stakes = result
-        if new_type == old_type and new_stakes == old_stakes:
+        new_type, new_stakes, new_grade = result
+        if new_type == old_type and new_stakes == old_stakes and new_grade == old_grade:
             print(
                 f"  [{scanned}/{len(rows)}] {sire} / {horse} {row['race_date']}: "
-                f"already {new_type} (no change)"
+                f"already {new_type}/grade={new_grade} (no change)"
             )
             continue
 
@@ -133,14 +134,15 @@ def main() -> int:
         update = {
             "race_type": new_type,
             "is_stakes": new_stakes,
+            "stakes_grade": new_grade,
             **replay_update,
         }
 
         prefix = "[DRY-RUN] " if args.dry_run else ""
         print(
             f"  [{scanned}/{len(rows)}] {prefix}{sire} / {horse} {row['race_date']} "
-            f"R{row['race_number']}: {old_type}/stakes={old_stakes} -> "
-            f"{new_type}/stakes={new_stakes}"
+            f"R{row['race_number']}: {old_type}/stakes={old_stakes}/grade={old_grade} -> "
+            f"{new_type}/stakes={new_stakes}/grade={new_grade}"
         )
 
         if not args.dry_run:
