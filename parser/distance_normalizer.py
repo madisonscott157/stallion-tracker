@@ -97,8 +97,10 @@ def normalize_distance(raw: str) -> str:
     # course variants and the "-Originally Scheduled For ..." rescheduling note
     # the chart parser sometimes appends. Hurdle/Steeplechase are intentionally
     # NOT stripped here — the jumps filter relies on those keywords downstream.
+    # `\s*` (not `\s+`) between "On" / "The" / surface words to handle PDF text
+    # like "OnTheOuterturf" where words concatenate without spaces.
     text = re.sub(
-        r'\s*On\s+(?:The\s+)?(?:Outer|Inner)?\s*(?:Turf|Dirt|Main\s*Track|All\s*Weather(?:\s*Track)?|Polytrack|Tapeta|Synthetic).*$',
+        r'\s*On\s*(?:The\s*)?(?:Outer|Inner)?\s*(?:Turf|Dirt|Main\s*Track|All\s*Weather(?:\s*Track)?|Polytrack|Tapeta|Synthetic).*$',
         '', text, flags=re.IGNORECASE
     )
 

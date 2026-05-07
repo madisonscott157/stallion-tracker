@@ -189,36 +189,48 @@ def extract_race_details(text: str) -> ChartData:
                 data.distance = normalize_distance(match.group(1).strip())
                 break
 
-    # Extract surface - look in Distance line or Track line
-    # Common formats: "OnTheTurf", "On The Turf", "Track:Firm" (Turf), "Track:Fast" (Dirt)
-    if re.search(r'OnThe\s*All\s*Weather|On\s*The\s*All\s*Weather|All[- ]?Weather|Tapeta|Polytrack|Synthetic', text, re.IGNORECASE):
-        data.surface = 'AWT'
-    elif re.search(r'OnThe\s*Turf|On\s*The\s*Turf|Turf\s*Course', text, re.IGNORECASE):
-        data.surface = 'Turf'
-    elif re.search(r'OnThe\s*Dirt|On\s*The\s*Dirt|Main\s*Track', text, re.IGNORECASE):
-        data.surface = 'Dirt'
-    else:
-        # Check track condition for hints
-        if re.search(r'Track[:\s]*(Firm|Good|Yielding|Soft|Hard)', text, re.IGNORECASE):
-            data.surface = 'Turf'  # These conditions are turf-specific
-        elif re.search(r'Track[:\s]*(Fast|Sloppy|Muddy|Sealed|Good)', text, re.IGNORECASE):
-            # "Good" can be either, but Fast/Sloppy/Muddy are dirt
-            if re.search(r'Track[:\s]*(Fast|Sloppy|Muddy|Sealed)', text, re.IGNORECASE):
-                data.surface = 'Dirt'
+    # Extract surface — primary signal is the chart's surface header line
+    # which appears IMMEDIATELY after "<RaceType> - Thoroughbred", e.g.:
+    #     "...Listed-Thoroughbred OUTERTURFFOR FILLIES..."
+    #     "...CLAIMING-Thoroughbred MainTrackFOR THREE..."
+    # Anchoring to this marker is bulletproof because the conditions paragraph
+    # below frequently mentions "Main Track Only" (turf-race backup entrants),
+    # "OnTheTurf" eligibility cross-references, etc., all of which are NOT the
+    # actual race surface.
+    surface_header = re.search(
+        r'-\s*Thoroughbred\s*[\W_]?\s*('
+        r'OUTER\s*TURF|INNER\s*TURF|TURF\s*COURSE|TURF|'
+        r'MAIN\s*TRACK|DIRT|'
+        r'ALL\s*WEATHER(?:\s*TRACK)?|TAPETA|POLYTRACK|SYNTHETIC|AWT'
+        r')',
+        text,
+        re.IGNORECASE,
+    )
+    if surface_header:
+        token = re.sub(r'\s+', '', surface_header.group(1).upper())
+        if 'TURF' in token:
+            data.surface = 'Turf'
+        elif token in ('MAINTRACK', 'DIRT'):
+            data.surface = 'Dirt'
+        else:  # AWT family
+            data.surface = 'AWT'
 
-    # Also check for explicit surface mentions
+    # Fallback: legacy patterns + track-condition hints. Used only when the
+    # header marker isn't present (older charts, malformed PDFs).
+    # IMPORTANT: PDF text concatenates words ("OnTheAllWeatherTrack",
+    # "OnTheTurf"), so do NOT use \b word boundaries here — they fail across
+    # the implicit word breaks.
     if not data.surface:
-        surface_match = re.search(
-            r'\b(Dirt|Turf|Synthetic|All[- ]?Weather|Tapeta|Polytrack)\b',
-            text,
-            re.IGNORECASE
-        )
-        if surface_match:
-            surface = surface_match.group(1)
-            if surface.lower() in ('all weather', 'all-weather', 'tapeta', 'polytrack', 'synthetic'):
-                data.surface = 'AWT'
-            else:
-                data.surface = surface.capitalize()
+        if re.search(r'On\s*The\s*All\s*Weather|All\s*[- ]?\s*Weather|Tapeta|Polytrack|Synthetic', text, re.IGNORECASE):
+            data.surface = 'AWT'
+        elif re.search(r'On\s*The\s*(?:Outer|Inner)?\s*Turf|Turf\s*Course', text, re.IGNORECASE):
+            data.surface = 'Turf'
+        elif re.search(r'On\s*The\s*Dirt', text, re.IGNORECASE):
+            data.surface = 'Dirt'
+        elif re.search(r'\bTrack\s*:\s*(Firm|Yielding|Soft|Hard)\b', text, re.IGNORECASE):
+            data.surface = 'Turf'
+        elif re.search(r'\bTrack\s*:\s*(Fast|Sloppy|Muddy|Sealed|Wet\s*Fast|Frozen)\b', text, re.IGNORECASE):
+            data.surface = 'Dirt'
 
     # Extract purse - "Purse $25,000" or "Purse: $25,000"
     purse_match = re.search(r'Purse[:\s]*\$\s*([\d,]+)', text, re.IGNORECASE)
@@ -359,17 +371,25 @@ def extract_race_details(text: str) -> ChartData:
             data.stakes_grade = 'Listed'
 
         # Pattern: Look for text ending in "S." or "Stakes" or "H." (handicap)
-        # But avoid matching long condition texts
+        # But avoid matching long condition texts. PDF text is often concatenated
+        # ("STAKESBachelorS."), so the leading "STAKES" prefix may have NO
+        # separator before the race name — `[-\s]*` (zero or more) handles that.
         stakes_match = re.search(
-            r'(?:STAKES[-\s]+)?([A-Z][A-Za-z\s\'\-]{3,30}(?:S\.|Stakes|H\.|Handicap|Cup|Derby|Oaks|Futurity|Classic|Mile|Turf))',
+            r'(?:STAKES[-\s]*)?([A-Z][A-Za-z\s\'\-]{3,40}(?:S\.|Stakes|H\.|Handicap|Cup|Derby|Oaks|Futurity|Classic|Mile|Turf))',
             text
         )
         if stakes_match:
             race_name = stakes_match.group(1).strip()
-            # Clean up common prefixes/suffixes
+            # Strip residual "STAKES" if the optional non-capturing group didn't
+            # consume it (happens when there's no separator after STAKES).
+            race_name = re.sub(r'^STAKES\s*', '', race_name, flags=re.IGNORECASE)
+            # Insert spaces between concatenated words: "BachelorS." -> "Bachelor S."
+            race_name = re.sub(r'([a-z])([A-Z])', r'\1 \2', race_name)
+            # Strip "The " prefix, collapse extra spaces.
             race_name = re.sub(r'^(?:The\s+)', '', race_name, flags=re.IGNORECASE)
+            race_name = ' '.join(race_name.split())
             # Reject if it looks like conditions text
-            if len(race_name) > 5 and len(race_name) < 50 and not re.search(r'WHICH|HAVE|NEVER|STARTED|CLAIMING', race_name, re.IGNORECASE):
+            if len(race_name) > 5 and len(race_name) < 60 and not re.search(r'WHICH|HAVE|NEVER|STARTED|CLAIMING', race_name, re.IGNORECASE):
                 data.race_name = race_name
 
     # Extract track condition - Fast, Good, Firm, Yielding, etc.

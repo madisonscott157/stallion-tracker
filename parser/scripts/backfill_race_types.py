@@ -43,7 +43,7 @@ def fetch_suspect_rows(client, stallion_filter: str | None, limit: int | None):
         client.table("results")
         .select(
             "id, race_date, track, race_number, race_type, is_stakes, stakes_grade, "
-            "chart_url, replay_url, race_country, "
+            "distance, surface, race_name, chart_url, replay_url, race_country, "
             "horses(name, sire_id, stallions(name))"
         )
         .is_("race_country", "null")  # US-parsed rows only
@@ -64,8 +64,8 @@ def fetch_suspect_rows(client, stallion_filter: str | None, limit: int | None):
     return rows
 
 
-def reclassify_row(row: dict) -> tuple[str | None, bool, str | None] | None:
-    """Re-scrape the chart and return (race_type, is_stakes, stakes_grade) or None on failure."""
+def reclassify_row(row: dict):
+    """Re-scrape and return all chart-derived fields, or None on failure."""
     chart_url = row.get("chart_url")
     if not chart_url:
         return None
@@ -75,7 +75,14 @@ def reclassify_row(row: dict) -> tuple[str | None, bool, str | None] | None:
     is_stakes = chart.race_type == "STK" or bool(
         chart.race_name and "stakes" in chart.race_name.lower()
     )
-    return chart.race_type, is_stakes, chart.stakes_grade
+    return {
+        "race_type": chart.race_type,
+        "is_stakes": is_stakes,
+        "stakes_grade": chart.stakes_grade,
+        "distance": chart.distance,
+        "surface": chart.surface,
+        "race_name": chart.race_name,
+    }
 
 
 def main() -> int:
@@ -105,10 +112,6 @@ def main() -> int:
         scanned += 1
         sire = (row.get("horses") or {}).get("stallions", {}).get("name", "?")
         horse = (row.get("horses") or {}).get("name", "?")
-        old_type = row["race_type"]
-        old_stakes = row["is_stakes"]
-        old_grade = row.get("stakes_grade")
-
         result = reclassify_row(row)
         if result is None:
             print(
@@ -118,32 +121,34 @@ def main() -> int:
             failed += 1
             continue
 
-        new_type, new_stakes, new_grade = result
-        if new_type == old_type and new_stakes == old_stakes and new_grade == old_grade:
-            print(
-                f"  [{scanned}/{len(rows)}] {sire} / {horse} {row['race_date']}: "
-                f"already {new_type}/grade={new_grade} (no change)"
-            )
+        # Build a list of fields that diverge between DB and chart truth.
+        # `race_name` and `distance` get a NULL guard: if the chart returned
+        # None but DB has a value, that's a chart-scrape regression — keep
+        # the existing DB value rather than wiping it.
+        fields = ["race_type", "is_stakes", "stakes_grade", "distance", "surface", "race_name"]
+        diffs = {}
+        for f in fields:
+            old = row.get(f)
+            new = result[f]
+            if new is None and old:
+                # Don't wipe a stored value when chart returned None
+                continue
+            if new != old:
+                diffs[f] = (old, new)
+
+        if not diffs:
+            if scanned % 25 == 0:
+                print(f"  [{scanned}/{len(rows)}] checking... ({changed} changes so far)")
             continue
 
-        # Replay URL: clear if no longer stakes; the parser regenerates correctly on re-ingest.
-        replay_update: dict = {}
-        if not new_stakes and row.get("replay_url"):
-            replay_update["replay_url"] = None
-
-        update = {
-            "race_type": new_type,
-            "is_stakes": new_stakes,
-            "stakes_grade": new_grade,
-            **replay_update,
-        }
+        # Replay URL: clear if no longer stakes
+        update = {f: result[f] for f in diffs}
+        if not result["is_stakes"] and row.get("replay_url"):
+            update["replay_url"] = None
 
         prefix = "[DRY-RUN] " if args.dry_run else ""
-        print(
-            f"  [{scanned}/{len(rows)}] {prefix}{sire} / {horse} {row['race_date']} "
-            f"R{row['race_number']}: {old_type}/stakes={old_stakes}/grade={old_grade} -> "
-            f"{new_type}/stakes={new_stakes}/grade={new_grade}"
-        )
+        diff_str = ", ".join(f"{f}: {old!r}->{new!r}" for f, (old, new) in diffs.items())
+        print(f"  [{scanned}/{len(rows)}] {prefix}{sire} / {horse} {row['race_date']} R{row['race_number']}: {diff_str}")
 
         if not args.dry_run:
             client.table("results").update(update).eq("id", row["id"]).execute()
