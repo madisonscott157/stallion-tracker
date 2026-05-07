@@ -177,11 +177,15 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
             stakes_grade = grade_map.get(grade)
 
     # 7. Extract race type if visible
-    # Order matters in regex alternation - longer/more specific patterns first
+    # Word boundaries on abbreviations so "ALW" doesn't match "always"/"alway".
+    # Long forms come first so "ALLOWANCE OPTIONAL CLAIMING" beats plain "ALLOWANCE"
+    # at the same position. Plain "ALLOWANCE"/"CLAIMING" come last because in a
+    # claiming race the conditions paragraph mentions both words.
     race_type = None
     type_match = re.search(
         r"(ALLOWANCE OPTIONAL CLAIMING|MAIDEN SPECIAL WEIGHT|MAIDEN CLAIMING|"
-        r"AOC|MSW|MCL|ALW|CLM|STK|ALLOWANCE|CLAIMING|STAKES)",
+        r"\bAOC\b|\bMSW\b|\bMCL\b|\bALW\b|\bCLM\b|\bSOC\b|\bSTK\b|"
+        r"ALLOWANCE|CLAIMING|STAKES)",
         text,
         re.IGNORECASE
     )
@@ -194,6 +198,7 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
             'ALLOWANCE': 'ALW', 'ALW': 'ALW',
             'CLAIMING': 'CLM', 'CLM': 'CLM',
             'STAKES': 'STK', 'STK': 'STK',
+            'SOC': 'SOC',
         }
         race_type = type_map.get(type_word, type_word)
 
@@ -223,7 +228,10 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
                 # Add spaces before capital letters to fix concatenation like "PennsylvaniaDerby"
                 race_name = re.sub(r'([a-z])([A-Z])', r'\1 \2', race_name)
                 race_name = race_name.strip()
-            if chart_data.race_type and not race_type:
+            # Chart's race_type wins over the email-text guess: the chart has an
+            # authoritative header line ("CLAIMING - Thoroughbred"), while the
+            # email body's loose word-search can be fooled by conditions text.
+            if chart_data.race_type:
                 race_type = chart_data.race_type
             # If chart indicates stakes race, update is_stakes and try to get grade
             if chart_data.race_type == 'STK' or (race_name and 'stakes' in race_name.lower()):
@@ -233,9 +241,12 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
                 stakes_grade = chart_data.stakes_grade
             print(f"  -> Distance: {distance}, Surface: {surface}, Earnings: ${earnings:,}" if earnings else f"  -> Distance: {distance}, Surface: {surface}, Earnings: None")
 
-    # Build replay URL for winners
+    # Build replay URL for winners — only for stakes races. Bloodhorse Stallion
+    # Register's progeny replay catalog covers stakes/major races; claiming,
+    # maiden-claiming, allowance, and MSW at smaller tracks aren't indexed, so
+    # any URL we build for those lands on a broken-template page.
     replay_url = None
-    if finish_position == 1 and track_code:
+    if finish_position == 1 and track_code and is_stakes:
         try:
             track_name = get_track_name(track_code, track)
             replay_url = build_replay_url(

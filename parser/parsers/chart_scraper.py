@@ -259,20 +259,27 @@ def extract_race_details(text: str) -> ChartData:
     # Note: PDF text often has no spaces, so patterns use \s* liberally
     race_type_patterns = [
         (r'MAIDEN\s*SPECIAL\s*WEIGHT', 'MSW'),
-        (r'MSW', 'MSW'),  # Abbreviation
+        (r'\bMSW\b', 'MSW'),  # Word-bounded so abbreviations don't match inside other words
         (r'MAIDEN\s*CLAIMING', 'MCL'),
-        (r'MCL', 'MCL'),  # Abbreviation
+        (r'\bMCL\b', 'MCL'),
         (r'ALLOWANCE\s*OPTIONAL\s*CLAIMING', 'AOC'),
         (r'OPTIONAL\s*CLAIMING\s*ALLOWANCE', 'AOC'),
         (r'OPTIONAL\s*CLAIMING', 'AOC'),
-        (r'AOC', 'AOC'),  # Abbreviation
+        (r'\bAOC\b', 'AOC'),
         (r'STARTER\s*OPTIONAL\s*CLAIMING', 'SOC'),
         (r'STARTER\s*ALLOWANCE', 'SOC'),
+        (r'\bSOC\b', 'SOC'),
         (r'GRADED\s*STAKES', 'STK'),
         (r'STAKES', 'STK'),
+        (r'\bSTK\b', 'STK'),
+        # ALLOWANCE before CLAIMING: a true ALW race's conditions paragraph
+        # references "claiming" ("other than maiden, claiming, starter"), but the
+        # authoritative header says ALLOWANCE. A true CLM race's conditions use
+        # "Allowed X lbs", not the word "Allowance".
         (r'ALLOWANCE', 'ALW'),
-        (r'ALW', 'ALW'),  # Abbreviation
+        (r'\bALW\b', 'ALW'),
         (r'CLAIMING', 'CLM'),
+        (r'\bCLM\b', 'CLM'),
     ]
 
     # Special handling: if we detect MAIDEN anywhere but no CLAIMING, it's likely MSW
