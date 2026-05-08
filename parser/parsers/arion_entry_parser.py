@@ -70,7 +70,11 @@ HORSE_RE = re.compile(
     r'\(([A-Za-z])\.\s+by\s+(.+?)-(.+?)\)'
     r'(?:\s+\(trainer:\s*(.+?)\))?\s*$'
 )
-GRADE_RE = re.compile(r'\b(Gr\.\s*[123]|Group\s+[123]|Listed|L)\b')
+# Bare 'L' as a Listed-stakes abbreviation must be tightly bounded — otherwise
+# it matches the French article L' inside names like "Prix de L'Arbre".
+# Require: preceded by space, followed by space/end-of-string or period only
+# (NOT followed by an apostrophe or any letter).
+GRADE_RE = re.compile(r'\b(Gr\.\s*[123]|Group\s+[123]|Listed)\b|(?<=\s)(L)(?=\s|\.|$)')
 
 
 def _detect_currency(purse_token: str) -> tuple[Optional[int], Optional[str]]:
@@ -89,7 +93,8 @@ def _extract_grade(name: str) -> tuple[str, Optional[str], bool]:
     m = GRADE_RE.search(name)
     if not m:
         return name.strip(' ,.'), None, False
-    tok = m.group(1).lower().replace('.', '').replace(' ', '')
+    # group(1) is "Gr. N" / "Group N" / "Listed"; group(2) is the bare "L"
+    tok = (m.group(1) or m.group(2)).lower().replace('.', '').replace(' ', '')
     cleaned = GRADE_RE.sub('', name).strip(' ,.')
     grade = {
         'gr1': 'G1', 'group1': 'G1',

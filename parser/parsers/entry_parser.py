@@ -162,10 +162,14 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
             is_stakes = True
             race_type = 'STK'
         else:
-            # Look for race type header
+            # Look for race type header. Order matters in alternation: longer
+            # phrases first so AOC beats plain ALLOWANCE.
             race_type_match = re.search(
-                r"(GRADED STAKES?|STAKES?|MAIDEN SPECIAL WEIGHT|MAIDEN CLAIMING|"
-                r"ALLOWANCE OPTIONAL CLAIMING|ALLOWANCE|CLAIMING)[^\n]*",
+                r"(ALLOWANCE OPTIONAL CLAIMING|"
+                r"STARTER OPTIONAL CLAIMING|STARTER ALLOWANCE|"
+                r"MAIDEN SPECIAL WEIGHT|MAIDEN CLAIMING|"
+                r"GRADED STAKES?|STAKES?|"
+                r"ALLOWANCE|CLAIMING)[^\n]*",
                 text,
                 re.IGNORECASE
             )
@@ -178,6 +182,8 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
                 # contains "CLAIMING" and "ALLOWANCE")
                 type_map = [
                     ('ALLOWANCE OPTIONAL CLAIMING', 'AOC'),
+                    ('STARTER OPTIONAL CLAIMING', 'SOC'),
+                    ('STARTER ALLOWANCE', 'SOC'),
                     ('MAIDEN SPECIAL WEIGHT', 'MSW'),
                     ('MAIDEN CLAIMING', 'MCL'),
                     ('GRADED STAKES', 'STK'),
@@ -200,26 +206,22 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
                         grade_map = {'I': 'G1', 'II': 'G2', 'III': 'G3', '1': 'G1', '2': 'G2', '3': 'G3'}
                         stakes_grade = grade_map.get(grade)
 
-    # Belt-and-braces grade sweep across the whole email body. The patterns
-    # above each require a specific surrounding format (e.g. "S. - Grade: N",
-    # or that the grade appears within the matched race-type header line).
-    # Equibase Virtual Stable emails sometimes mention the grade elsewhere —
-    # e.g. "Charles Whittingham S. (Grade II)" or "Grade 2" on its own line —
-    # so as a fallback, after we've established it's a stakes race, scan the
-    # full text for any common grade marker.
+    # Belt-and-braces grade sweep — but only accept STRICT forms that don't
+    # appear in eligibility prose. Eligibility text routinely says "non-winners
+    # of a Grade 2 stakes since X", which would wrongly tag an ungraded race
+    # as G2 if we accepted plain "Grade 2". Only match parenthesized forms
+    # ("(G1)", "(Grade II)") and the "Gr." abbreviation — both are race-name
+    # decorations, not eligibility-clause vocabulary.
     if is_stakes and not stakes_grade:
         grade_map = {'I': 'G1', 'II': 'G2', 'III': 'G3', '1': 'G1', '2': 'G2', '3': 'G3'}
-        # Patterns we accept (case-insensitive):
-        #   Grade: 2 / Grade 2 / Grade II
-        #   Gr. II / Gr 2 / Gr. 2
-        #   (G2) / (G II) / G2 Stakes
         fallback = re.search(
-            r'(?:Grade\s*:?\s*|Gr\.?\s+|\(\s*G)\s*(I{1,3}|[123])\b',
+            r'\(\s*(?:Grade\s+|G)\s*(I{1,3}|[123])\s*\)|\bGr\.\s*(I{1,3}|[123])\b',
             text,
-            re.IGNORECASE
+            re.IGNORECASE,
         )
         if fallback:
-            stakes_grade = grade_map.get(fallback.group(1).upper())
+            grade_token = fallback.group(1) or fallback.group(2)
+            stakes_grade = grade_map.get(grade_token.upper())
 
     # 5. Extract purse
     purse = None

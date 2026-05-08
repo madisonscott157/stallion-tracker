@@ -163,18 +163,24 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
     is_stakes = False
     stakes_grade = None
 
-    if re.search(r'stakes|graded|grade[:\s]*[123I]', text, re.IGNORECASE):
+    # is_stakes from email is a weak signal — it gets overridden below by the
+    # chart's authoritative race_type when the chart is fetched. Use \b
+    # boundaries to avoid matching "STAKES" inside other tokens.
+    if re.search(r'\b(?:stakes|graded)\b|\bgrade\s*[:\s]\s*[123I]', text, re.IGNORECASE):
         is_stakes = True
-        # Accept "Grade 2", "Grade: 2", "Grade II", "Gr. 2", "Gr II", "(G2)"
+        # Only accept STRICT grade forms that wouldn't appear in eligibility
+        # prose: parenthesized "(G2)" / "(Grade II)" or abbreviated "Gr. II".
+        # Plain "Grade 2" is intentionally NOT matched here because eligibility
+        # text routinely says "non-winners of a Grade 2 stakes since X".
         grade_match = re.search(
-            r'(?:Grade\s*:?\s*|Gr\.?\s+|\(\s*G)\s*(I{1,3}|[123])\b',
+            r'\(\s*(?:Grade\s+|G)\s*(I{1,3}|[123])\s*\)|\bGr\.\s*(I{1,3}|[123])\b',
             text,
             re.IGNORECASE,
         )
         if grade_match:
-            grade = grade_match.group(1).upper()
+            grade_token = grade_match.group(1) or grade_match.group(2)
             grade_map = {'I': 'G1', 'II': 'G2', 'III': 'G3', '1': 'G1', '2': 'G2', '3': 'G3'}
-            stakes_grade = grade_map.get(grade)
+            stakes_grade = grade_map.get(grade_token.upper())
 
     # 7. Extract race type if visible
     # Word boundaries on abbreviations so "ALW" doesn't match "always"/"alway".

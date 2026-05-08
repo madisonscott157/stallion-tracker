@@ -337,16 +337,24 @@ def extract_race_details(text: str) -> ChartData:
                 data.race_type = race_type
                 break
 
-    # Override: if we found MAIDEN but not CLAIMING, and got CLM, it's actually MSW
-    if data.race_type == 'CLM' and has_maiden and not has_claiming:
-        data.race_type = 'MSW'
-    # Also: if we found MAIDEN but no specific type matched, default to MSW
-    if not data.race_type and has_maiden and not has_claiming:
-        data.race_type = 'MSW'
+    # MAIDEN override: only safe to apply when race_type came from FALLBACK
+    # (no header match). Applying it when the header was authoritative could
+    # flip a real CLM to MSW just because conditions text mentions "Maiden".
+    # `header_match` is set ~30 lines above when the chart's authoritative
+    # "<Type> - Thoroughbred" header line was found.
+    if not header_match:
+        if data.race_type == 'CLM' and has_maiden and not has_claiming:
+            data.race_type = 'MSW'
+        if not data.race_type and has_maiden and not has_claiming:
+            data.race_type = 'MSW'
 
-    # Extract stakes race name if present (only for stakes races)
-    # Look for explicit stakes indicators first
-    if data.race_type == 'STK' or re.search(r'STAKES|GRADED', text, re.IGNORECASE):
+    # Extract stakes race name and grade — ONLY for races whose race_type is
+    # already 'STK' (i.e., the chart header authoritatively classified it as
+    # a stakes race). Do NOT trigger this block on a loose `STAKES|GRADED`
+    # substring match in the body — Equibase charts embed eligibility text
+    # like "non-winners of a Stakes since X" in non-stakes races, which would
+    # cause spurious race_name / stakes_grade assignment.
+    if data.race_type == 'STK':
         # Extract stakes grade. Only match explicit forms:
         #   "Grade I/II/III/1/2/3"  — "Grade" is the explicit prefix
         #   "(G1)" / "(G2)" / "(G3)" — parenthesized abbreviation
@@ -388,8 +396,19 @@ def extract_race_details(text: str) -> ChartData:
             # Strip "The " prefix, collapse extra spaces.
             race_name = re.sub(r'^(?:The\s+)', '', race_name, flags=re.IGNORECASE)
             race_name = ' '.join(race_name.split())
-            # Reject if it looks like conditions text
-            if len(race_name) > 5 and len(race_name) < 60 and not re.search(r'WHICH|HAVE|NEVER|STARTED|CLAIMING', race_name, re.IGNORECASE):
+            # Reject if it looks like conditions text. Add common condition
+            # sentence-starters and connective words that indicated agent E's
+            # false-positive scenarios ("For Three Year Old Fillies Only - S.").
+            condition_words = (
+                r'\b(?:WHICH|HAVE|NEVER|STARTED|CLAIMING|FOR\s+THREE|FOR\s+FOUR|'
+                r'FOR\s+TWO|FOR\s+FILLIES|FOR\s+MAIDENS|FOR\s+HORSES|NON\s*-?\s*WINNERS|'
+                r'OPEN\s+TO|ELIGIBLE|YEAR\s*OLDS?|UPWARD)\b'
+            )
+            if (
+                len(race_name) > 5
+                and len(race_name) < 60
+                and not re.search(condition_words, race_name, re.IGNORECASE)
+            ):
                 data.race_name = race_name
 
     # Extract track condition - Fast, Good, Firm, Yielding, etc.
