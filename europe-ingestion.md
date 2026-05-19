@@ -10,9 +10,9 @@ Slovakia, Morocco). Mirrors `arion-ingestion.md`'s tier-1/tier-2 rule:
 all races for FR/GBR/IRL/USA/CAN, stakes-only for everything else,
 SH/Latin-America excluded.
 
-Supersedes the original `france-galop-scraper.md` (the France Galop
-calendar moved behind a Microsoft CIAM login during recon, so the spec
-there is no longer correct — kept in the repo as historical context only).
+Supersedes the original France Galop scraper plan (the France Galop
+calendar moved behind a Microsoft CIAM login during recon, so the
+spec there was no longer correct and has been removed).
 
 ## Why
 
