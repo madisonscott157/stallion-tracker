@@ -84,7 +84,7 @@ export function formatDistance(distance: string | null): string {
   // Clean any parsing garbage (from workout emails) and strip concatenated surface text
   let cleaned = distance.split(/Time:|Track Condition:/i)[0]?.trim() || distance.trim()
   // Strip surface info concatenated to distance: "FurlongsOnTheAllWeather" → "Furlongs"
-  cleaned = cleaned.replace(/\s*On\s+(?:The\s+)?(?:Outer|Inner)?\s*(?:Turf|Dirt|Main\s*Track|All\s*Weather(?:\s*Track)?|Polytrack|Tapeta|Synthetic).*$/i, '').trim()
+  cleaned = cleaned.replace(/\s*On\s+(?:The\s+)?(?:Outer|Inner|Downhill|Hillside)?\s*(?:Turf|Dirt|Main\s*Track|All\s*Weather(?:\s*Track)?|Polytrack|Tapeta|Synthetic).*$/i, '').trim()
   // Split concatenated number+unit: "SeventyYards" → "Seventy Yards"
   cleaned = cleaned.replace(/([a-z])(Furlongs?|Miles?|Yards?)\s*$/i, '$1 $2').trim()
 
