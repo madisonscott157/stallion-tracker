@@ -174,6 +174,12 @@ export const ResultCard = memo(function ResultCard({ result, showSireName, suppr
             <span>{formatDistance(result.distance)}</span>
           </>
         )}
+        {result.surface && (
+          <>
+            <span className="text-slate-300">|</span>
+            <span>{result.surface}</span>
+          </>
+        )}
         {result.chart_url && (
           <>
             <span className="text-slate-300">|</span>
