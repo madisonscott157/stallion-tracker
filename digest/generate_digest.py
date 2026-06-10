@@ -172,6 +172,7 @@ def get_news_for_stallion(stallion: str, since: date) -> list:
             continue
         seen.add(item['id'])
         horse = row.get('horses') or {}
+        published_dt = date.fromisoformat(published)
         news.append({
             'title': item['title'],
             'url': item['url'],
@@ -179,6 +180,7 @@ def get_news_for_stallion(stallion: str, since: date) -> list:
             'snippet': item.get('snippet'),
             'horse_name': horse.get('name'),
             'published': published,
+            'published_display': f'{published_dt.strftime("%b")} {published_dt.day}',
             'is_posted': bool(item.get('posted_by')),
         })
 
