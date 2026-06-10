@@ -141,10 +141,15 @@ class NewsMatcher:
 
     def match(self, text: str) -> list[TrackedHorse]:
         """Return unique tracked horses mentioned in text, in order found."""
+        return [h for h, _, _ in self.match_spans(text)]
+
+    def match_spans(self, text: str) -> list[tuple[TrackedHorse, int, int]]:
+        """Like match(), but returns (horse, start, end) per unique horse,
+        using the first acceptable occurrence."""
         if not self._regex or not text:
             return []
         seen: set[str] = set()
-        out: list[TrackedHorse] = []
+        out: list[tuple[TrackedHorse, int, int]] = []
         for m in self._regex.finditer(text):
             horse = self._by_lower.get(m.group(1).lower())
             if horse is None or horse.id in seen:
@@ -164,5 +169,42 @@ class NewsMatcher:
                 # Common-phrase names ("Made All") need registered case
                 continue
             seen.add(horse.id)
-            out.append(horse)
+            out.append((horse, m.start(), m.end()))
         return out
+
+
+# ── Pedigree-credit context (sire-name matching only) ─────────────────
+#
+# TDN-style copy credits a horse's sire in parentheses: "Dornoch (Good
+# Magic)". That credit is one layer removed from the sire's own news when
+# the credited horse is at stud ("Dornoch Represented By First Foal") or
+# is only referenced as a sibling ("Half-Brother to Chancer McPatrick").
+
+SIBLING_RE = re.compile(
+    r"(?:half|full)[\s-]*(?:brother|sister|sibling)?\s*to\b|"
+    r"\b(?:brother|sister)\s+to\b",
+    re.IGNORECASE,
+)
+STUD_TITLE_RE = re.compile(
+    r"\bfoals?\b|first crop|first yearlings?|stands? at|stud fee|retired to stud",
+    re.IGNORECASE,
+)
+
+
+def acceptable_sire_mention(text: str, title: str, start: int) -> bool:
+    """False when a sire-name mention at text[start:] is a parenthetical
+    pedigree credit that is a generation removed from the sire's news:
+    the credited horse is referenced as a sibling, or the headline is
+    about that horse's own stud career. Prose mentions ("by Good Magic",
+    "McKinzie's filly") are always acceptable."""
+    i = start - 1
+    while i >= 0 and text[i] == ' ':
+        i -= 1
+    if i < 0 or text[i] != '(':
+        return True  # prose mention
+    window = text[max(0, i - 60):i]
+    if SIBLING_RE.search(window):
+        return False
+    if STUD_TITLE_RE.search(title):
+        return False
+    return True

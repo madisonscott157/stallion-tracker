@@ -5,7 +5,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
 
-from news_matcher import NewsMatcher, TrackedHorse
+from news_matcher import NewsMatcher, TrackedHorse, acceptable_sire_mention
 
 NO_DICT: set = set()
 
@@ -138,6 +138,51 @@ class TestEligibility:
         # system dictionary exists on this machine
         m = NewsMatcher([horse('1', 'Seattle Storm')])
         assert m.eligible_count == 1
+
+
+class TestSireMentionContext:
+    """Pedigree-credit context rules for stallion-name matching."""
+
+    def _start(self, text, name):
+        return text.index(name)
+
+    def test_prose_mention_acceptable(self):
+        text = 'a promising filly by Good Magic debuts Saturday'
+        assert acceptable_sire_mention(text, 'Promising Filly Debuts', self._start(text, 'Good Magic'))
+
+    def test_subject_pedigree_credit_acceptable(self):
+        title = 'Scottish Lassie Effortlessly Returns to Winning Ways'
+        text = f'{title} Scottish Lassie (McKinzie) returned a winner at Belmont'
+        assert acceptable_sire_mention(text, title, self._start(text, 'McKinzie'))
+
+    def test_sibling_credit_rejected(self):
+        title = "Half-Brother to Chancer McPatrick Lays Down the 'Law' on Debut"
+        text = f'{title} a half-brother to MGISW Chancer McPatrick (McKinzie) graduated'
+        assert not acceptable_sire_mention(text, title, self._start(text, 'McKinzie'))
+
+    def test_stud_news_credit_rejected(self):
+        title = 'Dornoch Represented By First Foal'
+        text = f'{title} the first foal for Dornoch (Good Magic) arrived at Daybreak'
+        assert not acceptable_sire_mention(text, title, self._start(text, 'Good Magic'))
+
+    def test_mares_in_foal_credit_rejected(self):
+        title = 'First Mares In Foal For Goal Oriented, Chancer McPatrick'
+        text = f'{title} early books complete for Chancer McPatrick (McKinzie) at Spendthrift'
+        assert not acceptable_sire_mention(text, title, self._start(text, 'McKinzie'))
+
+    def test_foal_title_does_not_reject_prose_mention(self):
+        # The stallion's own foal news is prose, not a parenthetical credit
+        title = 'First Foals Arrive for Mo Donegal'
+        text = f'{title} breeders praised the first foals by Mo Donegal this week'
+        assert acceptable_sire_mention(text, title, text.index('Mo Donegal', len(title)))
+
+    def test_match_spans_positions(self):
+        m = matcher([horse('1', 'Seattle Storm')])
+        spans = m.match_spans('early Seattle Storm led')
+        assert len(spans) == 1
+        h, start, end = spans[0]
+        assert h.name == 'Seattle Storm'
+        assert 'early Seattle Storm led'[start:end] == 'Seattle Storm'
 
 
 class TestDedupe:

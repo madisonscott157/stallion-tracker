@@ -159,7 +159,8 @@ Dirt, Turf, AWT (Tapeta/Polytrack/synthetic all map to AWT).
 ### News Feed
 - Tables: `news_items` (URL-deduped articles) + `news_item_tags` (stallion_id, nullable horse_id). Migration: `016_news_feed.sql`. RLS via org→stallion linkage.
 - Ingestion: `parser/scripts/run_news_feed.py` pulls racing-outlet RSS (TDN, TDN Europe, ABR, Racing Biz) every 3h via `.github/workflows/news-feed.yml`. Always check changes with `--dry-run` first.
-- Matching (`parser/news_matcher.py`): **progeny names only, never stallion names** (too ambiguous — Idol, Constitution). Multi-word names match case-insensitively; single-word names must not be common English words (system dict + STOPLIST), must match registered capitalization, and must not precede another capitalized word ("Twirling" ≠ "Twirling Candy").
+- Matching (`parser/news_matcher.py`): progeny names, plus stallion names where `stallions.news_name_match` is TRUE (7 of 10 — never for common-word names like Idol/Constitution/Olympiad). Multi-word names match case-insensitively unless all-common-words ("Made All" needs registered case); single-word names must not be common English words (system dict + STOPLIST), must match registered capitalization, and must not be adjacent to another capitalized word or follow an apostrophe.
+- Sire mentions in parenthetical pedigree credits ("Dornoch (Good Magic)") are rejected when generation-removed: sibling references ("Half-Brother to X") or the credited horse's own stud news (title contains foal/first-crop language). See `acceptable_sire_mention`.
 - Paulick Report and BloodHorse are bot-protected (Incapsula) — no usable RSS.
 - UI: News tab on stallion pages (`NewsSection`), `/dashboard/news` overall feed + admin "Post a link" form (OG metadata fetched server-side in `/api/news` POST), `NewsTeaser` on dashboard (self-gates).
 - Manual posts: admin-only, tagged to stallions directly (horse_id NULL), deletable via card trash icon.

@@ -25,7 +25,7 @@ from bs4 import BeautifulSoup
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
 
 from db import Database
-from news_matcher import NewsMatcher, TrackedHorse
+from news_matcher import NewsMatcher, TrackedHorse, acceptable_sire_mention
 
 # Paulick Report and BloodHorse sit behind bot protection (Incapsula) and
 # don't expose a reachable RSS feed — revisit if that changes.
@@ -89,7 +89,12 @@ def build_tags(matcher: NewsMatcher, stallion_matcher: NewsMatcher, title: str, 
     horse_matches = matcher.match(text)
     headline_horse = {h.id for h in matcher.match(title)}
     covered = {h.sire_id for h in horse_matches}
-    sire_matches = [s for s in stallion_matcher.match(text) if s.id not in covered]
+    # A sire mention only counts when it isn't a generation-removed
+    # pedigree credit (sibling reference / credited horse's own stud news)
+    sire_matches = [
+        s for s, start, _ in stallion_matcher.match_spans(text)
+        if s.id not in covered and acceptable_sire_mention(text, title, start)
+    ]
     headline_sire = {s.id for s in stallion_matcher.match(title)}
 
     tags, via, seen = [], [], set()
