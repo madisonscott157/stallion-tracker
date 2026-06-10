@@ -85,6 +85,38 @@ class TestSingleWordNames:
         m = matcher([horse('1', 'Brilliantine')])
         assert names(m.match('the maiden went to Brilliantine')) == ['Brilliantine']
 
+    def test_not_matched_after_capitalized_word(self):
+        # Surname pattern: "Eddie Woods" must not match a horse named "Woods"
+        m = matcher([horse('1', 'Brilliantine')])
+        assert m.match('No Regrets For Eddie Brilliantine At The Sale') == []
+
+    def test_not_matched_after_apostrophe(self):
+        # French elision: "Prix d'Ispahan" must not match a horse "Ispahan"
+        m = matcher([horse('1', 'Brilliantine')])
+        assert m.match("the Prix d'Brilliantine takes centre stage") == []
+        assert m.match('the Prix d’Brilliantine takes centre stage') == []
+
+
+class TestCommonPhraseNames:
+    DICT = {'made', 'all', 'first', 'look', 'out', 'of', 'the', 'wood'}
+
+    def test_lowercase_prose_does_not_match(self):
+        m = matcher([horse('1', 'Made All')], dictionary_words=self.DICT)
+        assert m.match('the winner made all the running at Ascot') == []
+
+    def test_registered_case_matches(self):
+        m = matcher([horse('1', 'Made All')], dictionary_words=self.DICT)
+        assert names(m.match('Made All impressed on debut at Chantilly')) == ['Made All']
+
+    def test_plural_words_count_as_common(self):
+        m = matcher([horse('1', 'Out of the Woods')], dictionary_words=self.DICT)
+        assert m.match('connections are not out of the woods yet') == []
+        assert names(m.match('Out of the Woods ran a big race')) == ['Out of the Woods']
+
+    def test_distinctive_multiword_still_case_insensitive(self):
+        m = matcher([horse('1', 'Chief Wallabee')], dictionary_words=self.DICT | {'chief'})
+        assert names(m.match('CHIEF WALLABEE WORKS AT CHURCHILL')) == ['Chief Wallabee']
+
 
 class TestEligibility:
     def test_short_names_skipped(self):
