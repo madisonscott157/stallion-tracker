@@ -15,6 +15,7 @@ export function DashboardHeader({ onPreferenceChange: _onPreferenceChange }: Das
   const { user, profile, signOut, isSigningOut, isAdmin, hasBookings, isLoading } = useAuth()
   const pathname = usePathname()
   const isBookingsPage = pathname === '/dashboard/bookings'
+  const isNewsPage = pathname === '/dashboard/news'
 
   // Org is still resolving in any of these cases, all of which should render the
   // blank placeholder rather than the generic "Stallion Tracker" fallback:
@@ -59,6 +60,14 @@ export function DashboardHeader({ onPreferenceChange: _onPreferenceChange }: Das
                 </Link>
               )
             )}
+            {!isNewsPage && (
+              <Link
+                href="/dashboard/news"
+                className="inline-flex items-center text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100 transition-opacity px-1"
+              >
+                News
+              </Link>
+            )}
             {isAdmin && (
               <Link
                 href="/admin"
@@ -96,6 +105,11 @@ export function DashboardHeader({ onPreferenceChange: _onPreferenceChange }: Das
             {orgName}
           </h1>
           <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--org-secondary)' }}>
+            {!isNewsPage && (
+              <Link href="/dashboard/news" className="hover:text-white transition-colors inline-flex items-center">
+                News
+              </Link>
+            )}
             {isAdmin && (
               <Link href="/admin" className="hover:text-white transition-colors inline-flex items-center">
                 Admin
