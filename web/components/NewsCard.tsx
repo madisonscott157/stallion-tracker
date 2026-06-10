@@ -13,13 +13,20 @@ interface NewsCardProps {
 export function NewsCard({ item, showStallionNames = false, onDelete }: NewsCardProps) {
   const [imageFailed, setImageFailed] = useState(false)
 
-  const horseNames = Array.from(
-    new Set(item.tags.map(t => t.horse_name).filter(Boolean))
-  ) as string[]
-  const stallionNames = Array.from(
-    new Set(item.tags.map(t => t.stallion_name).filter(Boolean))
-  ) as string[]
-  const chips = horseNames.length > 0 ? horseNames : (showStallionNames ? stallionNames : [])
+  // On the overall feed each chip carries the stallion for context
+  // ("Chief Wallabee – Constitution"); on a stallion's own page the
+  // horse name alone suffices.
+  const chips = Array.from(new Set(
+    item.tags
+      .map(t => {
+        if (showStallionNames) {
+          if (t.horse_name && t.stallion_name) return `${t.horse_name} – ${t.stallion_name}`
+          return t.stallion_name || t.horse_name
+        }
+        return t.horse_name
+      })
+      .filter(Boolean)
+  )) as string[]
   const when = item.published_at || item.created_at
   // Headline subject (or admin-curated) vs. passing mention in the excerpt.
   // Tags are already scoped: on a stallion page only that stallion's tags
