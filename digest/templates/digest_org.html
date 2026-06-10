@@ -48,7 +48,7 @@
                             {% for s in stakes_ahead %}
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 10px;">
                                 <tr>
-                                    <td width="92" valign="top" style="font-size: 12px; font-weight: 700; color: {{ theme.accent_text }}; text-transform: uppercase; letter-spacing: 0.03em; padding-top: 2px;">
+                                    <td width="76" valign="top" style="font-size: 11px; font-weight: 700; color: {{ theme.accent_text }}; text-transform: uppercase; letter-spacing: 0.03em; padding-top: 2px;">
                                         {{ s.day_display }}
                                     </td>
                                     <td valign="top">
@@ -58,7 +58,7 @@
                                             {{ s.stakes_grade }}
                                         </span>
                                         {% endif %}
-                                        <span style="color: #94a3b8; font-size: 13px;"> &middot; {{ s.stallion_name }}</span>
+                                        <span style="color: #94a3b8; font-size: 13px;"> &middot;&nbsp;{{ s.stallion_name }}</span>
                                         <p style="margin: 2px 0 0 0; font-size: 13px; color: #64748b;">
                                             {% if s.race_url %}<a href="{{ s.race_url }}" style="color: #64748b; text-decoration: none;">{% if s.race_name %}{{ s.race_name }} &middot; {% endif %}{{ s.track }}</a>{% else %}{% if s.race_name %}{{ s.race_name }} &middot; {% endif %}{{ s.track }}{% endif %}
                                         </p>
