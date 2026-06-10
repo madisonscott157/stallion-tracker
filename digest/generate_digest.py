@@ -38,8 +38,7 @@ def get_entries_for_date(stallion: str, target_date: date) -> list:
     result = supabase.table('entries') \
         .select('''
             *,
-            horses!inner(name, sex, yob, dam, is_unnamed),
-            horses!inner(stallions!inner(name))
+            horses!inner(name, sex, yob, dam, is_unnamed, stallions!inner(name))
         ''') \
         .eq('race_date', target_date.isoformat()) \
         .eq('scratched', False) \
@@ -88,8 +87,7 @@ def get_results_for_date(stallion: str, target_date: date) -> list:
     result = supabase.table('results') \
         .select('''
             *,
-            horses!inner(name, sex, yob, dam),
-            horses!inner(stallions!inner(name))
+            horses!inner(name, sex, yob, dam, stallions!inner(name))
         ''') \
         .eq('race_date', target_date.isoformat()) \
         .execute()
@@ -126,6 +124,55 @@ def get_results_for_date(stallion: str, target_date: date) -> list:
     # Sort by finish position (winners first), then stakes
     results.sort(key=lambda x: (x['finish_position'], not x['is_stakes']))
     return results
+
+
+def get_news_for_stallion(stallion: str, since: date) -> list:
+    """Important news for a stallion since a date: articles where one of
+    the stallion's horses (or the stallion itself) is the headline
+    subject, plus admin-posted links. Passing mentions are excluded —
+    the email only carries what's worth interrupting someone for."""
+    stallion_row = supabase.table('stallions') \
+        .select('id') \
+        .ilike('name', stallion) \
+        .execute()
+    if not stallion_row.data:
+        return []
+    stallion_id = stallion_row.data[0]['id']
+
+    rows = supabase.table('news_item_tags') \
+        .select('''
+            in_headline,
+            horses(name),
+            news_items!inner(id, title, url, source, snippet, published_at, posted_by)
+        ''') \
+        .eq('stallion_id', stallion_id) \
+        .execute()
+
+    news = []
+    seen = set()
+    for row in rows.data or []:
+        item = row.get('news_items') or {}
+        if not item or item['id'] in seen:
+            continue
+        if not (row.get('in_headline') or item.get('posted_by')):
+            continue
+        published = (item.get('published_at') or '')[:10]
+        if not published or published < since.isoformat():
+            continue
+        seen.add(item['id'])
+        horse = row.get('horses') or {}
+        news.append({
+            'title': item['title'],
+            'url': item['url'],
+            'source': item['source'],
+            'snippet': item.get('snippet'),
+            'horse_name': horse.get('name'),
+            'published': published,
+            'is_posted': bool(item.get('posted_by')),
+        })
+
+    news.sort(key=lambda x: x['published'], reverse=True)
+    return news
 
 
 def get_ytd_stats(stallion: str) -> dict:
@@ -178,7 +225,8 @@ def format_ordinal(n: int) -> str:
 
 def generate_digest_html(stallion: str, digest_date: date,
                          entries_today: list, entries_tomorrow: list,
-                         results_yesterday: list, stats: dict) -> str:
+                         results_yesterday: list, stats: dict,
+                         news: list) -> str:
     """Generate the HTML content for the digest email."""
     template = jinja_env.get_template('digest.html')
 
@@ -190,6 +238,7 @@ def generate_digest_html(stallion: str, digest_date: date,
         entries_tomorrow=entries_tomorrow,
         results_yesterday=results_yesterday,
         stats=stats,
+        news=news,
         format_horse_desc=format_horse_desc,
         format_money=format_money,
         format_ordinal=format_ordinal,
@@ -239,6 +288,8 @@ def main():
     parser.add_argument('--stallion', type=str,
                        default=os.environ.get('DEFAULT_STALLION', 'McKinzie'),
                        help='Stallion name to generate digest for')
+    parser.add_argument('--news-days', type=int, default=2,
+                       help='Include headline news from the last N days (default 2)')
     args = parser.parse_args()
 
     stallion = args.stallion
@@ -246,21 +297,25 @@ def main():
     yesterday = today - timedelta(days=1)
     tomorrow = today + timedelta(days=1)
 
-    print(f"Generating digest for {stallion}...")
+    # Status goes to stderr so `--preview > digest.html` stays clean
+    log = lambda msg: print(msg, file=sys.stderr)
+    log(f"Generating digest for {stallion}...")
 
     # Fetch data
     entries_today = get_entries_for_date(stallion, today)
     entries_tomorrow = get_entries_for_date(stallion, tomorrow)
     results_yesterday = get_results_for_date(stallion, yesterday)
     stats = get_ytd_stats(stallion)
+    news = get_news_for_stallion(stallion, today - timedelta(days=args.news_days))
 
-    print(f"  Today's entries: {len(entries_today)}")
-    print(f"  Tomorrow's entries: {len(entries_tomorrow)}")
-    print(f"  Yesterday's results: {len(results_yesterday)}")
+    log(f"  Today's entries: {len(entries_today)}")
+    log(f"  Tomorrow's entries: {len(entries_tomorrow)}")
+    log(f"  Yesterday's results: {len(results_yesterday)}")
+    log(f"  News (last {args.news_days} days): {len(news)}")
 
     # Skip if nothing to report
-    if not entries_today and not results_yesterday:
-        print("No entries or results to report. Skipping digest.")
+    if not entries_today and not results_yesterday and not news:
+        log("No entries, results, or news to report. Skipping digest.")
         return
 
     # Generate HTML
@@ -271,6 +326,7 @@ def main():
         entries_tomorrow=entries_tomorrow,
         results_yesterday=results_yesterday,
         stats=stats,
+        news=news,
     )
 
     if args.preview:

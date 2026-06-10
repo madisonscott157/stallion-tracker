@@ -169,6 +169,37 @@
                     </tr>
                     {% endif %}
 
+                    {% if news %}
+                    <!-- News -->
+                    <tr>
+                        <td style="padding: 32px 32px 16px 32px; border-top: 1px solid #e2e8f0;">
+                            <h2 style="margin: 0 0 20px 0; font-size: 12px; font-weight: 600; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+                                NEWS
+                            </h2>
+
+                            {% for article in news %}
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px; border-left: 4px solid #b45309; padding-left: 16px;">
+                                <tr>
+                                    <td>
+                                        <a href="{{ article.url }}" style="font-size: 15px; font-weight: 600; color: #0f172a; text-decoration: none;">
+                                            {{ article.title }}
+                                        </a>
+                                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">
+                                            {{ article.source }}{% if article.horse_name %} &middot; {{ article.horse_name }}{% endif %}{% if article.is_posted %} &middot; Shared{% endif %}
+                                        </p>
+                                        {% if article.snippet %}
+                                        <p style="margin: 6px 0 0 0; font-size: 13px; color: #475569; line-height: 1.5;">
+                                            {{ article.snippet[:180] }}{% if article.snippet|length > 180 %}&hellip;{% endif %}
+                                        </p>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endif %}
+
                     <!-- Stats Summary -->
                     <tr>
                         <td style="padding: 32px; border-top: 1px solid #e2e8f0; background-color: #f8fafc;">
