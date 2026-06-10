@@ -21,6 +21,10 @@ export function NewsCard({ item, showStallionNames = false, onDelete }: NewsCard
   ) as string[]
   const chips = horseNames.length > 0 ? horseNames : (showStallionNames ? stallionNames : [])
   const when = item.published_at || item.created_at
+  // Headline subject (or admin-curated) vs. passing mention in the excerpt.
+  // Tags are already scoped: on a stallion page only that stallion's tags
+  // arrive, so "featured" reflects the stallion being viewed.
+  const featured = !!item.posted_by || item.tags.some(t => t.in_headline)
 
   return (
     <div className="relative">
@@ -29,6 +33,7 @@ export function NewsCard({ item, showStallionNames = false, onDelete }: NewsCard
         target="_blank"
         rel="noopener noreferrer"
         className="block bg-white border border-slate-200 rounded-lg px-3 py-2.5 sm:p-4 hover:border-slate-300 hover:shadow-sm transition-all card-hover"
+        style={featured ? { borderLeft: '3px solid var(--org-secondary, #64748b)' } : undefined}
       >
         <div className="flex gap-3">
           {item.image_url && !imageFailed && (
@@ -67,6 +72,11 @@ export function NewsCard({ item, showStallionNames = false, onDelete }: NewsCard
             )}
             {chips.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {!featured && (
+                  <span className="text-[11px] px-1.5 py-0.5 text-slate-400 italic">
+                    mentions
+                  </span>
+                )}
                 {chips.slice(0, 4).map(name => (
                   <span
                     key={name}

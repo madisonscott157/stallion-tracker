@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
       news_item_tags!inner (
         stallion_id,
         horse_id,
+        in_headline,
         stallions ( name ),
         horses ( name )
       )
@@ -75,6 +76,7 @@ export async function GET(request: NextRequest) {
       tags: (news_item_tags || []).map((t: any) => ({
         stallion_id: t.stallion_id,
         horse_id: t.horse_id,
+        in_headline: t.in_headline ?? false,
         stallion_name: t.stallions?.name ?? null,
         horse_name: t.horses?.name ?? null,
       })),

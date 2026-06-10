@@ -276,6 +276,7 @@ export interface StallionFeeHistory {
 export interface NewsTag {
   stallion_id: string
   horse_id: string | null
+  in_headline: boolean
   stallion_name: string | null
   horse_name: string | null
 }

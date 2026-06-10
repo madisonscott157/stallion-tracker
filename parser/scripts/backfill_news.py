@@ -86,7 +86,7 @@ def fetch_page(api_url: str, page: int) -> list[dict]:
     return resp.json()
 
 
-def insert_backfill_item(db: Database, source: str, fields: dict, matches) -> bool:
+def insert_backfill_item(db: Database, source: str, fields: dict, matches, headline_ids: set[str]) -> bool:
     row = {'title': fields['title'], 'url': fields['url'], 'source': source}
     for key in ('snippet', 'image_url', 'published_at'):
         if fields.get(key):
@@ -100,7 +100,12 @@ def insert_backfill_item(db: Database, source: str, fields: dict, matches) -> bo
             if pair in seen:
                 continue
             seen.add(pair)
-            tags.append({'news_item_id': item_id, 'stallion_id': horse.sire_id, 'horse_id': horse.id})
+            tags.append({
+                'news_item_id': item_id,
+                'stallion_id': horse.sire_id,
+                'horse_id': horse.id,
+                'in_headline': horse.id in headline_ids,
+            })
         db.client.from_('news_item_tags').insert(tags).execute()
         return True
     except Exception as exc:
@@ -147,7 +152,8 @@ def main():
                 matches = matcher.match(f"{fields['title']} {fields['snippet']}")
                 if matches:
                     counts['matched'] += 1
-                    matched.append((fields, matches))
+                    headline_ids = {h.id for h in matcher.match(fields['title'])}
+                    matched.append((fields, matches, headline_ids))
 
             if oldest and oldest < cutoff:
                 print(f'  reached cutoff on page {page} ({oldest.date()})')
@@ -157,20 +163,20 @@ def main():
         print(f'  {len(matched)} matched articles')
 
         if args.dry_run:
-            for fields, matches in matched:
-                via = ', '.join(h.name for h in matches)
+            for fields, matches, headline_ids in matched:
+                via = ', '.join(f'{h.name}★' if h.id in headline_ids else h.name for h in matches)
                 date = (fields['published_at'] or '')[:10]
                 print(f'  DRY  [{date}] "{fields["title"][:65]}" — via {via}')
             continue
 
-        dupes = existing_urls(db, [f['url'] for f, _ in matched])
-        for fields, matches in matched:
+        dupes = existing_urls(db, [f['url'] for f, _, _ in matched])
+        for fields, matches, headline_ids in matched:
             if fields['url'] in dupes:
                 counts['duplicate'] += 1
                 continue
-            if insert_backfill_item(db, source, fields, matches):
+            if insert_backfill_item(db, source, fields, matches, headline_ids):
                 counts['inserted'] += 1
-                via = ', '.join(h.name for h in matches)
+                via = ', '.join(f'{h.name}★' if h.id in headline_ids else h.name for h in matches)
                 print(f'  NEW  [{(fields["published_at"] or "")[:10]}] "{fields["title"][:65]}" — via {via}')
             else:
                 counts['error'] += 1

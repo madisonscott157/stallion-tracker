@@ -116,7 +116,8 @@ def existing_urls(db: Database, urls: list[str]) -> set[str]:
     return found
 
 
-def insert_item(db: Database, source: str, entry, matches: list[TrackedHorse]) -> bool:
+def insert_item(db: Database, source: str, entry, matches: list[TrackedHorse],
+                headline_ids: set[str]) -> bool:
     """Insert one article + its stallion tags. Returns True on success."""
     # Only include fields with actual values (Supabase null-hang gotcha)
     row = {
@@ -148,6 +149,7 @@ def insert_item(db: Database, source: str, entry, matches: list[TrackedHorse]) -
                 'news_item_id': item_id,
                 'stallion_id': horse.sire_id,
                 'horse_id': horse.id,
+                'in_headline': horse.id in headline_ids,
             })
         db.client.from_('news_item_tags').insert(tags).execute()
         return True
@@ -189,24 +191,26 @@ def main():
             matches = matcher.match(text)
             if matches:
                 counts['matched'] += 1
-                matched.append((entry, matches))
+                headline_ids = {h.id for h in matcher.match(title)}
+                matched.append((entry, matches, headline_ids))
 
         if not matched:
             continue
 
         dupes = set()
         if not args.dry_run:
-            dupes = existing_urls(db, [e.get('link') for e, _ in matched])
+            dupes = existing_urls(db, [e.get('link') for e, _, _ in matched])
 
-        for entry, matches in matched:
-            via = ', '.join(f'{h.name}' for h in matches)
+        for entry, matches, headline_ids in matched:
+            # ★ marks horses named in the headline, not just the excerpt
+            via = ', '.join(f'{h.name}★' if h.id in headline_ids else h.name for h in matches)
             if args.dry_run:
                 print(f'  DRY  "{entry.get("title", "").strip()[:70]}" — via {via}')
                 continue
             if entry.get('link') in dupes:
                 counts['duplicate'] += 1
                 continue
-            if insert_item(db, name, entry, matches):
+            if insert_item(db, name, entry, matches, headline_ids):
                 counts['inserted'] += 1
                 print(f'  NEW  "{entry.get("title", "").strip()[:70]}" — via {via}')
             else:
