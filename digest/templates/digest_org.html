@@ -9,7 +9,7 @@
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc;">
         <tr>
             <td align="center" style="padding: 20px 10px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
 
                     <!-- Header -->
                     <tr>
@@ -82,7 +82,7 @@
                                         </h2>
                                     </td>
                                     <td align="right" style="font-size: 12px; color: #94a3b8;">
-                                        {{ year }}: {{ block.stats.starters }} starters &middot; {{ block.stats.winners }} winners &middot; {{ format_money(block.stats.total_earnings or 0) }}
+                                        {{ year }}: {{ block.stats.starters }} starters &middot; {{ block.stats.winners }} winners{% if block.stats.total_earnings %} &middot; {{ format_money(block.stats.total_earnings) }}{% endif %}
                                     </td>
                                 </tr>
                             </table>

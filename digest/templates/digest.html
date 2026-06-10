@@ -9,7 +9,7 @@
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc;">
         <tr>
             <td align="center" style="padding: 20px 10px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
 
                     <!-- Header -->
                     <tr>
@@ -267,12 +267,13 @@
                                 &middot; Winners: <strong>{{ stats.winners }}</strong>
                                 &middot; Win%: <strong>{{ '%.1f' % (stats.win_pct or 0) }}%</strong>
                             </p>
+                            {% if stats.total_earnings or stats.stakes_winners %}
                             <p style="margin: 8px 0 0 0; font-size: 15px; color: #334155;">
-                                Earnings: <strong>{{ format_money(stats.total_earnings or 0) }}</strong>
-                                {% if stats.stakes_winners %}
-                                &middot; Stakes Winners: <strong>{{ stats.stakes_winners }}</strong>
-                                {% endif %}
+                                {% if stats.total_earnings %}Earnings: <strong>{{ format_money(stats.total_earnings) }}</strong>{% endif %}
+                                {% if stats.total_earnings and stats.stakes_winners %}&middot;{% endif %}
+                                {% if stats.stakes_winners %}Stakes Winners: <strong>{{ stats.stakes_winners }}</strong>{% endif %}
                             </p>
+                            {% endif %}
                         </td>
                     </tr>
 
