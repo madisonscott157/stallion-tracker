@@ -40,6 +40,37 @@
                         </td>
                     </tr>
 
+                    {% if stakes_ahead %}
+                    <!-- Stakes Ahead -->
+                    <tr>
+                        <td style="padding: 24px 32px; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                            <h2 style="margin: 0 0 14px 0; font-size: 12px; font-weight: 600; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+                                STAKES AHEAD &middot; NEXT 7 DAYS
+                            </h2>
+                            {% for s in stakes_ahead %}
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 10px;">
+                                <tr>
+                                    <td width="92" valign="top" style="font-size: 12px; font-weight: 700; color: {{ theme.accent_text }}; text-transform: uppercase; letter-spacing: 0.03em; padding-top: 2px;">
+                                        {{ s.day_display }}
+                                    </td>
+                                    <td valign="top">
+                                        <strong style="font-size: 15px; color: #0f172a;">{{ s.horse_name }}</strong>
+                                        {% if s.stakes_grade %}
+                                        <span style="display: inline-block; background-color: {{ theme.accent }}; color: {{ theme.badge_text }}; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: 1px;">
+                                            {{ s.stakes_grade }}
+                                        </span>
+                                        {% endif %}
+                                        <p style="margin: 2px 0 0 0; font-size: 13px; color: #64748b;">
+                                            {% if s.race_name %}{{ s.race_name }} &middot; {% endif %}{{ s.track }}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endif %}
+
                     {% if entries_today %}
                     <!-- Today's Entries -->
                     <tr>

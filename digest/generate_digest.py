@@ -137,6 +137,81 @@ def get_results_for_date(stallion: str, target_date: date) -> list:
     return results
 
 
+def get_stakes_ahead(stallion: str, start: date, end: date) -> list:
+    """Stakes entries in the date window — the advance-notice strip."""
+    result = supabase.table('entries') \
+        .select('''
+            race_date, post_time, track, race_number, race_name, stakes_grade,
+            horses!inner(name, dam, is_unnamed, stallions!inner(name))
+        ''') \
+        .eq('is_stakes', True) \
+        .eq('scratched', False) \
+        .gte('race_date', start.isoformat()) \
+        .lte('race_date', end.isoformat()) \
+        .order('race_date') \
+        .execute()
+
+    today = date.today()
+    stakes = []
+    for row in result.data or []:
+        horse = row.get('horses', {})
+        if (horse.get('stallions') or {}).get('name', '').lower() != stallion.lower():
+            continue
+        race_date = date.fromisoformat(row['race_date'])
+        if race_date == today:
+            day_display = 'Today'
+        elif race_date == today + timedelta(days=1):
+            day_display = 'Tomorrow'
+        else:
+            day_display = f'{race_date.strftime("%a %b")} {race_date.day}'
+        stakes.append({
+            'race_date': row['race_date'],
+            'day_display': day_display,
+            'horse_name': horse.get('name') or f"Unnamed ({horse.get('dam')})",
+            'stakes_grade': row.get('stakes_grade'),
+            'race_name': row.get('race_name'),
+            'track': format_track(row['track']),
+        })
+    return stakes
+
+
+def build_subject(stallion: str, today: date, results_yesterday: list,
+                  stakes_ahead: list, entries_today: list) -> str:
+    """Data-driven subject line: 'CONSTITUTION: 2 winners yesterday, G1
+    entry Saturday'. Falls back to the dated report title when there's
+    nothing punchy to say."""
+    parts = []
+
+    wins = sum(1 for r in results_yesterday if r['finish_position'] == 1)
+    if wins == 1:
+        parts.append('a winner yesterday')
+    elif wins > 1:
+        parts.append(f'{wins} winners yesterday')
+
+    if len(stakes_ahead) == 1:
+        s = stakes_ahead[0]
+        d = date.fromisoformat(s['race_date'])
+        dayword = ('today' if d == today
+                   else 'tomorrow' if d == today + timedelta(days=1)
+                   else d.strftime('%A'))
+        grade = s['stakes_grade']
+        parts.append(f'{grade} entry {dayword}' if grade else f'stakes entry {dayword}')
+    elif len(stakes_ahead) > 1:
+        graded = [s for s in stakes_ahead if s['stakes_grade']]
+        if graded:
+            parts.append(f'{len(stakes_ahead)} stakes entries ahead incl. {graded[0]["stakes_grade"]}')
+        else:
+            parts.append(f'{len(stakes_ahead)} stakes entries ahead')
+
+    if not parts and entries_today:
+        n = len(entries_today)
+        parts.append(f'{n} entries today' if n > 1 else '1 entry today')
+
+    if parts:
+        return f'{stallion.upper()}: {", ".join(parts[:2])}'
+    return f'{stallion.upper()} Progeny Report - {today.strftime("%B %d, %Y")}'
+
+
 def get_news_for_stallion(stallion: str, since: date) -> list:
     """Important news for a stallion since a date: articles where one of
     the stallion's horses (or the stallion itself) is the headline
@@ -217,6 +292,7 @@ DEFAULT_THEME = {
     'secondary': '#94a3b8',
     'accent': '#b45309',
     'badge_text': '#ffffff',
+    'accent_text': '#b45309',
     'silks_url': None,
 }
 
@@ -252,12 +328,15 @@ def get_org_theme(org_name: Optional[str]) -> dict:
     secondary = org.get('secondary_color') or DEFAULT_THEME['secondary']
     accent = DEFAULT_THEME['accent'] if _hex_luminance(secondary) > 230 else secondary
     badge_text = '#0f172a' if _hex_luminance(accent) > 160 else '#ffffff'
+    # Accent used as text on white needs to be dark enough to read
+    accent_text = accent if _hex_luminance(accent) < 160 else '#0f172a'
     return {
         'org_name': org['name'],
         'primary': primary,
         'secondary': secondary,
         'accent': accent,
         'badge_text': badge_text,
+        'accent_text': accent_text,
         'silks_url': org.get('silks_url'),
     }
 
@@ -315,11 +394,12 @@ def format_ordinal(n: int) -> str:
 def generate_digest_html(stallion: str, digest_date: date,
                          entries_today: list, entries_tomorrow: list,
                          results_yesterday: list, stats: dict,
-                         news: list, theme: dict) -> str:
+                         news: list, theme: dict, stakes_ahead: list) -> str:
     """Generate the HTML content for the digest email."""
     template = jinja_env.get_template('digest.html')
 
     return template.render(
+        stakes_ahead=stakes_ahead,
         stallion=stallion.upper(),
         date=digest_date.strftime('%B %d, %Y'),
         year=digest_date.year,
@@ -336,13 +416,11 @@ def generate_digest_html(stallion: str, digest_date: date,
     )
 
 
-def send_digest(html_content: str, stallion: str, digest_date: date, recipients: list[str]):
+def send_digest(html_content: str, subject: str, recipients: list[str]):
     """Send the digest email via Resend."""
     import resend
 
     resend.api_key = os.environ.get('RESEND_API_KEY')
-
-    subject = f"{stallion.upper()} Progeny Report - {digest_date.strftime('%B %d, %Y')}"
 
     try:
         resend.Emails.send({
@@ -400,16 +478,20 @@ def main():
     results_yesterday = get_results_for_date(stallion, yesterday)
     stats = get_ytd_stats(stallion)
     news = get_news_for_stallion(stallion, today - timedelta(days=args.news_days))
+    stakes_ahead = get_stakes_ahead(stallion, today, today + timedelta(days=7))
     theme = get_org_theme(args.org)
+    subject = build_subject(stallion, today, results_yesterday, stakes_ahead, entries_today)
 
     log(f"  Today's entries: {len(entries_today)}")
     log(f"  Tomorrow's entries: {len(entries_tomorrow)}")
     log(f"  Yesterday's results: {len(results_yesterday)}")
     log(f"  News (last {args.news_days} days): {len(news)}")
+    log(f"  Stakes ahead (7 days): {len(stakes_ahead)}")
+    log(f"  Subject: {subject}")
 
     # Skip if nothing to report
-    if not entries_today and not results_yesterday and not news:
-        log("No entries, results, or news to report. Skipping digest.")
+    if not entries_today and not results_yesterday and not news and not stakes_ahead:
+        log("No entries, results, news, or upcoming stakes. Skipping digest.")
         return
 
     # Generate HTML
@@ -422,6 +504,7 @@ def main():
         stats=stats,
         news=news,
         theme=theme,
+        stakes_ahead=stakes_ahead,
     )
 
     if args.preview:
@@ -437,11 +520,11 @@ def main():
 
     if args.dry_run:
         print(f"\nWould send digest to: {recipients}")
-        print(f"Subject: {stallion.upper()} Progeny Report - {today.strftime('%B %d, %Y')}")
+        print(f"Subject: {subject}")
         return
 
     # Send email
-    success = send_digest(html, stallion, today, recipients)
+    success = send_digest(html, subject, recipients)
 
     if success:
         # Log to database
