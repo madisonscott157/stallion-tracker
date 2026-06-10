@@ -53,6 +53,11 @@ def get_entries_for_date(stallion: str, target_date: date) -> list:
         if stallion_data.get('name', '').lower() != stallion.lower():
             continue
 
+        # Digests never include claiming races (explicit CLM/MCL only —
+        # untagged races pass, AOC counts as allowance, same as the web)
+        if row.get('race_type') in ('CLM', 'MCL'):
+            continue
+
         entries.append({
             'id': row['id'],
             'horse_name': horse.get('name') or f"Unnamed ({horse.get('dam')})",
@@ -99,6 +104,11 @@ def get_results_for_date(stallion: str, target_date: date) -> list:
 
         # Filter by stallion name
         if stallion_data.get('name', '').lower() != stallion.lower():
+            continue
+
+        # Digests never include claiming races (explicit CLM/MCL only —
+        # untagged races pass, AOC counts as allowance, same as the web)
+        if row.get('race_type') in ('CLM', 'MCL'):
             continue
 
         results.append({
