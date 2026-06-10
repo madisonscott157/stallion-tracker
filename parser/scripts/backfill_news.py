@@ -28,7 +28,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), os.p
 
 from db import Database
 from news_matcher import NewsMatcher
-from run_news_feed import USER_AGENT, SNIPPET_MAX, existing_urls, load_matcher
+from run_news_feed import (
+    USER_AGENT, SNIPPET_MAX, build_tags, existing_urls, load_matcher,
+    load_stallion_matcher,
+)
 
 SOURCES = [
     ('TDN', 'https://www.thoroughbreddailynews.com/wp-json/wp/v2/posts'),
@@ -86,7 +89,7 @@ def fetch_page(api_url: str, page: int) -> list[dict]:
     return resp.json()
 
 
-def insert_backfill_item(db: Database, source: str, fields: dict, matches, headline_ids: set[str]) -> bool:
+def insert_backfill_item(db: Database, source: str, fields: dict, tags: list[dict]) -> bool:
     row = {'title': fields['title'], 'url': fields['url'], 'source': source}
     for key in ('snippet', 'image_url', 'published_at'):
         if fields.get(key):
@@ -94,19 +97,9 @@ def insert_backfill_item(db: Database, source: str, fields: dict, matches, headl
     try:
         resp = db.client.from_('news_items').insert(row).execute()
         item_id = resp.data[0]['id']
-        tags, seen = [], set()
-        for horse in matches:
-            pair = (horse.sire_id, horse.id)
-            if pair in seen:
-                continue
-            seen.add(pair)
-            tags.append({
-                'news_item_id': item_id,
-                'stallion_id': horse.sire_id,
-                'horse_id': horse.id,
-                'in_headline': horse.id in headline_ids,
-            })
-        db.client.from_('news_item_tags').insert(tags).execute()
+        db.client.from_('news_item_tags').insert(
+            [{**t, 'news_item_id': item_id} for t in tags]
+        ).execute()
         return True
     except Exception as exc:
         print(f'  ERROR inserting "{row["title"][:60]}": {exc}')
@@ -124,7 +117,9 @@ def main():
 
     db = Database()
     matcher = load_matcher(db)
-    print(f'Matcher loaded: {matcher.eligible_count} eligible progeny names')
+    stallion_matcher = load_stallion_matcher(db)
+    print(f'Matcher loaded: {matcher.eligible_count} eligible progeny names, '
+          f'{stallion_matcher.eligible_count} stallion names')
     print(f'Walking archives back to {args.since}\n')
 
     counts = {'scanned': 0, 'matched': 0, 'inserted': 0, 'duplicate': 0, 'error': 0}
@@ -149,11 +144,11 @@ def main():
                     continue
                 if fields['published_at']:
                     oldest = datetime.fromisoformat(fields['published_at'])
-                matches = matcher.match(f"{fields['title']} {fields['snippet']}")
-                if matches:
+                text = f"{fields['title']} {fields['snippet']}"
+                tags, via = build_tags(matcher, stallion_matcher, fields['title'], text)
+                if tags:
                     counts['matched'] += 1
-                    headline_ids = {h.id for h in matcher.match(fields['title'])}
-                    matched.append((fields, matches, headline_ids))
+                    matched.append((fields, tags, via))
 
             if oldest and oldest < cutoff:
                 print(f'  reached cutoff on page {page} ({oldest.date()})')
@@ -163,20 +158,18 @@ def main():
         print(f'  {len(matched)} matched articles')
 
         if args.dry_run:
-            for fields, matches, headline_ids in matched:
-                via = ', '.join(f'{h.name}★' if h.id in headline_ids else h.name for h in matches)
+            for fields, tags, via in matched:
                 date = (fields['published_at'] or '')[:10]
                 print(f'  DRY  [{date}] "{fields["title"][:65]}" — via {via}')
             continue
 
         dupes = existing_urls(db, [f['url'] for f, _, _ in matched])
-        for fields, matches, headline_ids in matched:
+        for fields, tags, via in matched:
             if fields['url'] in dupes:
                 counts['duplicate'] += 1
                 continue
-            if insert_backfill_item(db, source, fields, matches, headline_ids):
+            if insert_backfill_item(db, source, fields, tags):
                 counts['inserted'] += 1
-                via = ', '.join(f'{h.name}★' if h.id in headline_ids else h.name for h in matches)
                 print(f'  NEW  [{(fields["published_at"] or "")[:10]}] "{fields["title"][:65]}" — via {via}')
             else:
                 counts['error'] += 1

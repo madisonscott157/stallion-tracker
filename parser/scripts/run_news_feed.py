@@ -58,6 +58,54 @@ def load_matcher(db: Database) -> NewsMatcher:
     return NewsMatcher(horses)
 
 
+def load_stallion_matcher(db: Database) -> NewsMatcher:
+    """Matcher over the stallions' own names, opted in per stallion via
+    stallions.news_name_match (migration 018). The usual safety gates
+    still apply on top — common-word names can't match regardless of the
+    flag. Returns an empty matcher if the column doesn't exist yet."""
+    try:
+        resp = (
+            db.client.from_('stallions')
+            .select('id, name')
+            .eq('news_name_match', True)
+            .execute()
+        )
+    except Exception as exc:
+        print(f'WARN stallion-name matching disabled (migration 018 not applied?): {exc}')
+        return NewsMatcher([])
+    return NewsMatcher([
+        TrackedHorse(id=row['id'], name=row['name'], sire_id=row['id'])
+        for row in (resp.data or [])
+        if row.get('name')
+    ])
+
+
+def build_tags(matcher: NewsMatcher, stallion_matcher: NewsMatcher, title: str, text: str):
+    """Match progeny and stallion names; return (tags, via) where tags are
+    news_item_tags rows (without news_item_id) and via is a display string.
+    Stallion-name tags are skipped when a progeny match already covers
+    that stallion. horse_id is omitted (not null) for stallion tags —
+    Supabase null-hang gotcha."""
+    horse_matches = matcher.match(text)
+    headline_horse = {h.id for h in matcher.match(title)}
+    covered = {h.sire_id for h in horse_matches}
+    sire_matches = [s for s in stallion_matcher.match(text) if s.id not in covered]
+    headline_sire = {s.id for s in stallion_matcher.match(title)}
+
+    tags, via, seen = [], [], set()
+    for h in horse_matches:
+        if (h.sire_id, h.id) in seen:
+            continue
+        seen.add((h.sire_id, h.id))
+        tags.append({'stallion_id': h.sire_id, 'horse_id': h.id,
+                     'in_headline': h.id in headline_horse})
+        via.append(f'{h.name}★' if h.id in headline_horse else h.name)
+    for s in sire_matches:
+        tags.append({'stallion_id': s.id, 'in_headline': s.id in headline_sire})
+        via.append(f'sire:{s.name}★' if s.id in headline_sire else f'sire:{s.name}')
+    return tags, ', '.join(via)
+
+
 def fetch_feed(name: str, url: str):
     """Fetch and parse one RSS feed. Returns feedparser entries ([] on error)."""
     try:
@@ -116,8 +164,7 @@ def existing_urls(db: Database, urls: list[str]) -> set[str]:
     return found
 
 
-def insert_item(db: Database, source: str, entry, matches: list[TrackedHorse],
-                headline_ids: set[str]) -> bool:
+def insert_item(db: Database, source: str, entry, tags: list[dict]) -> bool:
     """Insert one article + its stallion tags. Returns True on success."""
     # Only include fields with actual values (Supabase null-hang gotcha)
     row = {
@@ -138,20 +185,9 @@ def insert_item(db: Database, source: str, entry, matches: list[TrackedHorse],
     try:
         resp = db.client.from_('news_items').insert(row).execute()
         item_id = resp.data[0]['id']
-        tags = []
-        seen_pairs = set()
-        for horse in matches:
-            pair = (horse.sire_id, horse.id)
-            if pair in seen_pairs:
-                continue
-            seen_pairs.add(pair)
-            tags.append({
-                'news_item_id': item_id,
-                'stallion_id': horse.sire_id,
-                'horse_id': horse.id,
-                'in_headline': horse.id in headline_ids,
-            })
-        db.client.from_('news_item_tags').insert(tags).execute()
+        db.client.from_('news_item_tags').insert(
+            [{**t, 'news_item_id': item_id} for t in tags]
+        ).execute()
         return True
     except Exception as exc:
         print(f'  ERROR inserting "{row["title"][:60]}": {exc}')
@@ -166,7 +202,9 @@ def main():
 
     db = Database()
     matcher = load_matcher(db)
-    print(f'Matcher loaded: {matcher.eligible_count} eligible progeny names')
+    stallion_matcher = load_stallion_matcher(db)
+    print(f'Matcher loaded: {matcher.eligible_count} eligible progeny names, '
+          f'{stallion_matcher.eligible_count} stallion names')
 
     feeds = [(n, u) for n, u in FEEDS if not args.feed or n == args.feed]
     if not feeds:
@@ -188,11 +226,10 @@ def main():
             if not link or not title:
                 continue
             text = f'{title} {entry_snippet(entry)}'
-            matches = matcher.match(text)
-            if matches:
+            tags, via = build_tags(matcher, stallion_matcher, title, text)
+            if tags:
                 counts['matched'] += 1
-                headline_ids = {h.id for h in matcher.match(title)}
-                matched.append((entry, matches, headline_ids))
+                matched.append((entry, tags, via))
 
         if not matched:
             continue
@@ -201,16 +238,15 @@ def main():
         if not args.dry_run:
             dupes = existing_urls(db, [e.get('link') for e, _, _ in matched])
 
-        for entry, matches, headline_ids in matched:
-            # ★ marks horses named in the headline, not just the excerpt
-            via = ', '.join(f'{h.name}★' if h.id in headline_ids else h.name for h in matches)
+        # ★ marks names found in the headline, not just the excerpt
+        for entry, tags, via in matched:
             if args.dry_run:
                 print(f'  DRY  "{entry.get("title", "").strip()[:70]}" — via {via}')
                 continue
             if entry.get('link') in dupes:
                 counts['duplicate'] += 1
                 continue
-            if insert_item(db, name, entry, matches, headline_ids):
+            if insert_item(db, name, entry, tags):
                 counts['inserted'] += 1
                 print(f'  NEW  "{entry.get("title", "").strip()[:70]}" — via {via}')
             else:
