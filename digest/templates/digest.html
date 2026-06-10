@@ -61,7 +61,7 @@
                                         </span>
                                         {% endif %}
                                         <p style="margin: 2px 0 0 0; font-size: 13px; color: #64748b;">
-                                            {% if s.race_url %}<a href="{{ s.race_url }}" style="color: #64748b;">{% if s.race_name %}{{ s.race_name }} &middot; {% endif %}{{ s.track }}</a>{% else %}{% if s.race_name %}{{ s.race_name }} &middot; {% endif %}{{ s.track }}{% endif %}
+                                            {% if s.race_url %}<a href="{{ s.race_url }}" style="color: #64748b; text-decoration: none;">{% if s.race_name %}{{ s.race_name }} &middot; {% endif %}{{ s.track }}</a>{% else %}{% if s.race_name %}{{ s.race_name }} &middot; {% endif %}{{ s.track }}{% endif %}
                                         </p>
                                     </td>
                                 </tr>
@@ -107,7 +107,7 @@
 
                                         <!-- Race details -->
                                         <p style="margin: 8px 0 4px 0; font-size: 14px; color: #334155;">
-                                            {% if entry.race_url %}<a href="{{ entry.race_url }}" style="color: #334155;">{{ entry.track }} R{{ entry.race_number }}</a>{% else %}{{ entry.track }} R{{ entry.race_number }}{% endif %}
+                                            {% if entry.race_url %}<a href="{{ entry.race_url }}" style="color: #334155; text-decoration: none;">{{ entry.track }} R{{ entry.race_number }}</a>{% else %}{{ entry.track }} R{{ entry.race_number }}{% endif %}
                                             {% if entry.post_time %} &middot; {{ entry.post_time }} {{ entry.timezone }}{% endif %}
                                         </p>
                                         <p style="margin: 0; font-size: 13px; color: #64748b;">
@@ -143,7 +143,7 @@
                                 <tr>
                                     <td>
                                         {% if entry.profile_url %}<a href="{{ entry.profile_url }}" style="text-decoration: none;"><strong style="font-size: 15px; color: #0f172a;">{{ entry.horse_name }}</strong></a>{% else %}<strong style="font-size: 15px; color: #0f172a;">{{ entry.horse_name }}</strong>{% endif %}
-                                        <span style="color: #64748b; font-size: 13px;"> &middot; {% if entry.race_url %}<a href="{{ entry.race_url }}" style="color: #64748b;">{{ entry.track }} R{{ entry.race_number }}</a>{% else %}{{ entry.track }} R{{ entry.race_number }}{% endif %}</span>
+                                        <span style="color: #64748b; font-size: 13px;"> &middot; {% if entry.race_url %}<a href="{{ entry.race_url }}" style="color: #64748b; text-decoration: none;">{{ entry.track }} R{{ entry.race_number }}</a>{% else %}{{ entry.track }} R{{ entry.race_number }}{% endif %}</span>
                                     </td>
                                 </tr>
                             </table>
@@ -197,7 +197,7 @@
 
                                         <!-- Race details -->
                                         <p style="margin: 8px 0 4px 0; font-size: 14px; color: #334155;">
-                                            {% if result.chart_url %}<a href="{{ result.chart_url }}" style="color: #334155;">{{ result.track }} R{{ result.race_number }}</a>{% else %}{{ result.track }} R{{ result.race_number }}{% endif %}
+                                            {% if result.chart_url %}<a href="{{ result.chart_url }}" style="color: #334155; text-decoration: none;">{{ result.track }} R{{ result.race_number }}</a>{% else %}{{ result.track }} R{{ result.race_number }}{% endif %}
                                             &middot; {{ result.race_type }}{% if result.purse %} ${{ '{:,}'.format(result.purse) }}{% endif %}
                                         </p>
 
