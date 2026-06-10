@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ org }} Daily Digest</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc; color: #0f172a;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc;">
+        <tr>
+            <td align="center" style="padding: 20px 10px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: {{ theme.primary }}; padding: 24px 32px;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td>
+                                        <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: {{ theme.secondary }}; letter-spacing: 0.15em; text-transform: uppercase;">
+                                            DAILY DIGEST
+                                        </p>
+                                        <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #ffffff; letter-spacing: 0.05em;">
+                                            {{ org }}
+                                        </h1>
+                                        <p style="margin: 8px 0 0 0; font-size: 14px; color: {{ theme.secondary }};">
+                                            {{ date }}
+                                        </p>
+                                    </td>
+                                    {% if theme.silks_url %}
+                                    <td align="right" valign="middle" width="80">
+                                        <img src="{{ theme.silks_url }}" width="64" height="64" alt="{{ theme.org_name }} silks"
+                                             style="display: block; border-radius: 8px; object-fit: cover;">
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    {% if stakes_ahead %}
+                    <!-- Stakes Ahead (all stallions) -->
+                    <tr>
+                        <td style="padding: 24px 32px; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                            <h2 style="margin: 0 0 14px 0; font-size: 12px; font-weight: 600; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+                                STAKES AHEAD
+                            </h2>
+                            {% for s in stakes_ahead %}
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 10px;">
+                                <tr>
+                                    <td width="92" valign="top" style="font-size: 12px; font-weight: 700; color: {{ theme.accent_text }}; text-transform: uppercase; letter-spacing: 0.03em; padding-top: 2px;">
+                                        {{ s.day_display }}
+                                    </td>
+                                    <td valign="top">
+                                        {% if s.profile_url %}<a href="{{ s.profile_url }}" style="text-decoration: none;"><strong style="font-size: 15px; color: #0f172a;">{{ s.horse_name }}</strong></a>{% else %}<strong style="font-size: 15px; color: #0f172a;">{{ s.horse_name }}</strong>{% endif %}
+                                        {% if s.stakes_grade %}
+                                        <span style="display: inline-block; background-color: {{ theme.accent }}; color: {{ theme.badge_text }}; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: 1px;">
+                                            {{ s.stakes_grade }}
+                                        </span>
+                                        {% endif %}
+                                        <span style="color: #94a3b8; font-size: 13px;"> &middot; {{ s.stallion_name }}</span>
+                                        <p style="margin: 2px 0 0 0; font-size: 13px; color: #64748b;">
+                                            {% if s.race_url %}<a href="{{ s.race_url }}" style="color: #64748b; text-decoration: none;">{% if s.race_name %}{{ s.race_name }} &middot; {% endif %}{{ s.track }}</a>{% else %}{% if s.race_name %}{{ s.race_name }} &middot; {% endif %}{{ s.track }}{% endif %}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% for block in blocks %}
+                    <!-- {{ block.stallion }} section -->
+                    <tr>
+                        <td style="padding: 28px 32px 0 32px;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-bottom: 2px solid {{ theme.primary }}; padding-bottom: 8px; margin-bottom: 18px;">
+                                <tr>
+                                    <td>
+                                        <h2 style="margin: 0; font-size: 17px; font-weight: 700; color: {{ theme.primary }}; letter-spacing: 0.05em; text-transform: uppercase;">
+                                            {{ block.stallion }}
+                                        </h2>
+                                    </td>
+                                    <td align="right" style="font-size: 12px; color: #94a3b8;">
+                                        {{ year }}: {{ block.stats.starters }} starters &middot; {{ block.stats.winners }} winners &middot; {{ format_money(block.stats.total_earnings or 0) }}
+                                    </td>
+                                </tr>
+                            </table>
+
+                            {% if block.entries_today %}
+                            <h3 style="margin: 14px 0 12px 0; font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+                                TODAY'S ENTRIES
+                            </h3>
+                            {% for entry in block.entries_today %}
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 14px; {% if entry.is_stakes %}border-left: 4px solid {{ theme.accent }};{% else %}border-left: 4px solid #e2e8f0;{% endif %} padding-left: 16px;">
+                                <tr>
+                                    <td>
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                            <tr>
+                                                <td>
+                                                    {% if entry.stakes_grade %}
+                                                    <span style="display: inline-block; background-color: {{ theme.accent }}; color: {{ theme.badge_text }}; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-right: 8px;">
+                                                        {{ entry.stakes_grade }}
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if entry.profile_url %}<a href="{{ entry.profile_url }}" style="text-decoration: none;"><strong style="font-size: 15px; color: #0f172a;">{{ entry.horse_name }}</strong></a>{% else %}<strong style="font-size: 15px; color: #0f172a;">{{ entry.horse_name }}</strong>{% endif %}
+                                                    {% if entry.sex or entry.yob %}
+                                                    <span style="color: #64748b; font-size: 13px;"> ({{ format_horse_desc(entry.sex, entry.yob) }})</span>
+                                                    {% endif %}
+                                                </td>
+                                                {% if entry.morning_line %}
+                                                <td align="right" style="font-size: 14px; font-weight: 500; color: #475569;">
+                                                    {{ entry.morning_line }}
+                                                </td>
+                                                {% endif %}
+                                            </tr>
+                                        </table>
+                                        <p style="margin: 6px 0 2px 0; font-size: 13px; color: #334155;">
+                                            {% if entry.race_url %}<a href="{{ entry.race_url }}" style="color: #334155; text-decoration: none;">{{ entry.track }} R{{ entry.race_number }}</a>{% else %}{{ entry.track }} R{{ entry.race_number }}{% endif %}
+                                            {% if entry.post_time %} &middot; {{ entry.post_time }} {{ entry.timezone }}{% endif %}
+                                        </p>
+                                        <p style="margin: 0; font-size: 12px; color: #64748b;">
+                                            {{ entry.race_type }}{% if entry.purse %} ${{ '{:,}'.format(entry.purse) }}{% endif %}{% if entry.distance %} &middot; {{ entry.distance }}{% endif %}{% if entry.surface %} &middot; {{ entry.surface }}{% endif %}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endfor %}
+                            {% endif %}
+
+                            {% if block.entries_tomorrow %}
+                            <h3 style="margin: 14px 0 12px 0; font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+                                TOMORROW
+                            </h3>
+                            {% for entry in block.entries_tomorrow %}
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 8px; border-left: 4px solid #e2e8f0; padding-left: 16px;">
+                                <tr>
+                                    <td>
+                                        {% if entry.profile_url %}<a href="{{ entry.profile_url }}" style="text-decoration: none;"><strong style="font-size: 14px; color: #0f172a;">{{ entry.horse_name }}</strong></a>{% else %}<strong style="font-size: 14px; color: #0f172a;">{{ entry.horse_name }}</strong>{% endif %}
+                                        <span style="color: #64748b; font-size: 13px;"> &middot; {% if entry.race_url %}<a href="{{ entry.race_url }}" style="color: #64748b; text-decoration: none;">{{ entry.track }} R{{ entry.race_number }}</a>{% else %}{{ entry.track }} R{{ entry.race_number }}{% endif %}</span>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endfor %}
+                            {% endif %}
+
+                            {% if block.results_yesterday %}
+                            <h3 style="margin: 14px 0 12px 0; font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+                                YESTERDAY'S RESULTS
+                            </h3>
+                            {% for result in block.results_yesterday %}
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 14px; {% if result.is_stakes %}border-left: 4px solid {{ theme.accent }};{% else %}border-left: 4px solid #e2e8f0;{% endif %} padding-left: 16px;">
+                                <tr>
+                                    <td>
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                            <tr>
+                                                <td>
+                                                    {% if result.stakes_grade %}
+                                                    <span style="display: inline-block; background-color: {{ theme.accent }}; color: {{ theme.badge_text }}; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-right: 8px;">
+                                                        {{ result.stakes_grade }}
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if result.finish_position == 1 %}
+                                                    <span style="display: inline-block; background-color: #15803d; color: #ffffff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-right: 8px;">
+                                                        WIN
+                                                    </span>
+                                                    {% else %}
+                                                    <span style="display: inline-block; color: #64748b; font-size: 13px; font-weight: 500; margin-right: 8px;">
+                                                        {{ format_ordinal(result.finish_position) }}
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if result.profile_url %}<a href="{{ result.profile_url }}" style="text-decoration: none;"><strong style="font-size: 15px; color: #0f172a;">{{ result.horse_name }}</strong></a>{% else %}<strong style="font-size: 15px; color: #0f172a;">{{ result.horse_name }}</strong>{% endif %}
+                                                    {% if result.sex or result.yob %}
+                                                    <span style="color: #64748b; font-size: 13px;"> ({{ format_horse_desc(result.sex, result.yob) }})</span>
+                                                    {% endif %}
+                                                </td>
+                                                {% if result.odds %}
+                                                <td align="right" style="font-size: 13px; color: #64748b;">
+                                                    {{ result.odds }}
+                                                </td>
+                                                {% endif %}
+                                            </tr>
+                                        </table>
+                                        <p style="margin: 6px 0 2px 0; font-size: 13px; color: #334155;">
+                                            {% if result.chart_url %}<a href="{{ result.chart_url }}" style="color: #334155; text-decoration: none;">{{ result.track }} R{{ result.race_number }}</a>{% else %}{{ result.track }} R{{ result.race_number }}{% endif %}
+                                            &middot; {{ result.race_type }}{% if result.purse %} ${{ '{:,}'.format(result.purse) }}{% endif %}
+                                        </p>
+                                        <p style="margin: 0; font-size: 12px; color: #64748b;">
+                                            {% if result.finish_position == 1 and result.win_margin %}
+                                            <span style="color: #15803d;">Won by {{ result.win_margin }}</span>
+                                            {% elif result.beaten_lengths %}
+                                            Beaten {{ result.beaten_lengths }}
+                                            {% endif %}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endfor %}
+                            {% endif %}
+
+                            {% if block.news %}
+                            <h3 style="margin: 14px 0 12px 0; font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+                                NEWS
+                            </h3>
+                            {% for article in block.news %}
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 14px; border-left: 4px solid {{ theme.accent }}; padding-left: 16px;">
+                                <tr>
+                                    <td valign="top">
+                                        <a href="{{ article.url }}" style="font-size: 14px; font-weight: 600; color: #0f172a; text-decoration: none;">
+                                            {{ article.title }}
+                                        </a>
+                                        <p style="margin: 4px 0 0 0; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">
+                                            {{ article.source }} &middot; {{ article.published_display }}{% if article.horse_name %} &middot; {{ article.horse_name }}{% endif %}{% if article.is_posted %} &middot; Shared{% endif %}
+                                        </p>
+                                        {% if article.snippet %}
+                                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #475569; line-height: 1.5;">
+                                            {{ article.snippet[:150] }}{% if article.snippet|length > 150 %}&hellip;{% endif %}
+                                        </p>
+                                        {% endif %}
+                                    </td>
+                                    {% if article.image_url %}
+                                    <td valign="top" align="right" width="80" style="padding-left: 12px;">
+                                        <a href="{{ article.url }}">
+                                            <img src="{{ article.image_url }}" width="68" height="68" alt=""
+                                                 style="display: block; border-radius: 6px; object-fit: cover;">
+                                        </a>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                            </table>
+                            {% endfor %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    <!-- Dashboard button -->
+                    <tr>
+                        <td align="center" style="padding: 28px 32px; background-color: #f8fafc; border-top: 1px solid #e2e8f0;">
+                            <a href="{{ dashboard_url }}" style="display: inline-block; background-color: {{ theme.primary }}; color: #ffffff; font-size: 14px; font-weight: 600; padding: 12px 32px; border-radius: 6px; text-decoration: none; letter-spacing: 0.02em;">
+                                Open Dashboard
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px 32px; background-color: {{ theme.primary }};">
+                            <p style="margin: 0; font-size: 12px; color: {{ theme.secondary }}; text-align: center;">
+                                {% if theme.org_name %}{{ theme.org_name }} &middot; {% endif %}Stallion Tracker
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

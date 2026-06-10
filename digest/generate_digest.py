@@ -244,6 +244,39 @@ def build_subject(stallion: str, today: date, results_yesterday: list,
     return f'{stallion.upper()} Progeny Report - {today.strftime("%B %d, %Y")}'
 
 
+def get_org_stallions(org_name: str) -> list[str]:
+    """Stallion names linked to an organization, alphabetical."""
+    rows = supabase.table('organization_stallions') \
+        .select('stallions(name), organizations!inner(name)') \
+        .ilike('organizations.name', org_name) \
+        .execute()
+    names = {
+        (r.get('stallions') or {}).get('name')
+        for r in rows.data or []
+    }
+    return sorted(n for n in names if n)
+
+
+def build_org_subject(org_name: str, today: date, total_wins: int,
+                      stakes_ahead: list) -> str:
+    """Org-level subject: 'SOLIS/LITT: 3 winners yesterday, 9 stakes entries ahead'."""
+    parts = []
+    if total_wins == 1:
+        parts.append('a winner yesterday')
+    elif total_wins > 1:
+        parts.append(f'{total_wins} winners yesterday')
+    if stakes_ahead:
+        graded = [s for s in stakes_ahead if s['stakes_grade']]
+        n = len(stakes_ahead)
+        label = f'{n} stakes entries ahead' if n > 1 else '1 stakes entry ahead'
+        if graded:
+            label += f' incl. {graded[0]["stakes_grade"]}'
+        parts.append(label)
+    if parts:
+        return f'{org_name.upper()}: {", ".join(parts[:2])}'
+    return f'{org_name} Daily Digest - {today.strftime("%B %d, %Y")}'
+
+
 def get_news_for_stallion(stallion: str, since: date) -> list:
     """Important news for a stallion since a date: articles where one of
     the stallion's horses (or the stallion itself) is the headline
@@ -480,6 +513,87 @@ def log_digest(stallion_id: str, recipients: list[str],
     }).execute()
 
 
+def run_combined(args) -> None:
+    """One email per org per day: merged Stakes Ahead across the org's
+    stallions, then a section per stallion with that day's activity.
+    Stallions with nothing to report are omitted."""
+    log = lambda msg: print(msg, file=sys.stderr)
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    tomorrow = today + timedelta(days=1)
+
+    stallions = get_org_stallions(args.org)
+    if not stallions:
+        log(f"No stallions linked to org '{args.org}'.")
+        return
+    log(f'Combined digest for {args.org}: {", ".join(stallions)}')
+
+    blocks = []
+    all_stakes = []
+    total_wins = 0
+    for name in stallions:
+        entries_today = get_entries_for_date(name, today)
+        entries_tomorrow = get_entries_for_date(name, tomorrow)
+        results_yesterday = get_results_for_date(name, yesterday)
+        news = get_news_for_stallion(name, today - timedelta(days=args.news_days))
+        stakes = get_stakes_ahead(name, today, today + timedelta(days=7))
+        for s in stakes:
+            s['stallion_name'] = name
+        all_stakes.extend(stakes)
+        total_wins += sum(1 for r in results_yesterday if r['finish_position'] == 1)
+        if entries_today or entries_tomorrow or results_yesterday or news:
+            blocks.append({
+                'stallion': name,
+                'entries_today': entries_today,
+                'entries_tomorrow': entries_tomorrow,
+                'results_yesterday': results_yesterday,
+                'news': news,
+                'stats': get_ytd_stats(name),
+            })
+        log(f'  {name}: {len(entries_today)} today, {len(entries_tomorrow)} tomorrow, '
+            f'{len(results_yesterday)} results, {len(news)} news, {len(stakes)} stakes ahead')
+
+    all_stakes.sort(key=lambda s: s['race_date'])
+    subject = build_org_subject(args.org, today, total_wins, all_stakes)
+    log(f'  Subject: {subject}')
+
+    if not blocks and not all_stakes:
+        log('Nothing to report for this org. Skipping digest.')
+        return
+
+    theme = get_org_theme(args.org)
+    template = jinja_env.get_template('digest_org.html')
+    html = template.render(
+        org=args.org.upper(),
+        date=today.strftime('%B %d, %Y'),
+        year=today.year,
+        stakes_ahead=all_stakes,
+        blocks=blocks,
+        theme=theme,
+        dashboard_url=DASHBOARD_URL,
+        format_horse_desc=format_horse_desc,
+        format_money=format_money,
+        format_ordinal=format_ordinal,
+    )
+
+    if args.preview:
+        print(html)
+        return
+
+    recipients = os.environ.get('DIGEST_RECIPIENTS', '').split(',')
+    recipients = [r.strip() for r in recipients if r.strip()]
+    if not recipients:
+        log('No recipients configured. Set DIGEST_RECIPIENTS env var.')
+        return
+
+    if args.dry_run:
+        print(f'\nWould send digest to: {recipients}')
+        print(f'Subject: {subject}')
+        return
+
+    send_digest(html, subject, recipients)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Generate and send daily digest')
     parser.add_argument('--preview', action='store_true',
@@ -493,7 +607,16 @@ def main():
                        help='Include headline news from the last N days (default 2)')
     parser.add_argument('--org', type=str, default=None,
                        help='Organization name to theme the email for (colors + silks)')
+    parser.add_argument('--combined', action='store_true',
+                       help='One email covering all of the org\'s stallions (requires --org)')
     args = parser.parse_args()
+
+    if args.combined:
+        if not args.org:
+            print('--combined requires --org', file=sys.stderr)
+            sys.exit(1)
+        run_combined(args)
+        return
 
     stallion = args.stallion
     today = date.today()
