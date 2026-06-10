@@ -427,6 +427,13 @@ def format_track(track: Optional[str]) -> Optional[str]:
     return re.sub(r'[A-Za-z]+', lambda m: m.group(0).capitalize(), track.lower())
 
 
+def compact_html(html: str) -> str:
+    """Strip template indentation. Browsers collapse the remaining newline
+    to a single space, so rendering is identical — but it keeps busy
+    multi-stallion digests under Gmail's ~102KB clipping threshold."""
+    return re.sub(r'\n[ \t]+', '\n', html)
+
+
 def format_horse_desc(sex: Optional[str], yob: Optional[int]) -> str:
     """Format horse description like 'c, 3'."""
     current_year = date.today().year
@@ -463,7 +470,7 @@ def generate_digest_html(stallion: str, digest_date: date,
     """Generate the HTML content for the digest email."""
     template = jinja_env.get_template('digest.html')
 
-    return template.render(
+    return compact_html(template.render(
         stakes_ahead=stakes_ahead,
         stallion=stallion.upper(),
         date=digest_date.strftime('%B %d, %Y'),
@@ -478,7 +485,7 @@ def generate_digest_html(stallion: str, digest_date: date,
         format_horse_desc=format_horse_desc,
         format_money=format_money,
         format_ordinal=format_ordinal,
-    )
+    ))
 
 
 def send_digest(html_content: str, subject: str, recipients: list[str]):
@@ -563,7 +570,7 @@ def run_combined(args) -> None:
 
     theme = get_org_theme(args.org)
     template = jinja_env.get_template('digest_org.html')
-    html = template.render(
+    html = compact_html(template.render(
         org=args.org.upper(),
         date=today.strftime('%B %d, %Y'),
         year=today.year,
@@ -574,7 +581,7 @@ def run_combined(args) -> None:
         format_horse_desc=format_horse_desc,
         format_money=format_money,
         format_ordinal=format_ordinal,
-    )
+    ))
 
     if args.preview:
         print(html)
