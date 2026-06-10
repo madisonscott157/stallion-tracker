@@ -156,6 +156,14 @@ Dirt, Turf, AWT (Tapeta/Polytrack/synthetic all map to AWT).
 - Org theme matching for PDF: checks report label for org name words, then falls back to report's org_id, then user's org
 - Service role key needed for cross-org theme fetch: checks both `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_SERVICE_KEY`
 
+### News Feed
+- Tables: `news_items` (URL-deduped articles) + `news_item_tags` (stallion_id, nullable horse_id). Migration: `016_news_feed.sql`. RLS via org→stallion linkage.
+- Ingestion: `parser/scripts/run_news_feed.py` pulls racing-outlet RSS (TDN, TDN Europe, ABR, Racing Biz) every 3h via `.github/workflows/news-feed.yml`. Always check changes with `--dry-run` first.
+- Matching (`parser/news_matcher.py`): **progeny names only, never stallion names** (too ambiguous — Idol, Constitution). Multi-word names match case-insensitively; single-word names must not be common English words (system dict + STOPLIST), must match registered capitalization, and must not precede another capitalized word ("Twirling" ≠ "Twirling Candy").
+- Paulick Report and BloodHorse are bot-protected (Incapsula) — no usable RSS.
+- UI: News tab on stallion pages (`NewsSection`), `/dashboard/news` overall feed + admin "Post a link" form (OG metadata fetched server-side in `/api/news` POST), `NewsTeaser` on dashboard (self-gates).
+- Manual posts: admin-only, tagged to stallions directly (horse_id NULL), deletable via card trash icon.
+
 ### Environment Variables
 See `.env.example` for full list. Key vars: `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_ANON_KEY`, `TRACKED_STALLIONS`.
 

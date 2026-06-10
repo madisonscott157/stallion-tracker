@@ -272,3 +272,23 @@ export interface StallionFeeHistory {
   mares_bred: number | null
   standing_at: string | null
 }
+
+export interface NewsTag {
+  stallion_id: string
+  horse_id: string | null
+  stallion_name: string | null
+  horse_name: string | null
+}
+
+export interface NewsItem {
+  id: string
+  title: string
+  url: string
+  source: string
+  snippet: string | null
+  image_url: string | null
+  published_at: string | null
+  posted_by: string | null
+  created_at: string
+  tags: NewsTag[]
+}

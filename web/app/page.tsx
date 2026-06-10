@@ -12,6 +12,7 @@ import { WorkoutsSection } from '@/components/WorkoutsSection'
 import { SireRankingsTable } from '@/components/SireRankingsTable'
 import { EquinelineSection } from '@/components/EquinelineSection'
 import { FeeHistoryTable } from '@/components/FeeHistoryTable'
+import { NewsSection } from '@/components/NewsSection'
 import dynamic from 'next/dynamic'
 
 const ExportModal = dynamic(() => import('@/components/ExportModal').then(mod => ({ default: mod.ExportModal })), { ssr: false })
@@ -51,7 +52,7 @@ function HomeContent() {
   const [stallion, setStallion] = useState<string>('Loading...')
   const { profile, isLoading: authLoading, allOrgsWithSilks, isAdmin } = useAuth()
   const showRaceActivity = profile?.organization?.show_race_activity !== false
-  const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats' | 'sales' | 'history'>(
+  const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'stats' | 'sales' | 'history' | 'news'>(
     showRaceActivity ? 'overview' : 'stats'
   )
   const router = useRouter()
@@ -75,7 +76,7 @@ function HomeContent() {
 
   // Apply ?tab= deep link, honoring the org's show_race_activity flag
   useEffect(() => {
-    const valid = ['overview', 'results', 'stats', 'sales'] as const
+    const valid = ['overview', 'results', 'stats', 'sales', 'news'] as const
     type Tab = typeof valid[number]
     if (tabParam && (valid as readonly string[]).includes(tabParam)) {
       const target = tabParam as Tab
@@ -367,6 +368,15 @@ function HomeContent() {
               </div>
             )}
 
+            {/* News Tab */}
+            {activeTab === 'news' && (
+              <div key="news" className="tab-content-enter">
+                <div className="max-w-3xl mx-auto">
+                  <NewsSection stallionId={stallionId} />
+                </div>
+              </div>
+            )}
+
             {/* History Tab */}
             {activeTab === 'history' && (
               <div key="history" className="tab-content-enter">
@@ -394,7 +404,7 @@ function HomeContent() {
         aria-label="Main navigation"
       >
         <div className="flex justify-around text-xs sm:text-sm max-w-5xl mx-auto" role="tablist">
-          {(['overview', 'results', 'stats', 'sales', 'history'] as const)
+          {(['overview', 'results', 'news', 'stats', 'sales', 'history'] as const)
             .filter(tab => showRaceActivity || (tab !== 'overview' && tab !== 'results'))
             .map((tab) => (
             <button

@@ -12,6 +12,7 @@ import { StakesToggle } from '@/components/StakesToggle'
 import { readToggle } from '@/lib/toggle-storage'
 import { useAuth } from '@/lib/auth-context'
 import { EmptyState } from '@/components/EmptyState'
+import { NewsTeaser } from '@/components/NewsTeaser'
 import type { Entry, Result } from '@/lib/supabase'
 
 interface StallionSummary {
@@ -245,6 +246,9 @@ function DashboardContent() {
                 </section>
               </>
             )}
+
+            {/* Latest News (self-gates until news exists) */}
+            <NewsTeaser />
           </>
         )}
       </main>

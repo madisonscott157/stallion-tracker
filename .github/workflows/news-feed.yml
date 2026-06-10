@@ -1,0 +1,40 @@
+# News feed ingestion — pulls racing-outlet RSS feeds and matches
+# articles against tracked progeny names. See parser/scripts/run_news_feed.py.
+
+name: News feed
+
+on:
+  schedule:
+    # Every 3 hours, offset from the other crons
+    - cron: '20 */3 * * *'
+  workflow_dispatch:
+
+jobs:
+  news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # news_matcher.py uses /usr/share/dict/words to filter common-English
+      # single-word horse names out of matching
+      - name: Install English dictionary
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq wamerican
+
+      - name: Install dependencies
+        working-directory: ./parser
+        run: pip install -r requirements.txt
+
+      - name: Ingest news feeds
+        working-directory: ./parser
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python3 scripts/run_news_feed.py

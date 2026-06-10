@@ -64,6 +64,20 @@ export function formatShortDate(dateStr: string, fullYear = false): string {
   return `${parseInt(m)}/${parseInt(day)}/${fullYear ? y : y.slice(2)}`
 }
 
+// Relative time for news timestamps: "3h ago", "2d ago", then short dates
+export function timeAgo(isoStr: string): string {
+  const then = new Date(isoStr).getTime()
+  if (isNaN(then)) return ''
+  const mins = Math.floor((Date.now() - then) / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return new Date(isoStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 export function isToday(dateStr: string): boolean {
   const date = new Date(dateStr + 'T00:00:00')
   const today = new Date()
