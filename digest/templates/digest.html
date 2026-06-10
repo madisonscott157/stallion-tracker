@@ -13,13 +13,30 @@
 
                     <!-- Header -->
                     <tr>
-                        <td style="background-color: #0f172a; padding: 24px 32px;">
-                            <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #ffffff; letter-spacing: 0.05em;">
-                                {{ stallion }} PROGENY REPORT
-                            </h1>
-                            <p style="margin: 8px 0 0 0; font-size: 14px; color: #94a3b8;">
-                                {{ date }}
-                            </p>
+                        <td style="background-color: {{ theme.primary }}; padding: 24px 32px;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td>
+                                        {% if theme.org_name %}
+                                        <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: {{ theme.secondary }}; letter-spacing: 0.15em; text-transform: uppercase;">
+                                            {{ theme.org_name }}
+                                        </p>
+                                        {% endif %}
+                                        <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #ffffff; letter-spacing: 0.05em;">
+                                            {{ stallion }} PROGENY REPORT
+                                        </h1>
+                                        <p style="margin: 8px 0 0 0; font-size: 14px; color: {{ theme.secondary }};">
+                                            {{ date }}
+                                        </p>
+                                    </td>
+                                    {% if theme.silks_url %}
+                                    <td align="right" valign="middle" width="80">
+                                        <img src="{{ theme.silks_url }}" width="64" height="64" alt="{{ theme.org_name }} silks"
+                                             style="display: block; border-radius: 8px; border: 2px solid rgba(255,255,255,0.35); object-fit: cover;">
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                            </table>
                         </td>
                     </tr>
 
@@ -32,7 +49,7 @@
                             </h2>
 
                             {% for entry in entries_today %}
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px; {% if entry.is_stakes %}border-left: 4px solid #b45309;{% else %}border-left: 4px solid #e2e8f0;{% endif %} padding-left: 16px;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px; {% if entry.is_stakes %}border-left: 4px solid {{ theme.accent }};{% else %}border-left: 4px solid #e2e8f0;{% endif %} padding-left: 16px;">
                                 <tr>
                                     <td>
                                         <!-- Horse name and stakes badge -->
@@ -40,7 +57,7 @@
                                             <tr>
                                                 <td>
                                                     {% if entry.stakes_grade %}
-                                                    <span style="display: inline-block; background-color: #b45309; color: #ffffff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-right: 8px;">
+                                                    <span style="display: inline-block; background-color: {{ theme.accent }}; color: {{ theme.badge_text }}; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-right: 8px;">
                                                         {{ entry.stakes_grade }}
                                                     </span>
                                                     {% endif %}
@@ -113,7 +130,7 @@
                             </h2>
 
                             {% for result in results_yesterday %}
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px; {% if result.is_stakes %}border-left: 4px solid #b45309;{% else %}border-left: 4px solid #e2e8f0;{% endif %} padding-left: 16px;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px; {% if result.is_stakes %}border-left: 4px solid {{ theme.accent }};{% else %}border-left: 4px solid #e2e8f0;{% endif %} padding-left: 16px;">
                                 <tr>
                                     <td>
                                         <!-- Position badge and horse name -->
@@ -121,7 +138,7 @@
                                             <tr>
                                                 <td>
                                                     {% if result.stakes_grade %}
-                                                    <span style="display: inline-block; background-color: #b45309; color: #ffffff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-right: 8px;">
+                                                    <span style="display: inline-block; background-color: {{ theme.accent }}; color: {{ theme.badge_text }}; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-right: 8px;">
                                                         {{ result.stakes_grade }}
                                                     </span>
                                                     {% endif %}
@@ -178,9 +195,9 @@
                             </h2>
 
                             {% for article in news %}
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px; border-left: 4px solid #b45309; padding-left: 16px;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px; border-left: 4px solid {{ theme.accent }}; padding-left: 16px;">
                                 <tr>
-                                    <td>
+                                    <td valign="top">
                                         <a href="{{ article.url }}" style="font-size: 15px; font-weight: 600; color: #0f172a; text-decoration: none;">
                                             {{ article.title }}
                                         </a>
@@ -193,6 +210,14 @@
                                         </p>
                                         {% endif %}
                                     </td>
+                                    {% if article.image_url %}
+                                    <td valign="top" align="right" width="92" style="padding-left: 12px;">
+                                        <a href="{{ article.url }}">
+                                            <img src="{{ article.image_url }}" width="80" height="80" alt=""
+                                                 style="display: block; border-radius: 6px; object-fit: cover;">
+                                        </a>
+                                    </td>
+                                    {% endif %}
                                 </tr>
                             </table>
                             {% endfor %}
@@ -220,11 +245,20 @@
                         </td>
                     </tr>
 
+                    <!-- Dashboard button -->
+                    <tr>
+                        <td align="center" style="padding: 28px 32px; background-color: #f8fafc;">
+                            <a href="{{ dashboard_url }}" style="display: inline-block; background-color: {{ theme.primary }}; color: #ffffff; font-size: 14px; font-weight: 600; padding: 12px 32px; border-radius: 6px; text-decoration: none; letter-spacing: 0.02em;">
+                                Open Dashboard
+                            </a>
+                        </td>
+                    </tr>
+
                     <!-- Footer -->
                     <tr>
-                        <td style="padding: 20px 32px; background-color: #0f172a;">
-                            <p style="margin: 0; font-size: 12px; color: #64748b; text-align: center;">
-                                Stallion Tracker &middot; Data from Equibase Virtual Stable
+                        <td style="padding: 20px 32px; background-color: {{ theme.primary }};">
+                            <p style="margin: 0; font-size: 12px; color: {{ theme.secondary }}; text-align: center;">
+                                {% if theme.org_name %}{{ theme.org_name }} &middot; {% endif %}Stallion Tracker &middot; Data from Equibase Virtual Stable
                             </p>
                         </td>
                     </tr>

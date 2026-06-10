@@ -154,7 +154,7 @@ def get_news_for_stallion(stallion: str, since: date) -> list:
         .select('''
             in_headline,
             horses(name),
-            news_items!inner(id, title, url, source, snippet, published_at, posted_by)
+            news_items!inner(id, title, url, source, snippet, image_url, published_at, posted_by)
         ''') \
         .eq('stallion_id', stallion_id) \
         .execute()
@@ -178,6 +178,7 @@ def get_news_for_stallion(stallion: str, since: date) -> list:
             'url': item['url'],
             'source': item['source'],
             'snippet': item.get('snippet'),
+            'image_url': item.get('image_url'),
             'horse_name': horse.get('name'),
             'published': published,
             'published_display': f'{published_dt.strftime("%b")} {published_dt.day}',
@@ -204,6 +205,60 @@ def get_ytd_stats(stallion: str) -> dict:
         'win_pct': 0,
         'stakes_winners': 0,
         'total_earnings': 0,
+    }
+
+
+DASHBOARD_URL = 'https://stallions.solislitt.com'
+
+# Neutral theme used when no --org is given
+DEFAULT_THEME = {
+    'org_name': None,
+    'primary': '#0f172a',
+    'secondary': '#94a3b8',
+    'accent': '#b45309',
+    'badge_text': '#ffffff',
+    'silks_url': None,
+}
+
+
+def _hex_luminance(hex_color: Optional[str]) -> float:
+    """Perceived luminance 0-255 of a #rrggbb color (0 on parse failure)."""
+    h = (hex_color or '').lstrip('#')
+    if len(h) != 6:
+        return 0.0
+    try:
+        r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    except ValueError:
+        return 0.0
+    return 0.299 * r + 0.587 * g + 0.114 * b
+
+
+def get_org_theme(org_name: Optional[str]) -> dict:
+    """Build the email theme from an organization's colors and silks.
+    The org secondary becomes the accent for badges/borders unless it's
+    near-white (unreadable on the white body), in which case the default
+    amber stands in. Badge text flips dark on light accents."""
+    if not org_name:
+        return dict(DEFAULT_THEME)
+    row = supabase.table('organizations') \
+        .select('name, primary_color, secondary_color, silks_url') \
+        .ilike('name', org_name) \
+        .execute()
+    if not row.data:
+        print(f"WARN: org '{org_name}' not found, using default theme", file=sys.stderr)
+        return dict(DEFAULT_THEME)
+    org = row.data[0]
+    primary = org.get('primary_color') or DEFAULT_THEME['primary']
+    secondary = org.get('secondary_color') or DEFAULT_THEME['secondary']
+    accent = DEFAULT_THEME['accent'] if _hex_luminance(secondary) > 230 else secondary
+    badge_text = '#0f172a' if _hex_luminance(accent) > 160 else '#ffffff'
+    return {
+        'org_name': org['name'],
+        'primary': primary,
+        'secondary': secondary,
+        'accent': accent,
+        'badge_text': badge_text,
+        'silks_url': org.get('silks_url'),
     }
 
 
@@ -260,7 +315,7 @@ def format_ordinal(n: int) -> str:
 def generate_digest_html(stallion: str, digest_date: date,
                          entries_today: list, entries_tomorrow: list,
                          results_yesterday: list, stats: dict,
-                         news: list) -> str:
+                         news: list, theme: dict) -> str:
     """Generate the HTML content for the digest email."""
     template = jinja_env.get_template('digest.html')
 
@@ -273,6 +328,8 @@ def generate_digest_html(stallion: str, digest_date: date,
         results_yesterday=results_yesterday,
         stats=stats,
         news=news,
+        theme=theme,
+        dashboard_url=DASHBOARD_URL,
         format_horse_desc=format_horse_desc,
         format_money=format_money,
         format_ordinal=format_ordinal,
@@ -324,6 +381,8 @@ def main():
                        help='Stallion name to generate digest for')
     parser.add_argument('--news-days', type=int, default=2,
                        help='Include headline news from the last N days (default 2)')
+    parser.add_argument('--org', type=str, default=None,
+                       help='Organization name to theme the email for (colors + silks)')
     args = parser.parse_args()
 
     stallion = args.stallion
@@ -341,6 +400,7 @@ def main():
     results_yesterday = get_results_for_date(stallion, yesterday)
     stats = get_ytd_stats(stallion)
     news = get_news_for_stallion(stallion, today - timedelta(days=args.news_days))
+    theme = get_org_theme(args.org)
 
     log(f"  Today's entries: {len(entries_today)}")
     log(f"  Tomorrow's entries: {len(entries_tomorrow)}")
@@ -361,6 +421,7 @@ def main():
         results_yesterday=results_yesterday,
         stats=stats,
         news=news,
+        theme=theme,
     )
 
     if args.preview:
