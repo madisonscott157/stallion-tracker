@@ -34,12 +34,34 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = Environment(loader=FileSystemLoader(template_dir))
 
 
+def build_equibase_race_url(track_code: Optional[str], race_date: Optional[str],
+                            race_country: Optional[str], race_number) -> Optional[str]:
+    """Equibase static-entry deep link (US/CAN only) — mirrors
+    buildEquibaseRaceUrl in web/lib/utils.ts. The Equibase parser leaves
+    race_country NULL for US rows."""
+    if not track_code or not race_date or not race_number:
+        return None
+    if race_country is None:
+        ctry = 'USA'
+    elif race_country == 'Canada':
+        ctry = 'CAN'
+    elif race_country in ('USA', 'CAN'):
+        ctry = race_country
+    else:
+        return None
+    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})', race_date)
+    if not m:
+        return None
+    mmddyy = f'{m.group(2)}{m.group(3)}{m.group(1)[2:]}'
+    return f'http://www.equibase.com/static/entry/{track_code}{mmddyy}{ctry}-EQB.html#RACE{race_number}'
+
+
 def get_entries_for_date(stallion: str, target_date: date) -> list:
     """Get all entries for a specific date."""
     result = supabase.table('entries') \
         .select('''
             *,
-            horses!inner(name, sex, yob, dam, is_unnamed, stallions!inner(name))
+            horses!inner(name, sex, yob, dam, is_unnamed, equibase_profile_url, stallions!inner(name))
         ''') \
         .eq('race_date', target_date.isoformat()) \
         .eq('scratched', False) \
@@ -81,6 +103,10 @@ def get_entries_for_date(stallion: str, target_date: date) -> list:
             'trainer': row.get('trainer'),
             'morning_line': row.get('morning_line'),
             'post_position': row.get('post_position'),
+            'profile_url': horse.get('equibase_profile_url'),
+            'race_url': build_equibase_race_url(
+                row.get('track_code'), row['race_date'],
+                row.get('race_country'), row['race_number']),
         })
 
     # Sort by post time, stakes first
@@ -93,7 +119,7 @@ def get_results_for_date(stallion: str, target_date: date) -> list:
     result = supabase.table('results') \
         .select('''
             *,
-            horses!inner(name, sex, yob, dam, stallions!inner(name))
+            horses!inner(name, sex, yob, dam, equibase_profile_url, stallions!inner(name))
         ''') \
         .eq('race_date', target_date.isoformat()) \
         .execute()
@@ -130,6 +156,7 @@ def get_results_for_date(stallion: str, target_date: date) -> list:
             'win_margin': row.get('win_margin'),
             'odds': row.get('odds'),
             'chart_url': row.get('chart_url'),
+            'profile_url': horse.get('equibase_profile_url'),
         })
 
     # Sort by finish position (winners first), then stakes
@@ -141,8 +168,9 @@ def get_stakes_ahead(stallion: str, start: date, end: date) -> list:
     """Stakes entries in the date window — the advance-notice strip."""
     result = supabase.table('entries') \
         .select('''
-            race_date, post_time, track, race_number, race_name, stakes_grade,
-            horses!inner(name, dam, is_unnamed, stallions!inner(name))
+            race_date, post_time, track, track_code, race_country,
+            race_number, race_name, stakes_grade,
+            horses!inner(name, dam, is_unnamed, equibase_profile_url, stallions!inner(name))
         ''') \
         .eq('is_stakes', True) \
         .eq('scratched', False) \
@@ -171,6 +199,10 @@ def get_stakes_ahead(stallion: str, start: date, end: date) -> list:
             'stakes_grade': row.get('stakes_grade'),
             'race_name': row.get('race_name'),
             'track': format_track(row['track']),
+            'profile_url': horse.get('equibase_profile_url'),
+            'race_url': build_equibase_race_url(
+                row.get('track_code'), row['race_date'],
+                row.get('race_country'), row['race_number']),
         })
     return stakes
 
