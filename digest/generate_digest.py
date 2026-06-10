@@ -12,6 +12,7 @@ Usage:
 """
 
 import os
+import re
 import sys
 import argparse
 from datetime import date, timedelta
@@ -67,7 +68,7 @@ def get_entries_for_date(stallion: str, target_date: date) -> list:
             'race_date': row['race_date'],
             'post_time': row.get('post_time'),
             'timezone': row.get('timezone', 'ET'),
-            'track': row['track'],
+            'track': format_track(row['track']),
             'race_number': row['race_number'],
             'race_type': row.get('race_type'),
             'race_name': row.get('race_name'),
@@ -117,7 +118,7 @@ def get_results_for_date(stallion: str, target_date: date) -> list:
             'sex': horse.get('sex'),
             'yob': horse.get('yob'),
             'race_date': row['race_date'],
-            'track': row['track'],
+            'track': format_track(row['track']),
             'race_number': row['race_number'],
             'race_type': row.get('race_type'),
             'race_name': row.get('race_name'),
@@ -202,6 +203,27 @@ def get_ytd_stats(stallion: str) -> dict:
         'stakes_winners': 0,
         'total_earnings': 0,
     }
+
+
+# Display aliases for tracks whose official name is a mouthful
+# (mirrors TRACK_DISPLAY_ALIASES in web/lib/utils.ts)
+TRACK_DISPLAY_ALIASES = {
+    'hollywood casino at charles town races': 'Charles Town',
+}
+
+
+def format_track(track: Optional[str]) -> Optional[str]:
+    """Proper-case ALL-CAPS US track names ('HORSESHOE INDIANAPOLIS' ->
+    'Horseshoe Indianapolis'). International rows arrive already mixed-case
+    ('Salisbury', 'Saint-Cloud') and pass through untouched."""
+    if not track:
+        return track
+    key = track.lower().strip()
+    if key in TRACK_DISPLAY_ALIASES:
+        return TRACK_DISPLAY_ALIASES[key]
+    if track != track.upper():
+        return track
+    return re.sub(r'[A-Za-z]+', lambda m: m.group(0).capitalize(), track.lower())
 
 
 def format_horse_desc(sex: Optional[str], yob: Optional[int]) -> str:
