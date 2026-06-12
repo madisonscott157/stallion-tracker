@@ -40,7 +40,7 @@ export const EntryCard = memo(function EntryCard({ entry, showSireName }: EntryC
     : null
 
   const trackDisplay = formatTrack(entry.track)
-  const distanceDisplay = formatDistance(entry.distance || null)
+  const distanceDisplay = formatDistance(entry.distance || null, entry.race_country)
 
   // 'Listed' is treated visually like a non-graded stakes — no pill, navy
   // accents — to match Equibase / TDN convention where only G1/G2/G3 get

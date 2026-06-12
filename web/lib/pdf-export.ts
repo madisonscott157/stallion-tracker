@@ -146,7 +146,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   // earnings into purse, so the fallback covers them.
   const earnAmt = r.earnings ?? r.purse
   const earnCcy = r.earnings != null ? r.earnings_currency : r.purse_currency
-  const raceParts = [r.race_type, formatPurse(earnAmt, earnCcy), formatDistance(r.distance || null) || null].filter(Boolean).join(` ${pipe()} `)
+  const raceParts = [r.race_type, formatPurse(earnAmt, earnCcy), formatDistance(r.distance || null, r.race_country) || null].filter(Boolean).join(` ${pipe()} `)
   const nameWeight = isWin ? 'font-weight:700;' : 'font-weight:600;'
 
   // Sub-details
@@ -191,7 +191,7 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
   const desc = formatHorseDescription(e.horse_sex || null, e.horse_yob || null)
   const ownerSilks = getSilksForOwner(e.owner, orgsWithSilks, isAdmin, userOrgName, userOrgSilksUrl, userOrgPatterns)
   const track = formatTrack(e.track)
-  const distDisplay = formatDistance(e.distance || null)
+  const distDisplay = formatDistance(e.distance || null, e.race_country)
 
   // Convert post time to ET, and use the converted ET date for the date
   // column so east-of-ET races (Tokyo, Hong Kong, Gulf) don't show a

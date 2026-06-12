@@ -91,9 +91,38 @@ export function isTomorrow(dateStr: string): boolean {
   return date.toDateString() === tomorrow.toDateString()
 }
 
+// The Equibase parser leaves race_country NULL for US rows; PMU/Racing API
+// set it explicitly for foreign rows.
+export function isNorthAmericanRace(raceCountry: string | null | undefined): boolean {
+  return raceCountry == null || raceCountry === 'USA' || raceCountry === 'CAN' || raceCountry === 'Canada'
+}
+
+const METERS_PER_FURLONG = 201.168
+
+// Render furlongs the way US racing writes them: "5.5f" under a mile,
+// "1 1/16 miles" at a mile and up.
+function furlongsToDisplay(furlongs: number): string {
+  if (furlongs < 8) return `${furlongs}f`
+  const sixteenths = Math.round((furlongs / 8) * 16)
+  const whole = Math.floor(sixteenths / 16)
+  let num = sixteenths % 16
+  if (num === 0) return whole === 1 ? '1 mile' : `${whole} miles`
+  let den = 16
+  while (num % 2 === 0) { num /= 2; den /= 2 }
+  return `${whole} ${num}/${den} miles`
+}
+
 // Convert distance: "Seven Furlongs" → "7f", "One Mile" → "1 mile", "One And One Eighth Miles" → "1 1/8 miles"
-export function formatDistance(distance: string | null): string {
+// US/CAN races sourced from the PMU API arrive metric ("1100m") and are
+// converted to furlongs — meters must never display for NA racing.
+export function formatDistance(distance: string | null, raceCountry?: string | null): string {
   if (!distance) return ''
+
+  const metersMatch = distance.trim().match(/^(\d+(?:\.\d+)?)\s*m$/i)
+  if (metersMatch && isNorthAmericanRace(raceCountry)) {
+    const furlongs = Math.round((parseFloat(metersMatch[1]) / METERS_PER_FURLONG) * 2) / 2
+    return furlongsToDisplay(furlongs)
+  }
 
   // Clean any parsing garbage (from workout emails) and strip concatenated surface text
   let cleaned = distance.split(/Time:|Track Condition:/i)[0]?.trim() || distance.trim()
@@ -288,6 +317,12 @@ export function parseDistanceToFurlongs(distance: string | null): number | null 
     .replace(/^about\s+/i, '')
     .replace(/\s*(?:On\s+The\s+)?(?:Hurdle|Steeplechase|Jump)s?\s*$/i, '')
     .trim()
+
+  // Metric distances (PMU-sourced rows): "1800m" → 8.95f
+  const metersMatch = cleaned.match(/^(\d+(?:\.\d+)?)\s*m$/i)
+  if (metersMatch) {
+    return parseFloat(metersMatch[1]) / 201.168
+  }
 
   // "7F", "6.5F", "7f"
   let m = cleaned.match(/^([\d.]+)\s*F$/i)

@@ -51,7 +51,7 @@ function exportCSV(results: Result[], stallionName: string) {
     r.stakes_grade || '',
     r.race_name || '',
     r.purse ? String(r.purse) : '',
-    formatDistance(r.distance || null),
+    formatDistance(r.distance || null, r.race_country),
     r.surface || '',
     r.finish_position != null ? String(r.finish_position) : (r.finish_status || ''),
     r.beaten_lengths || '',

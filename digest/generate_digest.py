@@ -97,7 +97,7 @@ def get_entries_for_date(stallion: str, target_date: date) -> list:
             'is_stakes': row.get('is_stakes', False),
             'stakes_grade': row.get('stakes_grade'),
             'purse': row.get('purse'),
-            'distance': row.get('distance'),
+            'distance': format_distance_na(row.get('distance'), row.get('race_country')),
             'surface': row.get('surface'),
             'jockey': row.get('jockey'),
             'trainer': row.get('trainer'),
@@ -411,6 +411,32 @@ def get_org_theme(org_name: Optional[str]) -> dict:
 TRACK_DISPLAY_ALIASES = {
     'hollywood casino at charles town races': 'Charles Town',
 }
+
+
+METERS_PER_FURLONG = 201.168
+
+
+def format_distance_na(distance: Optional[str], race_country: Optional[str]) -> Optional[str]:
+    """US/CAN races sourced from the PMU API arrive metric ('1100m') —
+    convert to furlongs; NA racing never displays meters. Mirrors
+    formatDistance in web/lib/utils.ts."""
+    if not distance:
+        return distance
+    m = re.match(r'^(\d+(?:\.\d+)?)\s*m$', distance.strip(), re.IGNORECASE)
+    if not m or race_country not in (None, 'USA', 'CAN', 'Canada'):
+        return distance
+    furlongs = round((float(m.group(1)) / METERS_PER_FURLONG) * 2) / 2
+    if furlongs < 8:
+        return f'{furlongs:g}f'
+    sixteenths = round(furlongs / 8 * 16)
+    whole, num = divmod(sixteenths, 16)
+    if num == 0:
+        return '1 mile' if whole == 1 else f'{whole} miles'
+    den = 16
+    while num % 2 == 0:
+        num //= 2
+        den //= 2
+    return f'{whole} {num}/{den} miles'
 
 
 def format_track(track: Optional[str]) -> Optional[str]:

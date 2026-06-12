@@ -171,7 +171,7 @@ export const ResultCard = memo(function ResultCard({ result, showSireName, suppr
         {result.distance && (
           <>
             <span className="text-slate-300">|</span>
-            <span>{formatDistance(result.distance)}</span>
+            <span>{formatDistance(result.distance, result.race_country)}</span>
           </>
         )}
         {result.surface && (
