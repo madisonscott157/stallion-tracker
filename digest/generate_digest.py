@@ -417,26 +417,39 @@ METERS_PER_FURLONG = 201.168
 
 
 def format_distance_na(distance: Optional[str], race_country: Optional[str]) -> Optional[str]:
-    """US/CAN races sourced from the PMU API arrive metric ('1100m') —
-    convert to furlongs; NA racing never displays meters. Mirrors
-    formatDistance in web/lib/utils.ts."""
+    """Metric distances (PMU/Racing API rows) display per local convention:
+    US/CAN as furlongs/miles, GB/IRE as miles-and-furlongs ('1m 4f'),
+    France/Germany/etc. keep meters. Mirrors formatDistance in
+    web/lib/utils.ts."""
     if not distance:
         return distance
     m = re.match(r'^(\d+(?:\.\d+)?)\s*m$', distance.strip(), re.IGNORECASE)
-    if not m or race_country not in (None, 'USA', 'CAN', 'Canada'):
+    if not m:
         return distance
     furlongs = round((float(m.group(1)) / METERS_PER_FURLONG) * 2) / 2
-    if furlongs < 8:
-        return f'{furlongs:g}f'
-    sixteenths = round(furlongs / 8 * 16)
-    whole, num = divmod(sixteenths, 16)
-    if num == 0:
-        return '1 mile' if whole == 1 else f'{whole} miles'
-    den = 16
-    while num % 2 == 0:
-        num //= 2
-        den //= 2
-    return f'{whole} {num}/{den} miles'
+
+    if race_country in (None, 'USA', 'CAN', 'Canada'):
+        if furlongs < 8:
+            return f'{furlongs:g}f'
+        sixteenths = round(furlongs / 8 * 16)
+        whole, num = divmod(sixteenths, 16)
+        if num == 0:
+            return '1 mile' if whole == 1 else f'{whole} miles'
+        den = 16
+        while num % 2 == 0:
+            num //= 2
+            den //= 2
+        return f'{whole} {num}/{den} miles'
+
+    if race_country in ('Great Britain', 'Ireland'):
+        miles, rem = int(furlongs // 8), furlongs % 8
+        if miles and rem:
+            return f'{miles}m {rem:g}f'
+        if miles:
+            return f'{miles}m'
+        return f'{rem:g}f'
+
+    return distance
 
 
 def format_track(track: Optional[str]) -> Optional[str]:

@@ -119,9 +119,20 @@ export function formatDistance(distance: string | null, raceCountry?: string | n
   if (!distance) return ''
 
   const metersMatch = distance.trim().match(/^(\d+(?:\.\d+)?)\s*m$/i)
-  if (metersMatch && isNorthAmericanRace(raceCountry)) {
+  if (metersMatch) {
     const furlongs = Math.round((parseFloat(metersMatch[1]) / METERS_PER_FURLONG) * 2) / 2
-    return furlongsToDisplay(furlongs)
+    if (isNorthAmericanRace(raceCountry)) {
+      return furlongsToDisplay(furlongs)
+    }
+    // British/Irish convention is miles-and-furlongs ("1m 4f"); metric
+    // stays for France/Germany/etc. where meters are the local norm
+    if (raceCountry === 'Great Britain' || raceCountry === 'Ireland') {
+      const miles = Math.floor(furlongs / 8)
+      const rem = furlongs - miles * 8
+      if (miles && rem) return `${miles}m ${rem}f`
+      if (miles) return `${miles}m`
+      return `${rem}f`
+    }
   }
 
   // Clean any parsing garbage (from workout emails) and strip concatenated surface text

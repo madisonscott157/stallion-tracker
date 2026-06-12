@@ -364,12 +364,14 @@ class Database:
         # Try to link to existing entry
         entry_id = self._find_entry(horse_id, result_data.race_date, result_data.track, result_data.race_number)
 
-        # Copy jockey/trainer from linked entry if not already set on the result
+        # Copy jockey/trainer/surface from linked entry if not already set
+        # on the result (PMU-sourced results carry no surface)
         jockey = result_data.jockey
         trainer = result_data.trainer
-        if entry_id and (not jockey or not trainer):
+        surface = result_data.surface
+        if entry_id and (not jockey or not trainer or not surface):
             entry = self.client.table("entries") \
-                .select("jockey, trainer") \
+                .select("jockey, trainer, surface") \
                 .eq("id", entry_id) \
                 .single() \
                 .execute()
@@ -378,6 +380,8 @@ class Database:
                     jockey = entry.data.get("jockey")
                 if not trainer:
                     trainer = entry.data.get("trainer")
+                if not surface:
+                    surface = entry.data.get("surface")
 
         insert_data = {
             "horse_id": horse_id,
@@ -392,7 +396,7 @@ class Database:
             "stakes_grade": result_data.stakes_grade,
             "purse": result_data.purse,
             "distance": result_data.distance,
-            "surface": result_data.surface,
+            "surface": surface,
             "finish_position": result_data.finish_position,
             "beaten_lengths": result_data.beaten_lengths,
             "win_margin": result_data.win_margin,
