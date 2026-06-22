@@ -40,6 +40,12 @@ NH_COUNTRIES = {
 # dashboard with low-grade Czech / Moroccan / HK card races.
 TIER1_COUNTRIES = {'Great Britain', 'Ireland', 'France', 'USA', 'Canada'}
 
+# Countries where we accept *every* race regardless of class (not just stakes).
+# Japan added 2026-06 as a trial: high-quality racing where even non-black-type
+# progeny runs are worth surfacing. Revert by removing Japan if the feed gets
+# too noisy.
+FULL_COVERAGE_COUNTRIES = TIER1_COUNTRIES | {'Japan'}
+
 # Southern-hemisphere / out-of-scope country headers — sections under these
 # are dropped, but seeing them resets the country state.
 SH_COUNTRIES = {'Australia', 'New Zealand', 'South Africa'}
@@ -235,8 +241,8 @@ def parse_arion_entry_email(
         if m and cur_race and cur_date and cur_track:
             if cur_race['is_jump']:
                 continue
-            # Tier-1 country: always include. Elsewhere: stakes only.
-            if cur_country not in TIER1_COUNTRIES and not cur_race['is_stakes']:
+            # Full-coverage country: always include. Elsewhere: stakes only.
+            if cur_country not in FULL_COVERAGE_COUNTRIES and not cur_race['is_stakes']:
                 continue
             name, country, yob, sex, sire, dam, trainer = m.groups()
             if sire.strip().lower() not in tracked_sires:
