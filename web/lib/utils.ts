@@ -121,7 +121,9 @@ export function formatDistance(distance: string | null, raceCountry?: string | n
   const metersMatch = distance.trim().match(/^(\d+(?:\.\d+)?)\s*m$/i)
   if (metersMatch) {
     const furlongs = Math.round((parseFloat(metersMatch[1]) / METERS_PER_FURLONG) * 2) / 2
-    if (isNorthAmericanRace(raceCountry)) {
+    // US-facing audience reads furlongs/miles. NA + Japan render that way
+    // (800m → "4f", 2000m → "1 1/4 miles").
+    if (isNorthAmericanRace(raceCountry) || raceCountry === 'Japan') {
       return furlongsToDisplay(furlongs)
     }
     // British/Irish convention is miles-and-furlongs ("1m 4f"); metric

@@ -428,7 +428,7 @@ def format_distance_na(distance: Optional[str], race_country: Optional[str]) -> 
         return distance
     furlongs = round((float(m.group(1)) / METERS_PER_FURLONG) * 2) / 2
 
-    if race_country in (None, 'USA', 'CAN', 'Canada'):
+    if race_country in (None, 'USA', 'CAN', 'Canada', 'Japan'):
         if furlongs < 8:
             return f'{furlongs:g}f'
         sixteenths = round(furlongs / 8 * 16)
