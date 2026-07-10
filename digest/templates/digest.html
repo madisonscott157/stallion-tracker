@@ -177,9 +177,13 @@
                                                     <span style="display: inline-block; background-color: #15803d; color: #ffffff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; margin-right: 8px;">
                                                         WIN
                                                     </span>
-                                                    {% else %}
+                                                    {% elif result.finish_position %}
                                                     <span style="display: inline-block; color: #64748b; font-size: 13px; font-weight: 500; margin-right: 8px;">
                                                         {{ format_ordinal(result.finish_position) }}
+                                                    </span>
+                                                    {% elif result.finish_status %}
+                                                    <span style="display: inline-block; color: #64748b; font-size: 13px; font-weight: 500; margin-right: 8px;">
+                                                        {{ result.finish_status }}
                                                     </span>
                                                     {% endif %}
                                                     {% if result.profile_url %}<a href="{{ result.profile_url }}" style="text-decoration: none;"><strong style="font-size: 16px; color: #0f172a;">{{ result.horse_name }}</strong></a>{% else %}<strong style="font-size: 16px; color: #0f172a;">{{ result.horse_name }}</strong>{% endif %}

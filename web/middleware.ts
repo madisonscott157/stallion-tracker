@@ -41,26 +41,28 @@ export async function middleware(request: NextRequest) {
   // Skip session check entirely for auth callback
   if (isAuthCallback) return response
 
-  const { data: { session } } = await supabase.auth.getSession()
+  // getUser() revalidates the JWT with the Auth server; getSession() only reads
+  // the cookie and is not safe to gate access on.
+  const { data: { user: authUser } } = await supabase.auth.getUser()
 
   // Redirect unauthenticated users to login (except for public routes)
-  if (!session && !isLoginPage) {
+  if (!authUser && !isLoginPage) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
     return NextResponse.redirect(loginUrl)
   }
 
   // Redirect authenticated users away from login page
-  if (session && isLoginPage) {
+  if (authUser && isLoginPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   // Protect admin routes - only fetch user role when actually needed
-  if (session && request.nextUrl.pathname.startsWith('/admin')) {
+  if (authUser && request.nextUrl.pathname.startsWith('/admin')) {
     const { data: user } = await supabase
       .from('users')
       .select('role')
-      .eq('auth_id', session.user.id)
+      .eq('auth_id', authUser.id)
       .single()
     if (user?.role !== 'admin') {
       return NextResponse.redirect(new URL('/', request.url))

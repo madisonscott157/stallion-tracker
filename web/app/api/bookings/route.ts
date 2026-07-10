@@ -4,29 +4,30 @@ import { requireAuth, isAuthError } from '@/lib/api-auth'
 
 type OrgTheme = { id: string; name: string; primary_color: string; secondary_color: string; silks_url: string | null }
 
-function fetchOrgThemes(): Promise<OrgTheme[]> {
+// Fetch org themes for the PDF export. `orgIds === null` means the caller is an
+// admin (may see every org); otherwise the list is restricted to the orgs the
+// user can actually view, so we don't leak every tenant's branding.
+function fetchOrgThemes(orgIds: string[] | null): Promise<OrgTheme[]> {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
   if (!serviceRoleKey) return Promise.resolve([])
+  if (orgIds && orgIds.length === 0) return Promise.resolve([])
 
   const adminClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     serviceRoleKey,
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
-  return Promise.resolve(
-    adminClient
-      .from('organizations')
-      .select('id, name, primary_color, secondary_color, silks_url')
-  ).then(({ data }) => (data as OrgTheme[]) ?? [])
+  let query = adminClient
+    .from('organizations')
+    .select('id, name, primary_color, secondary_color, silks_url')
+  if (orgIds) query = query.in('id', orgIds)
+  return Promise.resolve(query).then(({ data }) => (data as OrgTheme[]) ?? [])
 }
 
 export async function GET() {
   const auth = await requireAuth()
   if (isAuthError(auth)) return auth
   const { supabase, userId } = auth
-
-  // Kick off org themes fetch immediately — it doesn't need user profile
-  const orgThemesPromise = fetchOrgThemes()
 
   // Get user's organization and role
   const { data: user } = await supabase
@@ -45,6 +46,9 @@ export async function GET() {
     .select('*')
     .order('report_date', { ascending: false })
 
+  // Admins see all orgs' themes; everyone else only the orgs they can view.
+  let themeOrgIds: string[] | null = null
+
   if (user?.role !== 'admin' && user?.organization_id) {
     // Own org plus any source orgs granted via organization_booking_access
     const { data: accessRows } = await supabase
@@ -55,12 +59,13 @@ export async function GET() {
     const sourceIds = (accessRows ?? []).map(r => r.source_organization_id as string)
     const visibleOrgIds = [user.organization_id, ...sourceIds]
     bookingsQuery = bookingsQuery.in('organization_id', visibleOrgIds)
+    themeOrgIds = visibleOrgIds
   }
 
-  // Bookings query and org themes fetch run in parallel
+  // Bookings query and (scoped) org themes fetch run in parallel
   const [bookingsResult, orgThemes] = await Promise.all([
     bookingsQuery,
-    orgThemesPromise,
+    fetchOrgThemes(themeOrgIds),
   ])
 
   if (bookingsResult.error) {

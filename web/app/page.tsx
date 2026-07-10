@@ -103,13 +103,19 @@ function HomeContent() {
     if (!stallionId) return
 
     const controller = new AbortController()
+    // Distinguish a self-imposed timeout from an unmount: both abort the
+    // controller, but a timeout must surface an error and stop the spinner,
+    // whereas an unmount must not touch state at all. Without this split, a
+    // timed-out fetch left `loading` stuck true forever (permanent skeleton).
+    let didTimeout = false
+    let didUnmount = false
 
     async function fetchData() {
       setLoading(true)
       setError(false)
 
+      const timer = setTimeout(() => { didTimeout = true; controller.abort() }, 10000)
       try {
-        const timer = setTimeout(() => controller.abort(), 10000)
         // Fetch by ID when name hasn't resolved yet, otherwise by name
         const param = stallion && stallion !== 'Loading...'
           ? `stallion=${encodeURIComponent(stallion)}`
@@ -120,10 +126,10 @@ function HomeContent() {
           `/api/stallion-data?${param}&show_clm=${showClm}&stakes_only=${stakesOnly}`,
           { signal: controller.signal }
         )
-        clearTimeout(timer)
 
         if (res.ok) {
           const data = await res.json()
+          if (didUnmount) return
           setEntries(data.entries || [])
           setResults(data.results || [])
           setStats(data.stats || null)
@@ -137,19 +143,22 @@ function HomeContent() {
           setError(true)
         }
       } catch (err) {
-        if (err instanceof Error && err.name !== 'AbortError') {
+        if (didUnmount) return
+        if (err instanceof Error && err.name === 'AbortError') {
+          // The only non-unmount abort is our own timeout — show the error UI.
+          if (didTimeout) setError(true)
+        } else {
           console.error('Error fetching data:', err)
           setError(true)
         }
       } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false)
-        }
+        clearTimeout(timer)
+        if (!didUnmount) setLoading(false)
       }
     }
 
     fetchData()
-    return () => controller.abort()
+    return () => { didUnmount = true; controller.abort() }
   }, [stallionId, fetchKey])
 
   // Entries are already sorted by date, then time from API

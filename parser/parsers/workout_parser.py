@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from models import WorkoutData, HorseData
 from comments_parser import parse_comments, extract_age_sex
 from distance_normalizer import normalize_distance
+from parsers.equibase_urls import equibase_href
 
 
 def parse_workout_email(html_content: str, email_id: str) -> Optional[WorkoutData]:
@@ -46,7 +47,7 @@ def parse_workout_email(html_content: str, email_id: str) -> Optional[WorkoutDat
     # 1. Extract horse name and age/sex
     # Pattern: "Sneaky Good (3-Year-Old Filly)"
     # The name is usually a link
-    horse_link = soup.find('a', href=re.compile(r'equibase\.com/profiles'))
+    horse_link = soup.find('a', href=equibase_href('/profiles'))
     if horse_link:
         horse.name = horse_link.get_text().strip()
         horse.equibase_profile_url = horse_link['href']

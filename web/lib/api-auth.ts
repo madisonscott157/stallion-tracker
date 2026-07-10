@@ -32,11 +32,13 @@ export function resolveToggles(
 
 export async function requireAuth(): Promise<AuthResult | NextResponse> {
   const supabase = createServerComponentClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
+  // getUser() revalidates the JWT against the Auth server; getSession() only
+  // decodes the (spoofable) cookie and must not be trusted for authorization.
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  return { supabase, userId: session.user.id }
+  return { supabase, userId: user.id }
 }
 
 export function isAuthError(result: AuthResult | NextResponse): result is NextResponse {

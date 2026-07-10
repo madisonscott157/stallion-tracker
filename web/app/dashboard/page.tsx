@@ -68,12 +68,19 @@ function DashboardContent() {
   }
 
   useEffect(() => {
-    const controller = new AbortController()
+    // Each request gets its own controller + timeout so a single slow endpoint
+    // (e.g. a cold start) can't abort the other two and discard their data.
+    // `didUnmount` gates all state updates; the previous shared-controller
+    // approach left the dashboard stuck on the skeleton when any one call timed out.
+    let didUnmount = false
+    const controllers: AbortController[] = []
 
     async function fetchDashboard() {
       const fetchWithTimeout = (url: string, ms = 8000) => {
-        const timer = setTimeout(() => controller.abort(), ms)
-        return fetch(url, { signal: controller.signal })
+        const ctrl = new AbortController()
+        controllers.push(ctrl)
+        const timer = setTimeout(() => ctrl.abort(), ms)
+        return fetch(url, { signal: ctrl.signal })
           .finally(() => clearTimeout(timer))
       }
 
@@ -87,8 +94,10 @@ function DashboardContent() {
           fetchWithTimeout(`/api/results?limit=50&days=14&${qs}`),
         ])
 
-        if (controller.signal.aborted) return
+        if (didUnmount) return
 
+        // Each response is applied independently — a timed-out call leaves its
+        // section empty rather than blanking the whole dashboard.
         if (dashRes.status === 'fulfilled' && dashRes.value.ok)
           setData(await dashRes.value.json())
         if (entriesRes.status === 'fulfilled' && entriesRes.value.ok)
@@ -96,17 +105,15 @@ function DashboardContent() {
         if (resultsRes.status === 'fulfilled' && resultsRes.value.ok)
           setResults(await resultsRes.value.json())
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') return
+        if (didUnmount) return
         console.error('Error fetching dashboard:', error)
       } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false)
-        }
+        if (!didUnmount) setLoading(false)
       }
     }
 
     fetchDashboard()
-    return () => controller.abort()
+    return () => { didUnmount = true; controllers.forEach(c => c.abort()) }
   }, [fetchKey])
 
   // Client-side stallion filter

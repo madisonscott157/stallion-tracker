@@ -43,7 +43,7 @@ export function DashboardHeader({ onPreferenceChange: _onPreferenceChange }: Das
 
           {/* Nav icons / links */}
           <div className="flex items-center gap-0.5 shrink-0">
-            {hasBookings && (
+            {(hasBookings || isAdmin) && (
               isBookingsPage ? (
                 <Link
                   href="/dashboard"
@@ -115,7 +115,7 @@ export function DashboardHeader({ onPreferenceChange: _onPreferenceChange }: Das
                 Admin
               </Link>
             )}
-            {hasBookings && (
+            {(hasBookings || isAdmin) && (
               isBookingsPage ? (
                 <Link href="/dashboard" className="inline-flex items-center hover:text-white transition-colors">
                   Dashboard

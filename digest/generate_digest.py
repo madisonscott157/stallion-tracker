@@ -29,9 +29,11 @@ SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_KEY')
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Initialize Jinja2 template environment
+# Initialize Jinja2 template environment.
+# autoescape is ON: horse/race/owner names and scraped news titles flow into
+# these HTML emails, so any markup in them must be escaped rather than rendered.
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-jinja_env = Environment(loader=FileSystemLoader(template_dir))
+jinja_env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
 
 
 def build_equibase_race_url(track_code: Optional[str], race_date: Optional[str],
@@ -152,6 +154,7 @@ def get_results_for_date(stallion: str, target_date: date) -> list:
             'stakes_grade': row.get('stakes_grade'),
             'purse': row.get('purse'),
             'finish_position': row['finish_position'],
+            'finish_status': row.get('finish_status'),
             'beaten_lengths': row.get('beaten_lengths'),
             'win_margin': row.get('win_margin'),
             'odds': row.get('odds'),
@@ -159,8 +162,14 @@ def get_results_for_date(stallion: str, target_date: date) -> list:
             'profile_url': horse.get('equibase_profile_url'),
         })
 
-    # Sort by finish position (winners first), then stakes
-    results.sort(key=lambda x: (x['finish_position'], not x['is_stakes']))
+    # Sort by finish position (winners first), then stakes. European DNF results
+    # (PU/FF/etc.) have finish_position=None, so key on a (is_none, position)
+    # tuple to keep them last instead of raising TypeError on None < int.
+    results.sort(key=lambda x: (
+        x['finish_position'] is None,
+        x['finish_position'] if x['finish_position'] is not None else 0,
+        not x['is_stakes'],
+    ))
     return results
 
 
@@ -493,8 +502,11 @@ def format_money(amount: int) -> str:
     return f"${amount:,}"
 
 
-def format_ordinal(n: int) -> str:
-    """Format number as ordinal (1st, 2nd, 3rd, etc.)."""
+def format_ordinal(n: Optional[int]) -> str:
+    """Format number as ordinal (1st, 2nd, 3rd, etc.). Returns '' for None
+    (non-finishers), so a DNF result can never crash rendering."""
+    if n is None:
+        return ''
     if 10 <= n % 100 <= 20:
         suffix = 'th'
     else:

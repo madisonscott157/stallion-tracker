@@ -5,16 +5,16 @@ import { createServerComponentClient } from '@/lib/supabase-server'
 export async function POST(request: NextRequest) {
   const supabase = createServerComponentClient()
 
-  // Verify admin
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
+  // Verify admin. getUser() revalidates the JWT; getSession() only reads the cookie.
+  const { data: { user: caller } } = await supabase.auth.getUser()
+  if (!caller) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { data: currentUser } = await supabase
     .from('users')
     .select('role')
-    .eq('auth_id', session.user.id)
+    .eq('auth_id', caller.id)
     .single()
 
   if (currentUser?.role !== 'admin') {
@@ -111,16 +111,16 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const supabase = createServerComponentClient()
 
-  // Verify admin
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
+  // Verify admin. getUser() revalidates the JWT; getSession() only reads the cookie.
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { data: currentUser } = await supabase
     .from('users')
     .select('role')
-    .eq('auth_id', session.user.id)
+    .eq('auth_id', authUser.id)
     .single()
 
   if (currentUser?.role !== 'admin') {

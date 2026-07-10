@@ -63,6 +63,7 @@ export interface Organization {
 
 export interface UserProfile {
   id: string
+  auth_id: string
   email: string
   name: string | null
   organization_id: string
@@ -224,20 +225,27 @@ export function AuthProvider({
     let isLoadingUserData = false
     let pendingUserId: string | null = null
 
-    const checkBookings = () => {
+    const checkBookings = (attempt = 0) => {
       fetch('/api/bookings')
         .then(r => {
-          // Only treat a definitive 200 as authoritative. Anything else (401/500/network)
-          // we ignore so a transient error doesn't flip a previously-true hasBookings to false.
-          if (!r.ok) return undefined
+          // Only treat a definitive 200 as authoritative. Anything else (401/500)
+          // is transient — throw so the retry path handles it rather than
+          // flipping a previously-true hasBookings to false.
+          if (!r.ok) throw new Error(`bookings ${r.status}`)
           return r.json()
         })
         .then(data => {
-          if (isCancelled || data === undefined) return
+          if (isCancelled) return
           setHasBookings(!!data?.reports?.length)
         })
         .catch(() => {
-          // Network error — keep last-known hasBookings rather than wiping it.
+          // Transient failure (commonly a 401 while the auth cookie is still
+          // propagating on first load). Retry with backoff instead of leaving
+          // the Bookings tab hidden until the next auth event — the single
+          // fire-and-forget fetch losing this race was the intermittent
+          // "missing Bookings tab" bug. Never flips a known-true value to false.
+          if (isCancelled || attempt >= 3) return
+          setTimeout(() => { if (!isCancelled) checkBookings(attempt + 1) }, 500 * (attempt + 1))
         })
     }
 
@@ -303,7 +311,9 @@ export function AuthProvider({
           setUser(session.user)
           // Only refetch the profile if we don't already have one from SSR.
           // Avoids redundant work on first paint for the common case.
-          if (!initialProfile || initialProfile.id !== (session.user as any).id) {
+          // Compare auth_id (the Supabase auth uid) — NOT the users-table PK,
+          // which never equals session.user.id and made this always re-fetch.
+          if (!initialProfile || initialProfile.auth_id !== session.user.id) {
             await loadUserData(session.user.id)
           } else {
             // We already have the profile from SSR; just ensure bookings load.

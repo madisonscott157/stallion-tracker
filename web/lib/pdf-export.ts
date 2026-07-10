@@ -9,6 +9,26 @@ import { formatDate, formatDistance, formatHorseDescription, formatOrdinal, form
 import { convertPostTimeToET } from './timezones'
 import { formatPurse, formatMoneyCompact, currencyForRegion } from './currency'
 
+// This module assembles HTML strings and assigns them to innerHTML, so every
+// value that originates from data (horse/race/owner names, connections, URLs —
+// all ultimately derived from parsed emails or scraped pages) must be escaped
+// before interpolation, or a crafted name like `<img src=x onerror=...>` would
+// execute when a user exports a PDF.
+function esc(s: unknown): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+// href values: escape and drop any non-http(s) scheme (blocks javascript: URLs).
+function escUrl(u: unknown): string {
+  const s = String(u ?? '')
+  return /^https?:\/\//i.test(s) ? esc(s) : '#'
+}
+
 export type ExportType = 'all' | 'entries' | 'results' | 'stakes'
 
 export interface ExportOptions {
@@ -60,7 +80,7 @@ function getSilksForOwner(
 }
 
 function silksImg(silksUrl: string): string {
-  return `<img src="${silksUrl}" style="height:14px;width:auto;object-fit:contain;margin-left:4px;display:inline-block;vertical-align:baseline;position:relative;top:9px;" crossorigin="anonymous" />`
+  return `<img src="${esc(silksUrl)}" style="height:14px;width:auto;object-fit:contain;margin-left:4px;display:inline-block;vertical-align:baseline;position:relative;top:9px;" crossorigin="anonymous" />`
 }
 
 function silksImgs(silksUrls: string[]): string {
@@ -131,13 +151,13 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   else if (r.finish_position != null) { posText = formatOrdinal(r.finish_position); posStyle = 'color:#94a3b8;' }
   else { posText = r.finish_status || '-'; posStyle = 'color:#94a3b8;' }
 
-  const nameText = r.horse_name || 'Unknown'
+  const nameText = esc(r.horse_name || 'Unknown')
   const name = r.horse_profile_url
-    ? `<a href="${r.horse_profile_url}" style="color:#0f172a;text-decoration:none;">${nameText}</a>`
+    ? `<a href="${escUrl(r.horse_profile_url)}" style="color:#0f172a;text-decoration:none;">${nameText}</a>`
     : nameText
   const desc = formatHorseDescription(r.horse_sex || null, r.horse_yob || null)
   const ownerSilks = getSilksForOwner(r.owner, orgsWithSilks, isAdmin, userOrgName, userOrgSilksUrl, userOrgPatterns)
-  const track = formatTrack(r.track)
+  const track = esc(formatTrack(r.track))
   const dateStr = formatDate(r.race_date)
 
   // Race details. Prefer per-horse earnings (filled in for European rows by
@@ -146,7 +166,7 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
   // earnings into purse, so the fallback covers them.
   const earnAmt = r.earnings ?? r.purse
   const earnCcy = r.earnings != null ? r.earnings_currency : r.purse_currency
-  const raceParts = [r.race_type, formatPurse(earnAmt, earnCcy), formatDistance(r.distance || null, r.race_country) || null].filter(Boolean).join(` ${pipe()} `)
+  const raceParts = [esc(r.race_type), formatPurse(earnAmt, earnCcy), formatDistance(r.distance || null, r.race_country) || null].filter(Boolean).join(` ${pipe()} `)
   const nameWeight = isWin ? 'font-weight:700;' : 'font-weight:600;'
 
   // Sub-details
@@ -158,12 +178,12 @@ function buildResultRow(r: Result, options: BuildRowOptions = {}): string {
     // clipped/missing pill can never look like a stray leading em-dash.
     const pillHtml = (r.stakes_grade && r.stakes_grade !== 'Listed') ? stakesPill(r.stakes_grade) : ''
     const textParts: string[] = []
-    if (stakesName) textParts.push(`<span style="font-weight:500;color:#334155;">${stakesName}</span>`)
-    if (isWin && r.win_margin) textParts.push(`<span style="color:#15803d;font-weight:500;">Won by ${r.win_margin}</span>`)
+    if (stakesName) textParts.push(`<span style="font-weight:500;color:#334155;">${esc(stakesName)}</span>`)
+    if (isWin && r.win_margin) textParts.push(`<span style="color:#15803d;font-weight:500;">Won by ${esc(r.win_margin)}</span>`)
     const sep = `<span style="color:#cbd5e1;margin:0 6px;">·</span>`
     subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${pillHtml}${textParts.join(sep)}</div>`
   } else if (isWin && r.win_margin) {
-    subLine = `<div style="font-size:11px;margin-top:1px;color:#15803d;font-weight:500;">Won by ${r.win_margin}</div>`
+    subLine = `<div style="font-size:11px;margin-top:1px;color:#15803d;font-weight:500;">Won by ${esc(r.win_margin)}</div>`
   }
 
   return `
@@ -184,13 +204,13 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
 
   const { orgsWithSilks = [], isAdmin, userOrgName, userOrgSilksUrl, userOrgPatterns } = options
 
-  const nameText = e.horse_name || `${e.horse_yob || ''} ${e.horse_dam || 'Unknown'}`.trim()
+  const nameText = esc(e.horse_name || `${e.horse_yob || ''} ${e.horse_dam || 'Unknown'}`.trim())
   const name = e.horse_profile_url
-    ? `<a href="${e.horse_profile_url}" style="color:#0f172a;text-decoration:none;">${nameText}</a>`
+    ? `<a href="${escUrl(e.horse_profile_url)}" style="color:#0f172a;text-decoration:none;">${nameText}</a>`
     : nameText
   const desc = formatHorseDescription(e.horse_sex || null, e.horse_yob || null)
   const ownerSilks = getSilksForOwner(e.owner, orgsWithSilks, isAdmin, userOrgName, userOrgSilksUrl, userOrgPatterns)
-  const track = formatTrack(e.track)
+  const track = esc(formatTrack(e.track))
   const distDisplay = formatDistance(e.distance || null, e.race_country)
 
   // Convert post time to ET, and use the converted ET date for the date
@@ -202,12 +222,12 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
     : null
   const dateStr = formatDate(etConverted?.etDate ?? e.race_date)
 
-  const raceParts = [e.race_type, formatPurse(e.purse, e.purse_currency), distDisplay || null].filter(Boolean).join(` ${pipe()} `)
+  const raceParts = [esc(e.race_type), formatPurse(e.purse, e.purse_currency), distDisplay || null].filter(Boolean).join(` ${pipe()} `)
 
   // Time + track info
   const rightParts = [`${track} R${e.race_number}`]
   if (e.post_time) {
-    rightParts.push(etConverted?.time ?? `${e.post_time} ${e.timezone ?? ''}`.trim())
+    rightParts.push(esc(etConverted?.time ?? `${e.post_time} ${e.timezone ?? ''}`.trim()))
   }
 
   // Stakes sub-line
@@ -218,14 +238,14 @@ function buildEntryRow(e: Entry, options: BuildRowOptions = {}): string {
     // it (no em-dash separator) to mirror the live EntryCard layout and
     // avoid a stray leading dash if html2canvas clips the badge.
     const pillHtml = (e.stakes_grade && e.stakes_grade !== 'Listed') ? stakesPill(e.stakes_grade) : ''
-    const nameHtml = stakesName ? `<span style="font-weight:500;color:#334155;">${stakesName}</span>` : ''
+    const nameHtml = stakesName ? `<span style="font-weight:500;color:#334155;">${esc(stakesName)}</span>` : ''
     subLine = `<div style="font-size:11px;margin-top:1px;color:#64748b;">${pillHtml}${nameHtml}</div>`
   }
 
   // Trainer/Jockey
   const connections: string[] = []
-  if (e.trainer) connections.push(`T: ${e.trainer}`)
-  if (e.jockey) connections.push(`J: ${e.jockey}`)
+  if (e.trainer) connections.push(`T: ${esc(e.trainer)}`)
+  if (e.jockey) connections.push(`J: ${esc(e.jockey)}`)
   const connectionsLine = connections.length > 0
     ? `<div style="font-size:11px;margin-top:1px;color:#94a3b8;">${connections.join(`${pipe()}`)}</div>`
     : ''
@@ -320,7 +340,7 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
 
   // Build all rows as table rows in a single table
   const silksHtml = options.silksUrl
-    ? `<td style="vertical-align:top;text-align:right;width:60px;"><img src="${options.silksUrl}" style="height:50px;width:auto;object-fit:contain;" crossorigin="anonymous" /></td>`
+    ? `<td style="vertical-align:top;text-align:right;width:60px;"><img src="${esc(options.silksUrl)}" style="height:50px;width:auto;object-fit:contain;" crossorigin="anonymous" /></td>`
     : ''
 
   // Build the blocks array — each block is a <tr> or a header row
@@ -331,7 +351,7 @@ export async function exportDashboardToPDF(data: ExportData): Promise<void> {
     <div style="border-bottom:2px solid #0f172a;padding-bottom:8px;margin-bottom:6px;">
       <table style="width:100%;border-collapse:collapse;"><tr>
         <td style="vertical-align:top;">
-          <div style="font-size:22px;font-weight:700;color:#0f172a;line-height:1.3;letter-spacing:0.01em;">${data.stallionName.toUpperCase()} PROGENY REPORT</div>
+          <div style="font-size:22px;font-weight:700;color:#0f172a;line-height:1.3;letter-spacing:0.01em;">${esc(data.stallionName.toUpperCase())} PROGENY REPORT</div>
           <div style="font-size:11px;color:#64748b;margin-top:3px;">${subtitle}</div>
         </td>
         ${silksHtml}

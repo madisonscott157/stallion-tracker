@@ -2,10 +2,53 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerComponentClient } from '@/lib/supabase-server'
 import { requireAuth, isAuthError } from '@/lib/api-auth'
+import { lookup } from 'dns/promises'
+import { isIP } from 'net'
 
 const MAX_LIMIT = 50
 const OG_FETCH_TIMEOUT_MS = 8000
 const OG_HTML_CAP = 250_000
+const OG_MAX_REDIRECTS = 4
+
+// SSRF guard: reject IPs that could reach internal infrastructure or the cloud
+// metadata endpoint. Covers loopback, private, link-local (incl. 169.254.169.254),
+// CGNAT, and the IPv6 equivalents / IPv4-mapped forms.
+function isPrivateIp(ip: string): boolean {
+  const v = ip.replace(/^::ffff:/i, '') // unwrap IPv4-mapped IPv6
+  if (isIP(v) === 4) {
+    const [a, b] = v.split('.').map(Number)
+    if (a === 10 || a === 127 || a === 0) return true
+    if (a === 169 && b === 254) return true            // link-local + metadata
+    if (a === 172 && b >= 16 && b <= 31) return true
+    if (a === 192 && b === 168) return true
+    if (a === 100 && b >= 64 && b <= 127) return true  // CGNAT
+    return false
+  }
+  const lower = v.toLowerCase()
+  if (lower === '::1' || lower === '::') return true
+  if (lower.startsWith('fe80') || lower.startsWith('fc') || lower.startsWith('fd')) return true
+  return false
+}
+
+// Resolve a URL's host and confirm it points at a public address. Rejects
+// non-http(s) schemes and any host that resolves into private/reserved space.
+async function assertPublicUrl(url: string): Promise<void> {
+  const u = new URL(url)
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+    throw new Error('Unsupported scheme')
+  }
+  const host = u.hostname
+  const literal = host.replace(/^\[|\]$/g, '')
+  if (isIP(literal)) {
+    if (isPrivateIp(literal)) throw new Error('Blocked address')
+    return
+  }
+  const results = await lookup(host, { all: true })
+  if (results.length === 0) throw new Error('Unresolvable host')
+  for (const { address } of results) {
+    if (isPrivateIp(address)) throw new Error('Blocked address')
+  }
+}
 
 function getAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
@@ -19,13 +62,13 @@ function getAdminClient() {
 
 async function verifyAdmin() {
   const supabase = createServerComponentClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return null
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return null
 
   const { data: user } = await supabase
     .from('users')
     .select('id, role')
-    .eq('auth_id', session.user.id)
+    .eq('auth_id', authUser.id)
     .single()
 
   if (user?.role !== 'admin') return null
@@ -115,14 +158,29 @@ function extractMeta(html: string, property: string): string | null {
 
 async function fetchPageMetadata(url: string): Promise<{ title: string | null; snippet: string | null; image: string | null }> {
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-      },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(OG_FETCH_TIMEOUT_MS),
-    })
-    if (!res.ok) return { title: null, snippet: null, image: null }
+    // Follow redirects manually so every hop is re-validated against the SSRF
+    // guard — 'follow' would let a public URL 302 into internal space.
+    let current = url
+    let res: Response | null = null
+    for (let hop = 0; hop <= OG_MAX_REDIRECTS; hop++) {
+      await assertPublicUrl(current)
+      const r = await fetch(current, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+        },
+        redirect: 'manual',
+        signal: AbortSignal.timeout(OG_FETCH_TIMEOUT_MS),
+      })
+      if (r.status >= 300 && r.status < 400) {
+        const location = r.headers.get('location')
+        if (!location) return { title: null, snippet: null, image: null }
+        current = new URL(location, current).toString()
+        continue
+      }
+      res = r
+      break
+    }
+    if (!res || !res.ok) return { title: null, snippet: null, image: null }
     const html = (await res.text()).slice(0, OG_HTML_CAP)
 
     let title = extractMeta(html, 'og:title')

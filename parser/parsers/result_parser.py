@@ -9,6 +9,7 @@ from models import ResultData, HorseData
 from comments_parser import parse_comments
 from parsers.chart_scraper import scrape_chart, convert_static_to_premium_url
 from parsers.bloodhorse_replay import build_replay_url, get_track_name
+from parsers.equibase_urls import equibase_href
 
 
 def parse_result_email(html_content: str, email_id: str, subject: str) -> Optional[ResultData]:
@@ -141,7 +142,7 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
     chart_url = None
     track_code = None
 
-    chart_link = soup.find('a', href=re.compile(r'equibase\.com/static/chart/pdf'))
+    chart_link = soup.find('a', href=equibase_href('/static/chart/pdf'))
     if chart_link:
         static_chart_url = chart_link['href']
         # Parse chart filename for metadata: {TrackCode}{Date}{Country}{RaceNum}.pdf
@@ -152,7 +153,7 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
         chart_url = convert_static_to_premium_url(static_chart_url) or static_chart_url
 
     # 5. Extract horse profile URL if present
-    horse_link = soup.find('a', href=re.compile(r'equibase\.com/profiles/Results\.cfm'))
+    horse_link = soup.find('a', href=equibase_href('/profiles/Results.cfm'))
     if horse_link:
         horse.equibase_profile_url = horse_link['href']
         refno_match = re.search(r'refno=(\d+)', horse_link['href'])

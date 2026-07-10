@@ -14,13 +14,13 @@ function getAdminClient() {
 
 async function verifyAdmin() {
   const supabase = createServerComponentClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return null
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return null
 
   const { data: user } = await supabase
     .from('users')
     .select('role, organization_id')
-    .eq('auth_id', session.user.id)
+    .eq('auth_id', authUser.id)
     .single()
 
   if (user?.role !== 'admin') return null

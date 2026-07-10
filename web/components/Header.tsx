@@ -47,7 +47,7 @@ export function Header({
 
           {/* Zone 3: icons — fixed right, all icon-only */}
           <div className="flex items-center gap-0 shrink-0">
-            {hasBookings && (
+            {(hasBookings || isAdmin) && (
               <Link
                 href="/dashboard/bookings"
                 className="inline-flex items-center p-0.5 opacity-80 hover:opacity-100 hover:text-white transition-opacity"
@@ -142,7 +142,7 @@ export function Header({
                   Admin
                 </Link>
               )}
-              {hasBookings ? (
+              {(hasBookings || isAdmin) ? (
                 <Link href="/dashboard/bookings" className="inline-flex items-center hover:text-white transition-colors">
                   Stallion Bookings
                 </Link>

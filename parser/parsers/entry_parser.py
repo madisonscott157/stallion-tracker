@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from models import EntryData, HorseData
 from comments_parser import parse_comments, extract_age_sex
 from distance_normalizer import normalize_distance
+from parsers.equibase_urls import equibase_href
 
 
 # Track timezone mapping
@@ -273,7 +274,7 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
         surface = 'Dirt'
 
     # 8. Extract horse profile URL and refno
-    horse_link = soup.find('a', href=re.compile(r'equibase\.com/profiles/Results\.cfm'))
+    horse_link = soup.find('a', href=equibase_href('/profiles/Results.cfm'))
     if horse_link:
         horse.equibase_profile_url = horse_link['href']
         refno_match = re.search(r'refno=(\d+)', horse_link['href'])
@@ -282,7 +283,7 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
 
     # 8b. Extract Full Entries URL for the race
     entries_url = None
-    entries_link = soup.find('a', href=re.compile(r'equibase\.com/static/entry/'))
+    entries_link = soup.find('a', href=equibase_href('/static/entry/'))
     if entries_link:
         entries_url = entries_link['href']
         # Add race number anchor if not present
