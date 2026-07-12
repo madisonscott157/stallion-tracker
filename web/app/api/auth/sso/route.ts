@@ -69,6 +69,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to validate link' }, { status: 500 })
   }
 
+  // The insert above is an early claim that blocks replays and races. But a
+  // signed link should only be permanently "spent" on a *successful* login —
+  // otherwise a transient failure below (org lookup, user creation, session
+  // mint) would burn a valid link and lock the user out for good. So every
+  // failure path after the claim releases it, leaving the link usable on retry.
+  const releaseClaimAnd = async (
+    body: Record<string, unknown>,
+    status: number
+  ): Promise<NextResponse> => {
+    await adminClient.from('sso_used_tokens').delete().eq('sig', sig)
+    return NextResponse.json(body, { status })
+  }
+
   // Resolve organization by slug
   const { data: organization, error: orgError } = await adminClient
     .from('organizations')
@@ -77,7 +90,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .single()
 
   if (orgError || !organization) {
-    return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+    return releaseClaimAnd({ error: 'Organization not found' }, 404)
   }
 
   // Find or create auth user (no password — SSO-only)
@@ -96,11 +109,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         authUserId = existing.id
       } else {
         console.error('SSO: Could not find existing auth user:', normalizedEmail)
-        return NextResponse.json({ error: 'Failed to resolve user' }, { status: 500 })
+        return releaseClaimAnd({ error: 'Failed to resolve user' }, 500)
       }
     } else {
       console.error('SSO: Error creating auth user:', authError)
-      return NextResponse.json({ error: authError.message }, { status: 500 })
+      return releaseClaimAnd({ error: authError.message }, 500)
     }
   } else {
     authUserId = authUser.user.id
@@ -120,7 +133,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // secret — it must not grant access to accounts it doesn't own.
     if (existingProfile.organization_id !== organization.id) {
       console.error('SSO: org mismatch for', normalizedEmail)
-      return NextResponse.json({ error: 'Account belongs to a different organization' }, { status: 403 })
+      return releaseClaimAnd({ error: 'Account belongs to a different organization' }, 403)
     }
   } else {
     const { error: profileError } = await adminClient.from('users').insert({
@@ -134,7 +147,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (profileError) {
       console.error('SSO: Error creating user profile:', profileError)
-      return NextResponse.json({ error: 'Failed to create user profile' }, { status: 500 })
+      return releaseClaimAnd({ error: 'Failed to create user profile' }, 500)
     }
   }
 
@@ -146,7 +159,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   if (linkError || !linkData) {
     console.error('SSO: Error generating magic link:', linkError)
-    return NextResponse.json({ error: 'Failed to generate session' }, { status: 500 })
+    return releaseClaimAnd({ error: 'Failed to generate session' }, 500)
   }
 
   // Create session via SSR client wired to set cookies on the redirect response
@@ -178,7 +191,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   if (sessionError) {
     console.error('SSO: Error creating session:', sessionError)
-    return NextResponse.json({ error: 'Failed to create session' }, { status: 500 })
+    return releaseClaimAnd({ error: 'Failed to create session' }, 500)
   }
 
   return response
