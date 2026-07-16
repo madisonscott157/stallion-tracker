@@ -94,6 +94,8 @@ export default function BookingsPage() {
 
   const report = reports[selectedIdx] ?? null
   const rawRows: BookingRow[] = report?.data ?? []
+  // Admin-customized column header names for this report (falls back to defaults)
+  const colLabels: Record<string, string> = report?.column_labels || {}
   const rows = sortCol ? sortRows(rawRows, sortCol, sortDir) : rawRows
 
   // Compute which columns have at least one non-blank value — omit empty columns entirely
@@ -109,12 +111,12 @@ export default function BookingsPage() {
 
   // Sortable column definitions — filtered to only active columns
   const sortableCols = ([
-    { col: 'stallion' as SortCol,        label: 'Stallion',     align: 'left'   as const },
-    { col: 'farm' as SortCol,            label: 'Farm',         align: 'left'   as const },
-    { col: 'stud_fee' as SortCol,        label: 'Stud Fee',     align: 'right'  as const },
-    { col: 'repole_interest' as SortCol, label: 'Equity',       align: 'center' as const },
-    { col: 'mares_booked' as SortCol,    label: 'Mares Booked', align: 'center' as const },
-    { col: 'sold_since' as SortCol,      label: 'Sold Since',   align: 'center' as const },
+    { col: 'stallion' as SortCol,        label: 'Stallion',                                   align: 'left'   as const },
+    { col: 'farm' as SortCol,            label: colLabels.farm || 'Farm',                     align: 'left'   as const },
+    { col: 'stud_fee' as SortCol,        label: colLabels.stud_fee || 'Stud Fee',             align: 'right'  as const },
+    { col: 'repole_interest' as SortCol, label: colLabels.repole_interest || 'Equity',        align: 'center' as const },
+    { col: 'mares_booked' as SortCol,    label: colLabels.mares_booked || 'Mares Booked',     align: 'center' as const },
+    { col: 'sold_since' as SortCol,      label: colLabels.sold_since || 'Sold Since',         align: 'center' as const },
   ] as const).filter(({ col }) => hasCol[col])
 
   async function handleExportPDF(): Promise<void> {
@@ -211,13 +213,13 @@ export default function BookingsPage() {
       type ColDef = { key: ColKey; label: string; align: 'left' | 'right' | 'center'; relWidth: number; w: number }
 
       const allColDefs: Omit<ColDef, 'w'>[] = [
-        { key: 'stallion',        label: 'Stallion',     align: 'left',   relWidth: 26 },
-        { key: 'farm',            label: 'Farm',         align: 'left',   relWidth: 14 },
-        { key: 'stud_fee',        label: 'Stud Fee',     align: 'right',  relWidth: 22 },
-        { key: 'repole_interest', label: 'Equity',       align: 'center', relWidth: 22 },
-        { key: 'mares_booked',    label: 'Mares Booked', align: 'center', relWidth: 22 },
-        { key: 'sold_since',      label: 'Sold Since',   align: 'center', relWidth: 22 },
-        { key: 'notes',           label: 'Notes',        align: 'left',   relWidth: 36 },
+        { key: 'stallion',        label: 'Stallion',                               align: 'left',   relWidth: 26 },
+        { key: 'farm',            label: colLabels.farm || 'Farm',                 align: 'left',   relWidth: 14 },
+        { key: 'stud_fee',        label: colLabels.stud_fee || 'Stud Fee',         align: 'right',  relWidth: 22 },
+        { key: 'repole_interest', label: colLabels.repole_interest || 'Equity',    align: 'center', relWidth: 22 },
+        { key: 'mares_booked',    label: colLabels.mares_booked || 'Mares Booked', align: 'center', relWidth: 22 },
+        { key: 'sold_since',      label: colLabels.sold_since || 'Sold Since',     align: 'center', relWidth: 22 },
+        { key: 'notes',           label: colLabels.notes || 'Notes',               align: 'left',   relWidth: 36 },
       ]
 
       const activeColDefs = allColDefs.filter(c => hasCol[c.key])
@@ -409,7 +411,7 @@ export default function BookingsPage() {
                       </th>
                     ))}
                     {hasCol.notes && (
-                      <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Notes</th>
+                      <th className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">{colLabels.notes || 'Notes'}</th>
                     )}
                   </tr>
                 </thead>
@@ -464,14 +466,14 @@ export default function BookingsPage() {
                     <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
                       {hasCol.farm && <span>{row.farm}</span>}
                       {hasCol.repole_interest && row.repole_interest && (
-                        <span className="text-slate-600">Equity: {row.repole_interest}</span>
+                        <span className="text-slate-600">{colLabels.repole_interest || 'Equity'}: {row.repole_interest}</span>
                       )}
                     </div>
                   )}
                   {(hasCol.mares_booked || hasCol.sold_since) && (
                     <div className="flex gap-4 mt-1 text-xs text-slate-400">
-                      {hasCol.mares_booked && <span>Mares: {row.mares_booked}</span>}
-                      {hasCol.sold_since   && <span>Sold: {row.sold_since}</span>}
+                      {hasCol.mares_booked && <span>{colLabels.mares_booked || 'Mares'}: {row.mares_booked}</span>}
+                      {hasCol.sold_since   && <span>{colLabels.sold_since || 'Sold'}: {row.sold_since}</span>}
                     </div>
                   )}
                   {hasCol.notes && row.notes && (

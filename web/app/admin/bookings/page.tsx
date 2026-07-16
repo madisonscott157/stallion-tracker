@@ -29,7 +29,17 @@ const COLUMN_ALIASES: Record<string, keyof BookingRow> = {
   'notes':              'notes',
 }
 
-function parseBookingPaste(text: string): BookingRow[] {
+// Unrecognized pasted headers are assigned to unused fields in this order, and the
+// pasted header text becomes the column's display label (stored in column_labels)
+const FLEX_SLOTS: (keyof BookingRow)[] = ['mares_booked', 'sold_since', 'repole_interest', 'farm', 'notes', 'stud_fee']
+
+interface ParsedPaste {
+  rows: BookingRow[]
+  // Display labels captured from the pasted header row, keyed by BookingRow field
+  columnLabels: Record<string, string>
+}
+
+function parseBookingPaste(text: string): ParsedPaste {
   // Strip BOM if present
   let cleaned = text.startsWith('\uFEFF') ? text.slice(1) : text
 
@@ -37,6 +47,7 @@ function parseBookingPaste(text: string): BookingRow[] {
   const lines = cleaned.split(/\r?\n/)
 
   const rows: BookingRow[] = []
+  const columnLabels: Record<string, string> = {}
   // colIndexMap: built from the header row when detected; maps field → column index
   let colIndexMap: Partial<Record<keyof BookingRow, number>> | null = null
 
@@ -50,10 +61,25 @@ function parseBookingPaste(text: string): BookingRow[] {
     // Detect header row by first column being "stallion"
     if (firstCol === 'stallion') {
       colIndexMap = {}
+      const unknownHeaders: { label: string; idx: number }[] = []
       cols.forEach((col, idx) => {
-        const key = COLUMN_ALIASES[col.trim().toLowerCase()]
-        if (key) colIndexMap![key] = idx
+        const trimmed = col.trim()
+        if (!trimmed) return
+        const key = COLUMN_ALIASES[trimmed.toLowerCase()]
+        if (key && colIndexMap![key] === undefined) {
+          colIndexMap![key] = idx
+        } else if (!key) {
+          unknownHeaders.push({ label: trimmed, idx })
+        }
       })
+      // Keep unrecognized columns: park each in an unused field slot and
+      // remember the pasted header text as that column's display label
+      for (const { label, idx } of unknownHeaders) {
+        const slot = FLEX_SLOTS.find(f => colIndexMap![f] === undefined)
+        if (!slot) break
+        colIndexMap![slot] = idx
+        columnLabels[slot] = label
+      }
       continue
     }
 
@@ -89,7 +115,7 @@ function parseBookingPaste(text: string): BookingRow[] {
     }
   }
 
-  return rows
+  return { rows, columnLabels }
 }
 
 /** Parse a tab-separated line, respecting quoted fields (e.g. "field\twith\ttabs") */
@@ -133,7 +159,7 @@ function isBlank(val: string | number | null | undefined): boolean {
 }
 
 // Read-only table — used for paste previews; hides columns with no data
-function BookingDataTable({ data }: { data: BookingRow[] }) {
+function BookingDataTable({ data, colLabels }: { data: BookingRow[]; colLabels?: Record<string, string> }) {
   const hasCol = {
     farm:            data.some(r => !isBlank(r.farm)),
     stud_fee:        data.some(r => !isBlank(r.stud_fee)),
@@ -142,18 +168,19 @@ function BookingDataTable({ data }: { data: BookingRow[] }) {
     sold_since:      data.some(r => !isBlank(r.sold_since)),
     notes:           data.some(r => !isBlank(r.notes)),
   }
+  const lbl = (key: string, fallback: string) => colLabels?.[key] || fallback
   return (
     <div className="overflow-x-auto border border-slate-200 rounded-md">
       <table className="w-full text-xs">
         <thead>
           <tr className="bg-slate-50 text-left">
             <th className="px-3 py-1.5 font-semibold text-slate-500">Stallion</th>
-            {hasCol.farm            && <th className="px-3 py-1.5 font-semibold text-slate-500">Farm</th>}
-            {hasCol.stud_fee        && <th className="px-3 py-1.5 font-semibold text-slate-500 text-right">Fee</th>}
-            {hasCol.repole_interest && <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Equity</th>}
-            {hasCol.mares_booked    && <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Mares</th>}
-            {hasCol.sold_since      && <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">Sold</th>}
-            {hasCol.notes           && <th className="px-3 py-1.5 font-semibold text-slate-500">Notes</th>}
+            {hasCol.farm            && <th className="px-3 py-1.5 font-semibold text-slate-500">{lbl('farm', 'Farm')}</th>}
+            {hasCol.stud_fee        && <th className="px-3 py-1.5 font-semibold text-slate-500 text-right">{lbl('stud_fee', 'Fee')}</th>}
+            {hasCol.repole_interest && <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">{lbl('repole_interest', 'Equity')}</th>}
+            {hasCol.mares_booked    && <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">{lbl('mares_booked', 'Mares')}</th>}
+            {hasCol.sold_since      && <th className="px-3 py-1.5 font-semibold text-slate-500 text-center">{lbl('sold_since', 'Sold')}</th>}
+            {hasCol.notes           && <th className="px-3 py-1.5 font-semibold text-slate-500">{lbl('notes', 'Notes')}</th>}
           </tr>
         </thead>
         <tbody>
@@ -219,13 +246,22 @@ const EDITABLE_COLS: { key: keyof EditableRow; label: string; align: 'left' | 'r
   { key: 'notes',           label: 'Notes',     align: 'left',   width: 'auto'},
 ]
 
+// Columns whose header label the admin can rename per report
+const RENAMABLE_COLS: (keyof EditableRow)[] = ['farm', 'stud_fee', 'repole_interest', 'mares_booked', 'sold_since', 'notes']
+
 function EditableBookingTable({
   rows,
   onChange,
+  colLabels,
+  onColLabelChange,
 }: {
   rows: EditableRow[]
   onChange: (rows: EditableRow[]) => void
+  colLabels?: Record<string, string>
+  onColLabelChange?: (key: keyof EditableRow, label: string) => void
 }) {
+  const [editingCol, setEditingCol] = useState<keyof EditableRow | null>(null)
+
   function updateCell(rowIndex: number, field: keyof EditableRow, value: string) {
     const updated = rows.map((row, i) =>
       i === rowIndex ? { ...row, [field]: value } : row
@@ -243,16 +279,49 @@ function EditableBookingTable({
         </colgroup>
         <thead>
           <tr className="bg-slate-50 text-left border-b border-slate-200">
-            {EDITABLE_COLS.map(c => (
-              <th
-                key={c.key}
-                className={`px-2 py-1.5 font-semibold text-slate-500 ${
-                  c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : ''
-                }`}
-              >
-                {c.label}
-              </th>
-            ))}
+            {EDITABLE_COLS.map(c => {
+              const displayLabel = colLabels?.[c.key] || c.label
+              const renameable = onColLabelChange && RENAMABLE_COLS.includes(c.key)
+              return (
+                <th
+                  key={c.key}
+                  className={`px-2 py-1.5 font-semibold text-slate-500 ${
+                    c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : ''
+                  }`}
+                >
+                  {renameable ? (
+                    editingCol === c.key ? (
+                      <input
+                        type="text"
+                        autoFocus
+                        defaultValue={displayLabel}
+                        onFocus={e => e.target.select()}
+                        onBlur={e => {
+                          onColLabelChange(c.key, e.target.value.trim())
+                          setEditingCol(null)
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') e.currentTarget.blur()
+                          if (e.key === 'Escape') setEditingCol(null)
+                        }}
+                        className="w-full px-1 py-0.5 text-xs font-semibold text-slate-700 text-center bg-white border border-blue-400 rounded focus:outline-none"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setEditingCol(c.key)}
+                        title="Click to rename this column"
+                        className="cursor-pointer hover:text-slate-700 underline decoration-dotted decoration-slate-300 underline-offset-2 truncate max-w-full"
+                      >
+                        {displayLabel}
+                      </button>
+                    )
+                  ) : (
+                    displayLabel
+                  )}
+                </th>
+              )
+            })}
           </tr>
         </thead>
         <tbody>
@@ -287,55 +356,75 @@ function ExpandedReport({
 }: {
   report: StallionBookingReport
   organizations: Organization[]
-  onUpdate: (id: string, fields: { report_date?: string; label?: string; data?: BookingRow[]; organization_id?: string }) => Promise<boolean>
+  onUpdate: (id: string, fields: { report_date?: string; label?: string; data?: BookingRow[]; organization_id?: string; column_labels?: Record<string, string> }) => Promise<boolean>
   onDelete: (id: string) => void
   onCollapse: () => void
 }) {
   const [editDate, setEditDate] = useState(report.report_date)
   const [editLabel, setEditLabel] = useState(report.label || '')
   const [editOrgId, setEditOrgId] = useState(report.organization_id)
+  const [editColLabels, setEditColLabels] = useState<Record<string, string>>(() => ({ ...(report.column_labels || {}) }))
   const [editableRows, setEditableRows] = useState<EditableRow[]>(() => toEditableRows(report.data))
   const [replacePaste, setReplacePaste] = useState('')
   const [replacePreview, setReplacePreview] = useState<BookingRow[]>([])
+  const [replaceLabels, setReplaceLabels] = useState<Record<string, string>>({})
   const [updating, setUpdating] = useState(false)
   const [localError, setLocalError] = useState('')
 
   useEffect(() => {
     if (replacePaste.trim()) {
-      setReplacePreview(parseBookingPaste(replacePaste))
+      const parsed = parseBookingPaste(replacePaste)
+      setReplacePreview(parsed.rows)
+      setReplaceLabels(parsed.columnLabels)
     } else {
       setReplacePreview([])
+      setReplaceLabels({})
     }
   }, [replacePaste])
 
   const rowsModified = JSON.stringify(editableRows) !== JSON.stringify(toEditableRows(report.data))
+  const colLabelsModified = JSON.stringify(editColLabels) !== JSON.stringify(report.column_labels || {})
 
   const hasChanges =
     editDate !== report.report_date ||
     editLabel !== (report.label || '') ||
     editOrgId !== report.organization_id ||
     replacePreview.length > 0 ||
-    rowsModified
+    rowsModified ||
+    colLabelsModified
+
+  function handleColLabelChange(key: keyof EditableRow, value: string) {
+    setEditColLabels(prev => {
+      const next = { ...prev }
+      if (value) next[key] = value
+      else delete next[key] // cleared → back to the default label
+      return next
+    })
+  }
 
   async function handleUpdate() {
     setUpdating(true)
     setLocalError('')
 
-    const fields: { report_date?: string; label?: string; data?: BookingRow[]; organization_id?: string } = {}
+    const fields: { report_date?: string; label?: string; data?: BookingRow[]; organization_id?: string; column_labels?: Record<string, string> } = {}
     if (editDate !== report.report_date) fields.report_date = editDate
     if (editLabel !== (report.label || '')) fields.label = editLabel.trim()
     if (editOrgId !== report.organization_id) fields.organization_id = editOrgId
     // Paste data takes priority; inline edits used only when no paste override
     if (replacePreview.length > 0) {
       fields.data = replacePreview
-    } else if (rowsModified) {
-      fields.data = fromEditableRows(editableRows)
+      // Replacement paste resets column labels to whatever its header row implies
+      fields.column_labels = replaceLabels
+    } else {
+      if (rowsModified) fields.data = fromEditableRows(editableRows)
+      if (colLabelsModified) fields.column_labels = editColLabels
     }
 
     const success = await onUpdate(report.id, fields)
     if (success) {
       setReplacePaste('')
       setReplacePreview([])
+      setReplaceLabels({})
       onCollapse()
     } else {
       setLocalError('Update failed. Check the error above or try again.')
@@ -415,7 +504,15 @@ function ExpandedReport({
             </button>
           )}
         </div>
-        <EditableBookingTable rows={editableRows} onChange={setEditableRows} />
+        <EditableBookingTable
+          rows={editableRows}
+          onChange={setEditableRows}
+          colLabels={editColLabels}
+          onColLabelChange={handleColLabelChange}
+        />
+        <p className="text-xs text-slate-400 mt-1">
+          Click the Mares or Sold column header to rename it for this report. Clear the name to restore the default.
+        </p>
       </div>
 
       {/* Replacement paste area */}
@@ -431,7 +528,7 @@ function ExpandedReport({
           className="w-full mt-1 px-3 py-2 text-sm border border-slate-300 rounded-md font-mono focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
         <p className="text-xs text-slate-400 mt-1">
-          Include a header row — columns can be in any order, and you can omit columns you don&apos;t have. Recognized: Stallion, Farm, Fee, Equity, Mares, Sold, Notes
+          Include a header row — columns can be in any order, and you can omit columns you don&apos;t have. Recognized: Stallion, Farm, Fee, Equity, Mares, Sold, Notes. Other column names (e.g. Mares Bred, In Foal) are kept and displayed exactly as pasted.
         </p>
       </div>
 
@@ -441,7 +538,7 @@ function ExpandedReport({
           <div className="text-xs font-medium text-slate-500 mb-2">
             Replacement Preview ({replacePreview.length} stallion{replacePreview.length !== 1 ? 's' : ''})
           </div>
-          <BookingDataTable data={replacePreview} />
+          <BookingDataTable data={replacePreview} colLabels={replaceLabels} />
         </div>
       )}
 
@@ -480,6 +577,7 @@ export default function AdminBookingsPage() {
   const [selectedOrgId, setSelectedOrgId] = useState('')
   const [pasteText, setPasteText] = useState('')
   const [preview, setPreview] = useState<BookingRow[]>([])
+  const [previewLabels, setPreviewLabels] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetchReports().finally(() => setIsLoading(false))
@@ -487,9 +585,12 @@ export default function AdminBookingsPage() {
 
   useEffect(() => {
     if (pasteText.trim()) {
-      setPreview(parseBookingPaste(pasteText))
+      const parsed = parseBookingPaste(pasteText)
+      setPreview(parsed.rows)
+      setPreviewLabels(parsed.columnLabels)
     } else {
       setPreview([])
+      setPreviewLabels({})
     }
   }, [pasteText])
 
@@ -536,6 +637,7 @@ export default function AdminBookingsPage() {
           label: label.trim() || undefined,
           data: preview,
           organization_id: selectedOrgId,
+          column_labels: previewLabels,
         }),
       })
       const result = await res.json()
@@ -544,6 +646,7 @@ export default function AdminBookingsPage() {
       } else {
         setPasteText('')
         setPreview([])
+        setPreviewLabels({})
         setLabel('')
         setShowForm(false)
         await fetchReports()
@@ -557,7 +660,7 @@ export default function AdminBookingsPage() {
 
   async function handleUpdate(
     id: string,
-    fields: { report_date?: string; label?: string; data?: BookingRow[]; organization_id?: string }
+    fields: { report_date?: string; label?: string; data?: BookingRow[]; organization_id?: string; column_labels?: Record<string, string> }
   ): Promise<boolean> {
     setError('')
 
@@ -679,7 +782,7 @@ export default function AdminBookingsPage() {
               className="w-full mt-1 px-3 py-2 text-sm border border-slate-300 rounded-md font-mono focus:outline-none focus:ring-2 focus:ring-slate-400"
             />
             <p className="text-xs text-slate-400 mt-1">
-              Include a header row — columns can be in any order, and you can omit columns you don&apos;t have. Recognized: Stallion, Farm, Fee, Equity, Mares, Sold, Notes
+              Include a header row — columns can be in any order, and you can omit columns you don&apos;t have. Recognized: Stallion, Farm, Fee, Equity, Mares, Sold, Notes. Other column names (e.g. Mares Bred, In Foal) are kept and displayed exactly as pasted.
             </p>
           </div>
 
@@ -689,7 +792,7 @@ export default function AdminBookingsPage() {
               <div className="text-xs font-medium text-slate-500 mb-2">
                 Preview ({preview.length} stallion{preview.length !== 1 ? 's' : ''})
               </div>
-              <BookingDataTable data={preview} />
+              <BookingDataTable data={preview} colLabels={previewLabels} />
             </div>
           )}
 

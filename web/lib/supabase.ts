@@ -261,6 +261,8 @@ export interface StallionBookingReport {
   report_date: string
   label: string | null
   data: BookingRow[]
+  // Custom display labels keyed by BookingRow field, e.g. { mares_booked: 'Mares Contracted' }
+  column_labels?: Record<string, string> | null
   created_at: string
 }
 

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { report_date, label, data, organization_id } = body
+  const { report_date, label, data, organization_id, column_labels } = body
 
   if (!report_date || !data || !Array.isArray(data)) {
     return NextResponse.json({ error: 'report_date and data array are required' }, { status: 400 })
@@ -58,6 +58,9 @@ export async function POST(request: NextRequest) {
   }
   if (label) {
     insertData.label = label
+  }
+  if (column_labels && Object.keys(column_labels).length > 0) {
+    insertData.column_labels = column_labels
   }
 
   const { data: result, error } = await adminClient
@@ -84,7 +87,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { id, report_date, label, data, organization_id } = body
+  const { id, report_date, label, data, organization_id, column_labels } = body
 
   if (!id) {
     return NextResponse.json({ error: 'id is required' }, { status: 400 })
@@ -97,6 +100,10 @@ export async function PATCH(request: NextRequest) {
   if (label !== undefined) {
     // Use empty string rather than null to avoid Supabase client hang
     updateData.label = label || ''
+  }
+  if (column_labels !== undefined) {
+    // Empty object rather than null to avoid Supabase client hang
+    updateData.column_labels = column_labels || {}
   }
   if (data) {
     updateData.data = data
