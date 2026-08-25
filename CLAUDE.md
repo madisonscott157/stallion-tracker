@@ -148,6 +148,14 @@ Dirt, Turf, AWT (Tapeta/Polytrack/synthetic all map to AWT).
 2. Update `TRACKED_STALLIONS` in three places: local `.env`, Fly.io secrets, Vercel env vars
 3. Clear `email_log` and reprocess: `python3 main.py --once`
 
+### Equibase Virtual Stable automation
+Horses can be added to the Equibase Virtual Stable (the US/CAN email
+source) programmatically — `parser/scripts/vs_stable.py` (Selenium +
+local Chrome, needs `EQUIBASE_PASSWORD` in `.env`). Full guide with
+site mechanics and gotchas: `equibase-virtual-stable.md`. A horse not
+in VS gets no Equibase emails; its VS comment `(YY Sire - Dam)` must
+name a tracked sire or the parser skips its notifications.
+
 ### Stallion Bookings
 - Admin creates reports at `/admin/bookings` by pasting tab-separated Excel data
 - Dashboard card (`StallionBookingsCard`) self-gates via API — only shows if user's org has reports (RLS enforced)
