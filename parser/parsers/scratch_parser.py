@@ -29,7 +29,7 @@ def parse_scratch_email(html_content: str, email_id: str) -> Optional[ScratchDat
     text = soup.get_text()
 
     # Pattern: "Alias was scratched from race 9 on January 30, 2026, at AQUEDUCT."
-    scratch_pattern = r"(\w[\w\s'-]+?)\s+was scratched from\s+race\s+(\d+)\s+on\s+([A-Za-z]+\s+\d+,?\s+\d{4}),?\s+at\s+([A-Z\s]+?)(?:\.|Your)"
+    scratch_pattern = r"(\w[\w\s'-]+?)\s+was scratched from\s+race\s+(\d+)\s+on\s+([A-Za-z]+\s+\d+,?\s+\d{4}),?\s+at\s+([A-Z\s&'\-]+?)(?:\.|Your)"
 
     match = re.search(scratch_pattern, text, re.IGNORECASE)
     if not match:

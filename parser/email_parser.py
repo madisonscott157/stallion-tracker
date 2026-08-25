@@ -47,8 +47,15 @@ def detect_email_type(html_content: str) -> str:
     if "Horse Workout Notification" in text:
         return 'workout'
 
-    # Entry emails contain "is entered to run on"
+    # Entry emails come in three wordings:
+    #   Early Entry:  "{Horse} is entered to run on {date}, at {TRACK}."
+    #   Final Entry:  "{Horse} is entered on {date} at {TRACK}."
+    #   Race Day:     "{Horse} is entered today at {TRACK}."
     if "is entered to run on" in text:
+        return 'entry'
+    if "is entered on" in text:
+        return 'entry'
+    if "is entered today at" in text:
         return 'entry'
 
     # Result emails contain finish info
@@ -120,7 +127,8 @@ def parse_email(email_msg: EmailMessage, email_type: str) -> Optional[Union[Entr
         Parsed data object or None if parsing fails
     """
     if email_type == 'entry':
-        return parse_entry_email(email_msg.html_body, email_msg.id, email_msg.subject)
+        return parse_entry_email(email_msg.html_body, email_msg.id, email_msg.subject,
+                                 email_date=email_msg.date)
     elif email_type == 'result':
         return parse_result_email(email_msg.html_body, email_msg.id, email_msg.subject)
     elif email_type == 'workout':

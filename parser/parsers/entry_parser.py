@@ -47,7 +47,8 @@ def get_track_timezone(track: str) -> str:
     return 'ET'  # Default to Eastern
 
 
-def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optional[EntryData]:
+def parse_entry_email(html_content: str, email_id: str, subject: str,
+                      email_date: Optional[datetime] = None) -> Optional[EntryData]:
     """
     Parse Virtual Stable entry notification email.
 
@@ -55,6 +56,8 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
         html_content: HTML body of the email
         email_id: Email message ID for deduplication
         subject: Email subject line
+        email_date: The email's Date header — required to date Race Day
+                    notifications, whose body says only "is entered today at"
 
     Returns:
         EntryData object or None if parsing fails
@@ -65,29 +68,45 @@ def parse_entry_email(html_content: str, email_id: str, subject: str) -> Optiona
     # Initialize horse data
     horse = HorseData()
 
-    # 1. Extract horse name and race info from header
-    # Pattern: "{Horse Name} is entered to run on {Date}, at {TRACK}."
+    # 1. Extract horse name and race info from header. Three wordings:
+    #      Early Entry:  "{Horse} is entered to run on {Date}, at {TRACK}."
+    #      Final Entry:  "{Horse} is entered on {Date} at {TRACK}."
+    #      Race Day:     "{Horse} is entered today at {TRACK}."
+    #    Track names can contain '&' ("MOUNTAINEER CASINO RACETRACK & RESORT").
+    _NAME = (r"([A-Za-z](?:[A-Za-z'\-]*|\.)"
+             r"(?:\s+(?:[A-Za-z]\.|[A-Za-z][A-Za-z'\-]*))*?(?:\s*\([A-Z]{2,3}\))?)")
+    _TRACK = r"([A-Z][A-Za-z\s&'\-]+)\."
+
+    date_str = None
     header_match = re.search(
-        r"([A-Za-z](?:[A-Za-z'\-]*|\.)(?:\s+(?:[A-Za-z]\.|[A-Za-z][A-Za-z'\-]*))*?(?:\s*\([A-Z]{2,3}\))?)"
-        r"\s+is entered to run on\s+"
-        r"(\w+ \d{1,2}, \d{4}),?\s+at\s+([A-Z][A-Za-z\s]+)\.",
+        _NAME + r"\s+is entered (?:to run )?on\s+(\w+ \d{1,2}, \d{4}),?\s+at\s+" + _TRACK,
         text
     )
+    if header_match:
+        horse.name = header_match.group(1).strip()
+        date_str = header_match.group(2)
+        track = header_match.group(3).strip()
+    else:
+        today_match = re.search(_NAME + r"\s+is entered today at\s+" + _TRACK, text)
+        if not today_match:
+            print(f"Could not parse entry header from email: {subject}")
+            return None
+        horse.name = today_match.group(1).strip()
+        track = today_match.group(2).strip()
 
-    if not header_match:
-        print(f"Could not parse entry header from email: {subject}")
-        return None
-
-    horse.name = header_match.group(1).strip()
-    date_str = header_match.group(2)
-    track = header_match.group(3).strip()
-
-    # Parse date
-    try:
-        race_date = datetime.strptime(date_str, "%B %d, %Y").date()
-    except ValueError:
-        print(f"Could not parse date: {date_str}")
-        return None
+    # Parse date — Race Day emails carry no date in the body; they are sent
+    # on race day, so the email's own Date header is the race date.
+    if date_str:
+        try:
+            race_date = datetime.strptime(date_str, "%B %d, %Y").date()
+        except ValueError:
+            print(f"Could not parse date: {date_str}")
+            return None
+    else:
+        if not email_date:
+            print(f"Race Day entry email without a usable date: {subject}")
+            return None
+        race_date = email_date.date()
 
     # Get timezone for track
     timezone = get_track_timezone(track)
