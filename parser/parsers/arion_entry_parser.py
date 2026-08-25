@@ -10,9 +10,9 @@ hierarchically:
             Horse (CTY) YYYY (Sex. by Sire-Dam) [(trainer: Trainer)]
 
 Returns a list of EntryData — one per flat-race NH runner by a tracked
-sire. Southern-hemisphere sections (Australia, New Zealand, South Africa)
-and jump races (hurdle/chase/bumper/steeplechase) are dropped at parse
-time.
+sire. Excluded-country sections (Southern Hemisphere, the Americas — see
+EXCLUDED_COUNTRIES) and jump races (hurdle/chase/bumper/steeplechase) are
+dropped at parse time.
 """
 
 import html
@@ -27,7 +27,7 @@ from models import EntryData, HorseData
 # Country names, spelled exactly as Arion emits them, that we keep.
 NH_COUNTRIES = {
     'Great Britain', 'Ireland', 'France', 'Germany', 'Italy', 'Spain',
-    'USA', 'Canada', 'Qatar', 'Saudi Arabia', 'UAE', 'Bahrain',
+    'Qatar', 'Saudi Arabia', 'UAE', 'Bahrain',
     'Japan', 'Hong Kong', 'South Korea', 'Turkey',
     'Czech Republic', 'Hungary', 'Poland', 'Sweden', 'Denmark',
     'Norway', 'Belgium', 'Netherlands', 'Switzerland', 'Austria',
@@ -38,7 +38,7 @@ NH_COUNTRIES = {
 # In any other NH country a race is only kept if it's a stakes (Listed / Group).
 # Goal: surface meaningful European progeny activity without flooding the
 # dashboard with low-grade Czech / Moroccan / HK card races.
-TIER1_COUNTRIES = {'Great Britain', 'Ireland', 'France', 'USA', 'Canada'}
+TIER1_COUNTRIES = {'Great Britain', 'Ireland', 'France'}
 
 # Countries where we accept *every* race regardless of class (not just stakes).
 # Japan added 2026-06 as a trial: high-quality racing where even non-black-type
@@ -46,9 +46,26 @@ TIER1_COUNTRIES = {'Great Britain', 'Ireland', 'France', 'USA', 'Canada'}
 # too noisy.
 FULL_COVERAGE_COUNTRIES = TIER1_COUNTRIES | {'Japan'}
 
-# Southern-hemisphere / out-of-scope country headers — sections under these
-# are dropped, but seeing them resets the country state.
-SH_COUNTRIES = {'Australia', 'New Zealand', 'South Africa'}
+# Out-of-scope country headers — sections under these are dropped, but
+# seeing them resets the country state (so their tracks aren't mistaken
+# for tracks of the preceding country).
+#
+# USA + Canada: Equibase Virtual Stable is the source of record there —
+# richer rows (jockey, furlong distances, ET post times) that arrive days
+# earlier. Arion added Americas coverage ~2026-07-29; ingesting it produced
+# duplicate cards because Arion's track spellings ("Parx Racing", "Monmouth",
+# "Charles Town") never match Equibase's ("PARX RACING", "MONMOUTH PARK",
+# "HOLLYWOOD CASINO AT CHARLES TOWN RACES") in the upsert key. Note Arion
+# writes the US header as 'U.S.A.' — keep both spellings here.
+#
+# Latin America (Chile / Mexico / etc.): out of scope for this tracker,
+# same as the Southern Hemisphere.
+EXCLUDED_COUNTRIES = {
+    'Australia', 'New Zealand', 'South Africa',
+    'USA', 'U.S.A.', 'Canada',
+    'Chile', 'Mexico', 'Argentina', 'Brazil', 'Peru', 'Uruguay',
+    'Puerto Rico', 'Panama',
+}
 
 # Purse prefix → ISO 4217. Longest-prefix-wins so "NZ$" beats "$".
 CURRENCY_MAP = (
@@ -208,7 +225,7 @@ def parse_arion_entry_email(
             cur_track = None
             cur_race = None
             continue
-        if line in SH_COUNTRIES:
+        if line in EXCLUDED_COUNTRIES:
             cur_country = None  # drop this section
             cur_track = None
             cur_race = None

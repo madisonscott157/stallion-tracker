@@ -61,8 +61,12 @@ ACCEPTABLE_COURSE_STATUS = {
 # NH_COUNTRIES filter rule. Southern Hemisphere (AUS/NZL/ZAF) and
 # Latin America (ARG/BRA/CHL/URY) are deliberately omitted — their
 # tracked-stallion progeny activity is out of scope for this tracker.
+# USA/CAN are also omitted (2026-08-25): Equibase Virtual Stable is the
+# source of record there, and PMU's fallback track spellings ("Del-Mar")
+# would never match Equibase's ("DEL MAR") in the upsert key — a US
+# Group race carried by PMU would land as a duplicate row.
 PMU_NH_COUNTRY_CODES = {
-    "FRA", "GBR", "IRL", "USA", "CAN",
+    "FRA", "GBR", "IRL",
     "DEU", "ITA", "ESP",
     "QAT", "SAU", "ARE", "BHR",
     "JPN", "HKG", "KOR",

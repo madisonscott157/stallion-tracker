@@ -137,6 +137,14 @@ def process_arion_result(db: Database, result: ResultData) -> bool:
         if not entry_row:
             print(f"  No matching entry for {result.horse.name} on {result.race_date}; skipping Arion result")
             return True  # silent skip — counted as processed, not errored
+        # Equibase-sourced entries have race_country NULL; Arion/PMU always
+        # set it. If the matched entry is Equibase-sourced (or US/CAN), the
+        # Equibase result email is the source of record — skip, or the Arion
+        # row would upsert onto the Equibase result's key and clobber its
+        # fields (metric distance over furlongs, generic race name).
+        if entry_row.get('race_country') in (None, 'USA', 'Canada'):
+            print(f"  US/CAN race for {result.horse.name} — Equibase covers it; skipping Arion result")
+            return True  # silent skip — counted as processed, not errored
         result.track = entry_row['track']
         result.race_number = entry_row['race_number']
         if not result.race_name:

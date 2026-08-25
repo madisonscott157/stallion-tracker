@@ -49,8 +49,10 @@ horse-id + race-date entry to look up).
 | Trial emails (`Trials Acceptances` / `Trials Results` subjects) | Skipped entirely. |
 | Jump races (race name matches `hurdle\|chase\|steeplechase\|bumper\|haies\|cross-country`) | Skipped. |
 | Southern hemisphere (Australia, New Zealand, South Africa) | Skipped. |
-| Tier-1 jurisdictions (USA, Canada, France, Great Britain, Ireland) | All races accepted. |
-| Other NH countries (Germany, Italy, Spain, Qatar, UAE, Hong Kong, Japan, etc.) | **Stakes only** (Listed / Group). |
+| USA / Canada (Arion header `U.S.A.` / `Canada`) | **Skipped since 2026-08-25** — Equibase Virtual Stable is the source of record; Arion's US coverage (added ~2026-07-29) produced duplicate rows because its track spellings never match Equibase's in the upsert key. Arion *results* matching an Equibase-sourced entry (`race_country IS NULL`) or a US/CAN entry are skipped in `process_arion_result` for the same reason. |
+| Latin America (Chile, Mexico, etc.) | Skipped — out of scope. |
+| Tier-1 jurisdictions (France, Great Britain, Ireland) | All races accepted. |
+| Other NH countries (Germany, Italy, Spain, Qatar, UAE, Hong Kong, etc.) | **Stakes only** (Listed / Group). Japan: all races (2026-06 trial). |
 
 A small explainer line is rendered under the StatsBar on the stallion
 overview page when the stallion's `tdn_region` is `'eu'` or `'fr'`.

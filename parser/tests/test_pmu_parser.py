@@ -256,17 +256,19 @@ def test_late_evening_no_date_drift():
 def test_is_target_reunion_accepts_nh_countries():
     # Tier 1 + other NH countries: keep. Country-specific stakes-vs-all
     # gating happens at the iterator, not here.
-    for code in ("FRA", "GBR", "IRL", "USA", "CAN",
+    for code in ("FRA", "GBR", "IRL",
                  "DEU", "ITA", "ESP",
                  "QAT", "SAU", "ARE",
                  "JPN", "HKG"):
         assert is_target_reunion({"pays": {"code": code}}) is True, code
 
 
-def test_is_target_reunion_drops_sh_and_latam():
+def test_is_target_reunion_drops_sh_latam_and_us():
     # Southern Hemisphere + Latin America are out of scope (mirrors
-    # arion_entry_parser's NH_COUNTRIES set).
-    for code in ("AUS", "NZL", "ZAF", "ARG", "BRA", "CHL", "URY"):
+    # arion_entry_parser's EXCLUDED_COUNTRIES set). USA/CAN dropped
+    # 2026-08-25: Equibase is the source of record there.
+    for code in ("AUS", "NZL", "ZAF", "ARG", "BRA", "CHL", "URY",
+                 "USA", "CAN"):
         assert is_target_reunion({"pays": {"code": code}}) is False, code
     assert is_target_reunion({}) is False
     assert is_target_reunion({"pays": {}}) is False
