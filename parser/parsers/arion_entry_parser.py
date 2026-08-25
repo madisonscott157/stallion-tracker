@@ -21,6 +21,7 @@ from datetime import date
 from typing import Optional
 from bs4 import BeautifulSoup
 
+from canon import arion_track_to_db
 from models import EntryData, HorseData
 
 
@@ -295,7 +296,7 @@ def parse_arion_entry_email(
 
         # Bold standalone name with no parens, not time-led → track header.
         if 1 <= len(line) <= 60 and not line[0].isdigit() and '(' not in line:
-            cur_track = line
+            cur_track = arion_track_to_db(line)
             cur_race = None
             continue
 

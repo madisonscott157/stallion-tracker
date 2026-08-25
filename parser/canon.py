@@ -183,7 +183,30 @@ PMU_TRACK_TO_DB: dict[str, str] = {
     "SAINT BRIEUC":      "Saint-Brieuc",
     "STRASBOURG":        "Strasbourg",
     "VICHY":             "Vichy",
+    # Confirmed against the live PMU programme API 2026-08-25 for the exact
+    # meeting dates in the DB. Canonical form must equal Arion's emission
+    # for the track, or the two writers never merge in the upsert key.
+    "LA TESTE":          "La Teste-Bassin Arcachon",
+    "LES SABLES D OLONNE": "Les Sables d'Olonne",
+    "LE TOUQUET":        "Le Touquet",
+    "MONT DE MARSAN":    "Mont-de-Marsan",
+    "EVREUX":            "Evreux-Navarre",
+    "LA CEPIERE":        "Toulouse",   # HIPPODROME DE TOULOUSE LA CEPIERE
 }
+
+
+# Arion track spellings that diverge from the canonical DB name (which
+# otherwise follows Arion convention). Applied by arion_entry_parser to
+# every track header; identity for unknown names. Add entries here when
+# a new Arion/PMU spelling pair shows up as a duplicate-entry family.
+ARION_TRACK_TO_DB: dict[str, str] = {
+    "Marseille Borely": "Marseille-Borely",
+}
+
+
+def arion_track_to_db(track: str) -> str:
+    """Arion track header → DB canonical track string."""
+    return ARION_TRACK_TO_DB.get(track, track)
 
 
 def pmu_to_db_track(libelle: str) -> str:

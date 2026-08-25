@@ -124,6 +124,15 @@ def test_msw_negative_cases(conditions):
     ("NANCY-BRABOIS",    "Nancy"),
     ("ParisLongchamp",   "ParisLongchamp"),
     ("SAINT-CLOUD",      "Saint-Cloud"),
+    # Provincial libelles confirmed via the PMU programme API 2026-08-25.
+    # Canonical form matches Arion's emission so both writers merge.
+    ("LA TESTE",           "La Teste-Bassin Arcachon"),
+    ("LES SABLES D OLONNE", "Les Sables d'Olonne"),
+    ("LE TOUQUET",         "Le Touquet"),
+    ("MONT DE MARSAN",     "Mont-de-Marsan"),
+    ("EVREUX",             "Evreux-Navarre"),
+    ("LA CEPIERE",         "Toulouse"),
+    ("BORELY",             "Marseille-Borely"),
 ])
 def test_track_known_aliases(pmu_in, db_out):
     assert pmu_to_db_track(pmu_in) == db_out

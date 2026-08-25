@@ -59,6 +59,20 @@ def test_excluded_sections_reset_country_state():
     assert tracks == {'La Teste-Bassin Arcachon', 'Catterick'}
 
 
+def test_arion_track_alias_applied():
+    # Arion writes 'Marseille Borely'; canonical (PMU-mapped) is
+    # 'Marseille-Borely'. The alias hook must rewrite the track header.
+    body = _email(
+        '26/08/2026',
+        'France',
+        'Marseille Borely',
+        '14:00 Race 1 Prix Test, €20000 1600m',
+        'Kozlovskha (IRE) 2023 (F. by Lope de Vega-Rose et Or) (trainer: Y. B)',
+    )
+    rows = parse_arion_entry_email(body, 'msg-3', 'Race Acceptances', TRACKED)
+    assert [r.track for r in rows] == ['Marseille-Borely']
+
+
 def test_bare_usa_spelling_also_dropped():
     body = _email(
         '26/08/2026',
