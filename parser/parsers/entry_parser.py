@@ -11,20 +11,39 @@ from distance_normalizer import normalize_distance
 from parsers.equibase_urls import equibase_href
 
 
-# Track timezone mapping
+# Track timezone mapping. Keys of <=3 chars are Equibase track codes and
+# require exact match (see get_track_timezone); longer keys substring-match.
+# Only map tracks whose state/zone is certain — a missing mapping falls back
+# to ET (status quo), a wrong one actively shifts displayed post times.
 TRACK_TIMEZONES = {
-    # West Coast
+    # Pacific
     'SANTA ANITA': 'PT', 'SA': 'PT',
     'DEL MAR': 'PT', 'DMR': 'PT',
     'GOLDEN GATE': 'PT', 'GG': 'PT',
     'LOS ALAMITOS': 'PT',
+    'EMERALD DOWNS': 'PT',        # Auburn, WA
+    'GRANTS PASS': 'PT',          # OR
+    'CROOKED RIVER': 'PT',        # Prineville, OR
+    'WHITE PINE': 'PT',           # Ely, NV
     # Mountain
     'TURF PARADISE': 'MT',
     'ARIZONA DOWNS': 'MT',
+    'ALBUQUERQUE': 'MT',          # NM
+    'SUNRAY PARK': 'MT',          # Farmington, NM
+    'ARAPAHOE': 'MT',             # CO
+    'WYOMING DOWNS': 'MT',        # Evanston, WY
+    'SWEETWATER DOWNS': 'MT',     # Rock Springs, WY
+    'ENERGY DOWNS': 'MT',         # Gillette, WY
+    'CENTURY MILE': 'MT',         # Edmonton, AB
+    'GRANDE PRAIRIE': 'MT',       # AB
+    'LETHBRIDGE': 'MT',           # AB
     # Eastern Kentucky (Louisville + Lexington are both on ET)
     'CHURCHILL DOWNS': 'ET', 'CD': 'ET',
     'KEENELAND': 'ET',
     'TURFWAY PARK': 'ET', 'TP': 'ET',
+    # Western Kentucky is Central
+    'ELLIS PARK': 'CT',           # Henderson, KY
+    'KENTUCKY DOWNS': 'CT',       # Franklin, KY (TN border)
     # Central
     'FAIR GROUNDS': 'CT', 'FG': 'CT',
     'OAKLAWN': 'CT', 'OP': 'CT',
@@ -34,7 +53,21 @@ TRACK_TIMEZONES = {
     'REMINGTON': 'CT', 'RP': 'CT',
     'SAM HOUSTON': 'CT',
     'LONE STAR': 'CT',
-    # Eastern (default)
+    'HAWTHORNE': 'CT',            # Chicago, IL
+    'FAIRMOUNT PARK': 'CT',       # Collinsville, IL
+    'CANTERBURY': 'CT',           # Shakopee, MN
+    'PRAIRIE MEADOWS': 'CT',      # Altoona, IA
+    'FAIR MEADOWS': 'CT',         # Tulsa, OK
+    'FONNER PARK': 'CT',          # Grand Island, NE
+    'HORSEMEN': 'CT',             # Horsemen's Park, Omaha, NE
+    'COLUMBUS NEBRASKA': 'CT',    # Harrah's Columbus, NE
+    'LEGACY DOWNS': 'CT',         # Lincoln, NE
+    'ASSINIBOIA': 'CT',           # Winnipeg, MB
+    'NORTH DAKOTA HORSE PARK': 'CT',  # Fargo, ND
+    'CHIPPEWA DOWNS': 'CT',       # Belcourt, ND
+    # Eastern (default). Note CAMARERO (Puerto Rico) is AST — equal to EDT
+    # in summer, 1h ahead of EST in winter; ET is the least-wrong option
+    # among the zones the UI understands, so it stays on the default.
 }
 
 
@@ -265,6 +298,7 @@ def parse_entry_email(html_content: str, email_id: str, subject: str,
     # include the word "Races", so collect all matches, drop ones that captured
     # eligibility text, and keep the last one.
     distance = None
+    chosen_distance_match = None
     distance_matches = list(re.finditer(
         r"((?:About\s+)?(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten)"
         r"[\w\s]+(?:Furlongs?|Miles?|Yards?))",
@@ -274,7 +308,8 @@ def parse_entry_email(html_content: str, email_id: str, subject: str,
     filtered = [m for m in distance_matches if not re.search(r'\bRaces?\b', m.group(1), re.IGNORECASE)]
     candidates = filtered or distance_matches
     if candidates:
-        distance = candidates[-1].group(1).strip()
+        chosen_distance_match = candidates[-1]
+        distance = chosen_distance_match.group(1).strip()
         # Strip concatenated surface text: "YardsOnTheAllWeather" → "Yards"
         distance = re.sub(
             r'(Furlongs?|Miles?|Yards?)OnThe.*$',
@@ -290,15 +325,30 @@ def parse_entry_email(html_content: str, email_id: str, subject: str,
         )
         distance = normalize_distance(distance)
 
-    # 7. Extract surface
+    # 7. Extract surface. Only two signals are trustworthy:
+    #    (a) the parenthesized tag right after the race distance —
+    #        "Five Furlongs. (Turf)" — and
+    #    (b) concatenated OnThe<Surface> forms welded to the distance.
+    #    NEVER match bare surface words anywhere in the email: conditions
+    #    prose routinely names the *other* surfaces as contingencies ("If
+    #    Deemed Inadvisable To Run This Race Over The Turf Course, It Will
+    #    Be Run On The Tapeta Course...") — that blanket-tagged Gulfstream
+    #    turf races AWT and Saratoga dirt races Turf. Unknown stays None.
     surface = None
-    # Check for All Weather Track (Tapeta, Polytrack, synthetic surfaces)
-    # Handle both spaced and concatenated forms (e.g., "OnTheAllWeather")
-    if re.search(r'All[- ]?Weather|OnTheAllWeather|Tapeta|Polytrack|Synthetic', text, re.IGNORECASE):
+    surface_window = ""
+    if chosen_distance_match:
+        surface_window = text[chosen_distance_match.end():chosen_distance_match.end() + 40]
+    tag = re.search(
+        r'\(\s*(?:Inner |Outer )?(Turf|Dirt|Tapeta|Polytrack|All[- ]?Weather|AWT)\s*\)',
+        surface_window, re.IGNORECASE)
+    if tag:
+        word = tag.group(1).upper().replace('-', ' ')
+        surface = {'TURF': 'Turf', 'DIRT': 'Dirt'}.get(word, 'AWT')
+    elif re.search(r'OnThe(AllWeather|Tapeta|Polytrack)', text, re.IGNORECASE):
         surface = 'AWT'
-    elif re.search(r'OnTheTurf|\bTurf\b', text, re.IGNORECASE):
+    elif re.search(r'OnTheTurf', text, re.IGNORECASE):
         surface = 'Turf'
-    elif re.search(r'OnTheDirt|OnTheMainTrack|\bDirt\b', text, re.IGNORECASE):
+    elif re.search(r'OnThe(Dirt|MainTrack)', text, re.IGNORECASE):
         surface = 'Dirt'
 
     # 8. Extract horse profile URL and refno

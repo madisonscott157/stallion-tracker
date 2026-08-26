@@ -150,13 +150,21 @@ def extract_race_details(text: str) -> ChartData:
 
     # Extract distance - look for "Distance:" line which is most reliable
     # Format: "Distance:OneMileOnTheTurf" or "Distance: 6 Furlongs"
+    # The colon is REQUIRED: conditions text contains phrases like
+    # "(If necessary will be run SAMEDISTANCEMainTrack.)" where the
+    # colon-less pattern matched DISTANCE inside SAMEDISTANCE and then
+    # captured 'Main' (stop-token 'Track') as the race distance.
     distance_match = re.search(
-        r'Distance[:\s]*([^\n]+?)(?:Current|Track|Record|\(|Purse)',
+        r'Distance\s*:\s*([^\n]+?)(?:Current|Track|Record|\(|Purse)',
         text,
         re.IGNORECASE
     )
     if distance_match:
         dist_text = distance_match.group(1).strip()
+        # Off-the-turf charts append the original plan to the distance:
+        # "OneMileOnTheDirt-OriginallyScheduledFor1MileOnTurf" — the race
+        # ran at the part before the dash; drop the rest.
+        dist_text = re.split(r'-\s*Originally', dist_text, flags=re.IGNORECASE)[0].strip()
         # Clean up common patterns (words may run together in PDF text)
         dist_text = re.sub(r'OnThe(Turf|Dirt|MainTrack|AllWeather(?:Track)?)', r' On The \1', dist_text)
         dist_text = re.sub(r'(\d)(Furlongs?|Miles?|Yards?)', r'\1 \2', dist_text)

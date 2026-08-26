@@ -76,6 +76,44 @@ def test_cancelled_race_treated_as_scratch():
     assert s.horse.sire == "Constitution"
 
 
+def test_chart_distance_ignores_samedistance_contingency():
+    # MNR charts put "(IfnecessarywillberunSAMEDISTANCEMainTrack.)" BEFORE
+    # the Distance line; the colon-less regex matched DISTANCE inside
+    # SAMEDISTANCE and stored 'Main' as the distance (19 rows).
+    from parsers.chart_scraper import extract_race_details
+    text = ("CLAIMING-Thoroughbred MainTrackFOR THREE YEAR OLDS ed2lbs."
+            "(IfnecessarywillberunSAMEDISTANCEMainTrack.).(NW2L) "
+            "Distance:OneMileOnTheDirt-OriginallyScheduledFor1MileOnTurf"
+            "CurrentTrackRecord:(PresentCourse-1:33.44) Purse:$20,000")
+    d = extract_race_details(text)
+    assert d.distance == "1 mile"
+    assert d.surface == "Dirt"
+
+
+def test_entry_surface_from_parenthetical_not_contingency_prose():
+    # Gulfstream turf races name Tapeta as the off-turf contingency; the
+    # old anywhere-in-text match blanket-tagged them AWT (54 entries).
+    gp = ("<html><body>Magic Mini is entered to run on August 29, 2026, at "
+          "GULFSTREAM PARK.Your comments for this horse were: (22 Good Magic - R Naja)"
+          "Full Entries for RaceRace: 6 - 3:46 PM CLAIMING $35,000"
+          "Purse: $ 30,000. Claiming Price $35,000. (if Deemed Inadvisable To Run "
+          "This Race Over The Turf Course, It Will Be Run On The Tapeta Course At "
+          "Five Furlongs) (rail At 59 Feet). Five Furlongs. (Turf)PPHorseA/SMed"
+          "</body></html>")
+    e = parse_entry_email(gp, "id", "Early Entry Notification")
+    assert e.surface == "Turf"
+    # Saratoga dirt races mention the turf course in contingency prose only —
+    # no parenthetical tag after the distance means surface stays unknown.
+    sar = ("<html><body>Gulfy is entered to run on August 29, 2026, at "
+           "SARATOGA.Your comments for this horse were: (23 Curlin - Puca)"
+           "Full Entries for RaceRace: 4 - 12:56 PM ALLOWANCE Purse: $ 100,000. "
+           "(If the Stewards consider it inadvisable to run this race on the turf "
+           "course, 3yo and up races will run at One Mile on the Main Track). "
+           "One And One Sixteenth Miles.PPHorseA/SMed</body></html>")
+    e = parse_entry_email(sar, "id", "Early Entry Notification")
+    assert e.surface is None
+
+
 def test_track_timezone_codes_require_exact_match():
     from parsers.entry_parser import get_track_timezone as tz
     assert tz("SARATOGA") == "ET"          # 'SA' code must not substring-match
