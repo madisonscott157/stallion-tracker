@@ -201,6 +201,7 @@ PMU_TRACK_TO_DB: dict[str, str] = {
 # a new Arion/PMU spelling pair shows up as a duplicate-entry family.
 ARION_TRACK_TO_DB: dict[str, str] = {
     "Marseille Borely": "Marseille-Borely",
+    "Marseille Pont de Vivaux": "Marseille-Pont-de-Vivaux",
 }
 
 
