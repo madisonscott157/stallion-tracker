@@ -90,6 +90,23 @@ def test_chart_distance_ignores_samedistance_contingency():
     assert d.surface == "Dirt"
 
 
+def test_chart_race_type_survives_concatenated_header():
+    # PDF text welds the header words together; with \s+ patterns the bare
+    # CLAIMING tail matched and every AOC/MCL/SOC chart was typed CLM.
+    from parsers.chart_scraper import extract_race_details
+    for header, want in [
+        ("ALLOWANCEOPTIONALCLAIMING-Thoroughbred", "AOC"),
+        ("MAIDENCLAIMING-Thoroughbred", "MCL"),
+        ("STARTEROPTIONALCLAIMING-Thoroughbred", "SOC"),
+        ("MAIDENSPECIALWEIGHT-Thoroughbred", "MSW"),
+        ("CLAIMING-Thoroughbred", "CLM"),
+        ("ALLOWANCE OPTIONAL CLAIMING - Thoroughbred", "AOC"),
+    ]:
+        d = extract_race_details(f"SomeRace {header} MainTrackFOR THREE YEAR OLDS "
+                                 "Distance:SixFurlongsOnTheDirt Purse:$20,000")
+        assert d.race_type == want, (header, d.race_type)
+
+
 def test_entry_surface_from_parenthetical_not_contingency_prose():
     # Gulfstream turf races name Tapeta as the off-turf contingency; the
     # old anywhere-in-text match blanket-tagged them AWT (54 entries).

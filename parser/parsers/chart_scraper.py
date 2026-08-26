@@ -312,16 +312,24 @@ def extract_race_details(text: str) -> ChartData:
     # near the start of `text`. Anchor on the " - Thoroughbred" marker so
     # the conditions paragraph below (which can mention "claiming" or
     # "allowance" loosely) can never override the header.
+    # PDF extraction often concatenates words ("ALLOWANCEOPTIONALCLAIMING-
+    # Thoroughbred"), so whitespace between words must be OPTIONAL (\s*).
+    # With \s+ the multi-word alternatives could never match concatenated
+    # headers and the bare CLAIMING tail matched instead — every AOC/MCL/SOC
+    # chart was typed CLM (441 result rows repaired 2026-08-26).
     header_match = re.search(
-        r'(MAIDEN\s+SPECIAL\s+WEIGHT|MAIDEN\s+CLAIMING|'
-        r'STARTER\s+OPTIONAL\s+CLAIMING|STARTER\s+ALLOWANCE|'
-        r'ALLOWANCE\s+OPTIONAL\s+CLAIMING|OPTIONAL\s+CLAIMING|'
-        r'GRADED\s+STAKES|STAKES|ALLOWANCE|CLAIMING)\s*-\s*Thoroughbred',
+        r'(MAIDEN\s*SPECIAL\s*WEIGHT|MAIDEN\s*CLAIMING|'
+        r'STARTER\s*OPTIONAL\s*CLAIMING|STARTER\s*ALLOWANCE|'
+        r'ALLOWANCE\s*OPTIONAL\s*CLAIMING|OPTIONAL\s*CLAIMING|'
+        r'GRADED\s*STAKES|STAKES|ALLOWANCE|CLAIMING)\s*-\s*Thoroughbred',
         text,
         re.IGNORECASE,
     )
     if header_match:
-        header_word = re.sub(r'\s+', ' ', header_match.group(1).upper())
+        header_word = re.sub(
+            r'(MAIDEN|SPECIAL|WEIGHT|CLAIMING|STARTER|OPTIONAL|ALLOWANCE|GRADED|STAKES)',
+            r' \1', header_match.group(1).upper())
+        header_word = re.sub(r'\s+', ' ', header_word).strip()
         header_to_type = {
             'MAIDEN SPECIAL WEIGHT': 'MSW',
             'MAIDEN CLAIMING': 'MCL',

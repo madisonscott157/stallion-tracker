@@ -71,6 +71,26 @@ TRACK_TIMEZONES = {
 }
 
 
+# Tracks with exactly one racing surface — their entry emails usually omit
+# the surface tag entirely, so fall back to the track's only surface when
+# nothing explicit is found. Only list tracks where this is unambiguous.
+SINGLE_SURFACE_TRACKS = {
+    'PRESQUE ISLE': 'AWT',      # all-Tapeta
+    'TURFWAY': 'AWT',           # all-Tapeta
+    'KENTUCKY DOWNS': 'Turf',   # all-turf
+    'FINGER LAKES': 'Dirt',     # no turf course
+    'CHARLES TOWN': 'Dirt',     # no turf course
+}
+
+
+def _single_surface_key(track: str) -> str:
+    t = (track or '').upper()
+    for key in SINGLE_SURFACE_TRACKS:
+        if key in t:
+            return key
+    return ''
+
+
 def get_track_timezone(track: str) -> str:
     """Get timezone for a track.
 
@@ -350,6 +370,8 @@ def parse_entry_email(html_content: str, email_id: str, subject: str,
         surface = 'Turf'
     elif re.search(r'OnThe(Dirt|MainTrack)', text, re.IGNORECASE):
         surface = 'Dirt'
+    if surface is None:
+        surface = SINGLE_SURFACE_TRACKS.get(_single_surface_key(track))
 
     # 8. Extract horse profile URL and refno
     horse_link = soup.find('a', href=equibase_href('/profiles/Results.cfm'))
