@@ -44,7 +44,7 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
     winner_match = re.search(
         r"([A-Za-z](?:[A-Za-z'\-]*|\.)(?:\s+(?:[A-Za-z]\.|[A-Za-z][A-Za-z'\-]*))*?(?:\s*\([A-Z]{2,3}\))?)"
         r"\s+won\s+by\s+(.+?),\s+on\s+"
-        r"(\w+ \d{1,2}, \d{4}),?\s+at\s+([A-Z][A-Za-z\s&'\-]+)\s+in\s+Race\s+(\d+)",
+        r"(\w+ \d{1,2}, \d{4}),?\s+at\s+([A-Z][A-Za-z0-9\s&'\-]+)\s+in\s+Race\s+(\d+)",
         text
     )
 
@@ -53,7 +53,7 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
         r"([A-Za-z](?:[A-Za-z'\-]*|\.)(?:\s+(?:[A-Za-z]\.|[A-Za-z][A-Za-z'\-]*))*?(?:\s*\([A-Z]{2,3}\))?)"
         r"\s+finished\s+(\d+)(?:st|nd|rd|th)\s+"
         r"beaten\s+by\s+([\d\s/]+\s*lengths?),\s+on\s+"
-        r"(\w+ \d{1,2}, \d{4}),?\s+at\s+([A-Z][A-Za-z\s&'\-]+)\s+in\s+Race\s+(\d+)",
+        r"(\w+ \d{1,2}, \d{4}),?\s+at\s+([A-Z][A-Za-z0-9\s&'\-]+)\s+in\s+Race\s+(\d+)",
         text,
         re.IGNORECASE
     )
@@ -90,7 +90,7 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
             date_str = date_match.group(1)
 
         # Extract track separately
-        track_match = re.search(r"at\s+([A-Z][A-Za-z\s&'\-]+)\s+in\s+Race", text)
+        track_match = re.search(r"at\s+([A-Z][A-Za-z0-9\s&'\-]+)\s+in\s+Race", text)
         if track_match:
             track = track_match.group(1).strip()
 

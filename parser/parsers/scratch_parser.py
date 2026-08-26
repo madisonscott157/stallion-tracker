@@ -30,7 +30,7 @@ def parse_scratch_email(html_content: str, email_id: str) -> Optional[ScratchDat
 
     # Pattern: "Alias was scratched from race 9 on January 30, 2026, at AQUEDUCT."
     # Foreign-breds carry a country suffix: "Heads in Beds (FR) was scratched..."
-    scratch_pattern = r"(\w[\w\s'-]+?(?:\s*\([A-Z]{2,3}\))?)\s+was scratched from\s+race\s+(\d+)\s+on\s+([A-Za-z]+\s+\d+,?\s+\d{4}),?\s+at\s+([A-Z\s&'\-]+?)(?:\.|Your)"
+    scratch_pattern = r"(\w[\w\s'-]+?(?:\s*\([A-Z]{2,3}\))?)\s+was scratched from\s+race\s+(\d+)\s+on\s+([A-Za-z]+\s+\d+,?\s+\d{4}),?\s+at\s+([A-Z0-9\s&'\-]+?)(?:\.|Your)"
 
     match = re.search(scratch_pattern, text, re.IGNORECASE)
     if match:
@@ -44,7 +44,7 @@ def parse_scratch_email(html_content: str, email_id: str) -> Optional[ScratchDat
         #  but this race was cancelled."
         cancel_pattern = (
             r"(\w[\w\s'-]+?(?:\s*\([A-Z]{2,3}\))?)\s+was entered to run on\s+"
-            r"([A-Za-z]+\s+\d+,?\s+\d{4}),?\s+at\s+([A-Z\s&'\-]+?)\s+"
+            r"([A-Za-z]+\s+\d+,?\s+\d{4}),?\s+at\s+([A-Z0-9\s&'\-]+?)\s+"
             r"in\s+Race\s+(\d+)\s+but this race\s+was cancelled"
         )
         match = re.search(cancel_pattern, text, re.IGNORECASE)

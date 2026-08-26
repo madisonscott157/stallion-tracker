@@ -75,7 +75,7 @@ def parse_entry_email(html_content: str, email_id: str, subject: str,
     #    Track names can contain '&' ("MOUNTAINEER CASINO RACETRACK & RESORT").
     _NAME = (r"([A-Za-z](?:[A-Za-z'\-]*|\.)"
              r"(?:\s+(?:[A-Za-z]\.|[A-Za-z][A-Za-z'\-]*))*?(?:\s*\([A-Z]{2,3}\))?)")
-    _TRACK = r"([A-Z][A-Za-z\s&'\-]+)\."
+    _TRACK = r"([A-Z][A-Za-z0-9\s&'\-]+)\."
 
     date_str = None
     header_match = re.search(
