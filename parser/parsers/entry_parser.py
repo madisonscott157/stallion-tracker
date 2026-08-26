@@ -39,10 +39,19 @@ TRACK_TIMEZONES = {
 
 
 def get_track_timezone(track: str) -> str:
-    """Get timezone for a track."""
+    """Get timezone for a track.
+
+    Short keys (track codes like 'SA', 'CD') must match the whole string —
+    substring matching made 'SA' (Santa Anita) hit SA*RATOGA* and
+    SA*M HOUSTON*, shifting every Saratoga post time 3 hours on display.
+    Full names still match as substrings ("MOUNTAINEER CASINO..." etc.).
+    """
     track_upper = track.upper()
     for key, tz in TRACK_TIMEZONES.items():
-        if key in track_upper:
+        if len(key) <= 3:
+            if track_upper == key:
+                return tz
+        elif key in track_upper:
             return tz
     return 'ET'  # Default to Eastern
 

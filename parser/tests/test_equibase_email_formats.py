@@ -76,6 +76,16 @@ def test_cancelled_race_treated_as_scratch():
     assert s.horse.sire == "Constitution"
 
 
+def test_track_timezone_codes_require_exact_match():
+    from parsers.entry_parser import get_track_timezone as tz
+    assert tz("SARATOGA") == "ET"          # 'SA' code must not substring-match
+    assert tz("SAM HOUSTON RACE PARK") == "CT"
+    assert tz("SA") == "PT"                # the actual Santa Anita code
+    assert tz("SANTA ANITA PARK") == "PT"
+    assert tz("DEL MAR") == "PT"
+    assert tz("MOUNTAINEER CASINO RACETRACK & RESORT") == "ET"
+
+
 def test_scratch_and_cancellation_with_country_suffix():
     from parsers.scratch_parser import parse_scratch_email as p
     scratch = ("<html><body>Heads in Beds (FR) was scratched from  race 10 on "
