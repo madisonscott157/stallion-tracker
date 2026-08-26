@@ -76,6 +76,23 @@ def test_cancelled_race_treated_as_scratch():
     assert s.horse.sire == "Constitution"
 
 
+def test_scratch_and_cancellation_with_country_suffix():
+    from parsers.scratch_parser import parse_scratch_email as p
+    scratch = ("<html><body>Heads in Beds (FR) was scratched from  race 10 on "
+               "July 31, 2026, at SARATOGA.Your comments for this horse were: "
+               "(22 Hello Youmzain - Eleona)If you would like</body></html>")
+    s = p(scratch, "id")
+    assert s is not None and s.horse.name == "Heads in Beds (FR)"
+    assert s.track == "SARATOGA" and s.race_number == 10
+    cancel = ("<html><body>Count of Amazonia (IRE) was entered to run on "
+              "July 1, 2026, at HORSESHOE INDIANAPOLIS in Race 6 but this race "
+              "was cancelled. Your comments for this horse were: "
+              "(17 Lope De Vega - Queen Myrine)If you</body></html>")
+    s = p(cancel, "id")
+    assert s is not None and s.horse.name == "Count of Amazonia (IRE)"
+    assert s.track == "HORSESHOE INDIANAPOLIS" and s.race_number == 6
+
+
 def test_scratch_with_ampersand_track():
     html = _load("scratch_mountaineer.html")
     assert detect_email_type(html) == "scratch"
