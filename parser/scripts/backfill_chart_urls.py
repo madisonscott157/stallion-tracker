@@ -76,36 +76,50 @@ def main():
 
     ok = skip = fail = 0
     for n, r in enumerate(todo, 1):
-        code = codes.get(r["track"])
-        if not code:
-            skip += 1
-            continue
-        mm, dd, yyyy = r["race_date"][5:7], r["race_date"][8:10], r["race_date"][:4]
-        url = (f"https://www.equibase.com/premium/eqbPDFChartPlus.cfm"
-               f"?RACE={r['race_number']}&BorP=P&TID={code}&CTRY=USA"
-               f"&DT={mm}/{dd}/{yyyy}&DAY=D&STYLE=EQB")
-        chart = scrape_chart(url)
-        time.sleep(1.5)
-        if not chart:
+        try:
+            code = codes.get(r["track"])
+            if not code:
+                skip += 1
+                continue
+            mm, dd, yyyy = r["race_date"][5:7], r["race_date"][8:10], r["race_date"][:4]
+            url = (f"https://www.equibase.com/premium/eqbPDFChartPlus.cfm"
+                   f"?RACE={r['race_number']}&BorP=P&TID={code}&CTRY=USA"
+                   f"&DT={mm}/{dd}/{yyyy}&DAY=D&STYLE=EQB")
+            chart = scrape_chart(url)
+            time.sleep(1.5)
+            if not chart:
+                fail += 1
+                continue
+            upd = {"chart_url": url}
+            if chart.surface and not r.get("surface"):
+                upd["surface"] = chart.surface
+            if chart.distance and not r.get("distance"):
+                upd["distance"] = chart.distance
+            if chart.race_type and not r.get("race_type"):
+                upd["race_type"] = chart.race_type
+            if r.get("finish_position") and not r.get("earnings"):
+                e = chart.get_earnings(r["finish_position"])
+                if e:
+                    upd["earnings"] = e
+            # Supabase/httpx calls hit transient ReadTimeouts on long runs;
+            # retry rather than losing the whole batch to one blip.
+            for attempt in (1, 2, 3):
+                try:
+                    client.table("results").update(upd).eq("id", r["id"]).execute()
+                    break
+                except Exception as e:
+                    print(f"  update retry {attempt} ({type(e).__name__})")
+                    time.sleep(5 * attempt)
+            else:
+                fail += 1
+                continue
+            ok += 1
+        except Exception as e:
+            print(f"  row error {r['race_date']} {r['track']} R{r['race_number']}: {type(e).__name__}")
             fail += 1
+        finally:
             if n % 25 == 0:
                 print(f"[{n}/{len(todo)}] ok={ok} fail={fail} skip={skip}")
-            continue
-        upd = {"chart_url": url}
-        if chart.surface and not r.get("surface"):
-            upd["surface"] = chart.surface
-        if chart.distance and not r.get("distance"):
-            upd["distance"] = chart.distance
-        if chart.race_type and not r.get("race_type"):
-            upd["race_type"] = chart.race_type
-        if r.get("finish_position") and not r.get("earnings"):
-            e = chart.get_earnings(r["finish_position"])
-            if e:
-                upd["earnings"] = e
-        client.table("results").update(upd).eq("id", r["id"]).execute()
-        ok += 1
-        if n % 25 == 0:
-            print(f"[{n}/{len(todo)}] ok={ok} fail={fail} skip={skip}")
     print(f"DONE: updated={ok} chart-miss={fail} no-code={skip} of {len(todo)}")
 
 
