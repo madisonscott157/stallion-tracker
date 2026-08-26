@@ -43,6 +43,13 @@ def detect_email_type(html_content: str) -> str:
     if "was scratched from" in text:
         return 'scratch'
 
+    # Race-cancellation notices arrive under a "Result Notification"
+    # subject: "{Horse} was entered to run on {date}, at {TRACK} in
+    # Race {N} but this race was cancelled." Treat as a scratch — the
+    # entry should stop showing as upcoming.
+    if "was cancelled" in text and "was entered to run" in text:
+        return 'scratch'
+
     # Workout emails have distinctive header
     if "Horse Workout Notification" in text:
         return 'workout'

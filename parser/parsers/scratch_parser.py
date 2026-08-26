@@ -32,14 +32,28 @@ def parse_scratch_email(html_content: str, email_id: str) -> Optional[ScratchDat
     scratch_pattern = r"(\w[\w\s'-]+?)\s+was scratched from\s+race\s+(\d+)\s+on\s+([A-Za-z]+\s+\d+,?\s+\d{4}),?\s+at\s+([A-Z\s&'\-]+?)(?:\.|Your)"
 
     match = re.search(scratch_pattern, text, re.IGNORECASE)
-    if not match:
-        print(f"    Could not parse scratch pattern from email")
-        return None
-
-    horse_name = match.group(1).strip()
-    race_number = int(match.group(2))
-    date_str = match.group(3).strip()
-    track = match.group(4).strip().upper()
+    if match:
+        horse_name = match.group(1).strip()
+        race_number = int(match.group(2))
+        date_str = match.group(3).strip()
+        track = match.group(4).strip().upper()
+    else:
+        # Race-cancellation wording (arrives as "Result Notification"):
+        # "{Horse} was entered to run on {Date}, at {TRACK} in Race {N}
+        #  but this race was cancelled."
+        cancel_pattern = (
+            r"(\w[\w\s'-]+?)\s+was entered to run on\s+"
+            r"([A-Za-z]+\s+\d+,?\s+\d{4}),?\s+at\s+([A-Z\s&'\-]+?)\s+"
+            r"in\s+Race\s+(\d+)\s+but this race\s+was cancelled"
+        )
+        match = re.search(cancel_pattern, text, re.IGNORECASE)
+        if not match:
+            print(f"    Could not parse scratch pattern from email")
+            return None
+        horse_name = match.group(1).strip()
+        date_str = match.group(2).strip()
+        track = match.group(3).strip().upper()
+        race_number = int(match.group(4))
 
     # Parse date
     try:

@@ -62,6 +62,20 @@ def test_early_entry_with_ampersand_track():
     assert e.race_number == 8
 
 
+def test_cancelled_race_treated_as_scratch():
+    # Cancellation notices arrive under a "Result Notification" subject
+    # (65 in email_log were stuck as "Unknown email type" pre-fix).
+    html = _load("cancelled_race.html")
+    assert detect_email_type(html) == "scratch"
+    s = parse_scratch_email(html, "id")
+    assert s is not None
+    assert s.horse.name == "Queen Berkeley"
+    assert s.track == "LOUISIANA DOWNS"
+    assert s.race_number == 2
+    assert s.race_date.isoformat() == "2026-08-19"
+    assert s.horse.sire == "Constitution"
+
+
 def test_scratch_with_ampersand_track():
     html = _load("scratch_mountaineer.html")
     assert detect_email_type(html) == "scratch"
