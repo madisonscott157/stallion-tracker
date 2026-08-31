@@ -1,0 +1,50 @@
+# Sire Rankings - Runs every 3 hours
+#
+# TDN renders the sire-list table server-side, so this scrape is a plain HTTP
+# GET per stallion — no Chrome, a few seconds end to end. Running it often
+# removes the need to guess when TDN posts the prior day's results: the site
+# now trails TDN by at most ~3 hours instead of up to a day.
+#
+# Only current-year rows are scraped here. Historical years are closed and
+# cannot change, so daily-scraper.yml remains the only job that refreshes them.
+# Writes are upserts on (stallion_id, year, list_type), so repeat runs are
+# idempotent.
+
+name: Sire Rankings
+
+on:
+  schedule:
+    - cron: '15 */3 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+# A long-running scrape should not overlap with the next scheduled one.
+concurrency:
+  group: sire-rankings
+  cancel-in-progress: false
+
+jobs:
+  rankings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: ./parser
+        run: |
+          pip install -r requirements.txt
+
+      - name: Scrape sire rankings
+        working-directory: ./parser
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python3 sales_scraper_main.py --rankings-only --current-year-only
