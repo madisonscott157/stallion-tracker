@@ -121,9 +121,27 @@ def get_scrape_plan(sire_name: str) -> list[tuple[str, int]]:
     return unique
 
 
-def scrape_all_stallions(db: Database):
-    """Scrape sales data, sire rankings, and racing stats for all tracked stallions."""
+def scrape_all_stallions(db: Database, do_sales: bool = True, do_rankings: bool = True,
+                         do_equineline: bool = True, current_year_only: bool = False,
+                         dry_run: bool = False):
+    """Scrape sales data, sire rankings, and racing stats for all tracked stallions.
+
+    Args:
+        do_sales / do_rankings / do_equineline: which sources to scrape. The
+            3-hourly rankings job runs with only `do_rankings`, so it never
+            starts Chrome (sales + Equineline are still Selenium-driven).
+        current_year_only: restrict the ranking scrape plan to the current
+            year. Historical entries in STALLION_HISTORICAL_SCRAPES cover
+            closed years whose numbers cannot change, so the frequent job
+            skips them and only the daily job refreshes them.
+        dry_run: fetch and report, but write nothing to the database.
+    """
     print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starting data scrape...")
+    sources = [n for n, on in (('sales', do_sales), ('rankings', do_rankings),
+                               ('equineline', do_equineline)) if on]
+    print(f"  Sources: {', '.join(sources)}"
+          f"{' | current year only' if current_year_only else ''}"
+          f"{' | DRY RUN (no writes)' if dry_run else ''}")
 
     # Get tracked stallions from database
     stallion_names = db.get_tracked_stallion_names()
@@ -163,45 +181,60 @@ def scrape_all_stallions(db: Database):
 
         # Scrape sales data - sire param is pulled from stallions.tdn_url so
         # foreign-bred stallions index with their country-code suffix on TDN.
-        try:
-            print(f"\n  Scraping sales data (first_sales_year={first_sales_year})...")
-            sales_data = scrape_stallion_sales(
-                sire_name,
-                sire_param=tdn_sire_param,
-                first_sales_year=first_sales_year,
-            )
+        if do_sales:
+            try:
+                print(f"\n  Scraping sales data (first_sales_year={first_sales_year})...")
+                sales_data = scrape_stallion_sales(
+                    sire_name,
+                    sire_param=tdn_sire_param,
+                    first_sales_year=first_sales_year,
+                )
 
-            for data in sales_data:
-                result_id = db.upsert_sales_stats(stallion_id, data)
-                if result_id:
-                    sales_records += 1
+                for data in sales_data:
                     type_label = SALE_TYPES.get(data.sale_type, {}).get('label', data.sale_type)
-                    print(f"    Stored: {data.sale_year} {type_label}")
+                    if dry_run:
+                        sales_records += 1
+                        print(f"    Would store: {data.sale_year} {type_label}")
+                        continue
+                    result_id = db.upsert_sales_stats(stallion_id, data)
+                    if result_id:
+                        sales_records += 1
+                        print(f"    Stored: {data.sale_year} {type_label}")
 
-        except Exception as e:
-            print(f"  Error scraping sales for {sire_name}: {e}")
-            errors += 1
+            except Exception as e:
+                print(f"  Error scraping sales for {sire_name}: {e}")
+                errors += 1
 
         # Scrape sire rankings per the per-stallion scrape plan
-        try:
-            plan = get_scrape_plan(sire_name)
+        if do_rankings:
+            try:
+                plan = get_scrape_plan(sire_name)
+                if current_year_only:
+                    plan = [(lt, y) for lt, y in plan if y == datetime.now().year]
 
-            for list_type, stats_year in plan:
-                type_label = LIST_TYPES.get(list_type, {}).get('label', list_type)
-                print(f"\n  Scraping sire rankings ({type_label} {stats_year}, region={tdn_region})...")
-                ranking_data = scrape_stallion_rankings(sire_name, stats_year, [list_type], region=tdn_region)
+                for list_type, stats_year in plan:
+                    type_label = LIST_TYPES.get(list_type, {}).get('label', list_type)
+                    print(f"\n  Scraping sire rankings ({type_label} {stats_year}, region={tdn_region})...")
+                    ranking_data = scrape_stallion_rankings(sire_name, stats_year, [list_type], region=tdn_region)
 
-                for data in ranking_data:
-                    result_id = db.upsert_sire_ranking(stallion_id, data)
-                    if result_id:
-                        ranking_records += 1
-                        print(f"    Stored: {data.year} {type_label} - Rank #{data.rank}")
+                    for data in ranking_data:
+                        if dry_run:
+                            ranking_records += 1
+                            print(f"    Would store: {data.year} {type_label} - Rank #{data.rank}, "
+                                  f"{data.starters} str, {data.winners} wnr, ${data.total_earnings:,}")
+                            continue
+                        result_id = db.upsert_sire_ranking(stallion_id, data)
+                        if result_id:
+                            ranking_records += 1
+                            print(f"    Stored: {data.year} {type_label} - Rank #{data.rank}")
 
-        except Exception as e:
-            print(f"  Error scraping rankings for {sire_name}: {e}")
-            errors += 1
+            except Exception as e:
+                print(f"  Error scraping rankings for {sire_name}: {e}")
+                errors += 1
 
         # Scrape Equineline racing stats - ref is parsed from stallions.equineline_url
+        if not do_equineline:
+            continue
         try:
             equineline_ref = extract_stallion_ref(equineline_url)
             if equineline_ref:
@@ -209,10 +242,17 @@ def scrape_all_stallions(db: Database):
                 stats_data = scrape_equineline_stats(equineline_ref)
 
                 if stats_data:
-                    result_id = db.upsert_equineline_stats(stallion_id, stats_data)
-                    if result_id:
+                    summary = (f"{stats_data.lifetime_starters} starters, "
+                               f"{stats_data.lifetime_winners} winners, "
+                               f"${stats_data.lifetime_earnings:,}")
+                    if dry_run:
                         equineline_records += 1
-                        print(f"    Stored: {stats_data.lifetime_starters} starters, {stats_data.lifetime_winners} winners, ${stats_data.lifetime_earnings:,}")
+                        print(f"    Would store: {summary}")
+                    else:
+                        result_id = db.upsert_equineline_stats(stallion_id, stats_data)
+                        if result_id:
+                            equineline_records += 1
+                            print(f"    Stored: {summary}")
             else:
                 print(f"\n  No Equineline URL set for {sire_name} (add via Admin → Stallions)")
 
@@ -230,30 +270,44 @@ def scrape_all_stallions(db: Database):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='TDN Sales Scraper')
+    parser = argparse.ArgumentParser(description='TDN / Equineline stallion data scraper')
     parser.add_argument('--once', action='store_true',
                        help='Run once and exit')
+    parser.add_argument('--rankings-only', action='store_true',
+                       help='Scrape only TDN sire rankings (pure HTTP, no Chrome needed)')
+    parser.add_argument('--current-year-only', action='store_true',
+                       help='Skip historical backfill years; scrape the current year only')
+    parser.add_argument('--dry-run', action='store_true',
+                       help='Fetch and report without writing to the database')
     args = parser.parse_args()
 
     print("TDN Insta-tistics Sales Scraper")
     print("="*50)
 
+    scrape_kwargs = dict(
+        do_sales=not args.rankings_only,
+        do_rankings=True,
+        do_equineline=not args.rankings_only,
+        current_year_only=args.current_year_only,
+        dry_run=args.dry_run,
+    )
+
     # Initialize database
     print("Connecting to database...")
     db = Database()
 
-    if args.once:
+    if args.once or args.rankings_only:
         # Run once and exit
-        scrape_all_stallions(db)
+        scrape_all_stallions(db, **scrape_kwargs)
     else:
         # Run on schedule
         print("Scheduling daily scrape at 12:30 AM...")
 
         # Schedule daily at 12:30 AM
-        schedule.every().day.at("00:30").do(scrape_all_stallions, db)
+        schedule.every().day.at("00:30").do(scrape_all_stallions, db, **scrape_kwargs)
 
         # Also run immediately on start
-        scrape_all_stallions(db)
+        scrape_all_stallions(db, **scrape_kwargs)
 
         try:
             print("\nWaiting for next scheduled run (12:30 AM daily)...")

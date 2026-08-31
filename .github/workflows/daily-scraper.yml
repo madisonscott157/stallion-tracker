@@ -1,5 +1,8 @@
 # Daily Scraper - Runs at 12:30 AM UTC
-# Scrapes TDN sales, sire rankings, and Equineline stats
+# Scrapes TDN sales, sire rankings (incl. historical backfill), and Equineline
+# stats. Sales and Equineline still need headless Chrome, so this job stays
+# daily. Current-year sire rankings are refreshed far more often by
+# sire-rankings.yml, which is pure HTTP.
 
 name: Daily Scraper
 

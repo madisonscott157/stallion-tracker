@@ -1,4 +1,12 @@
-"""Scraper for TDN Sire List rankings using Selenium."""
+"""Scraper for TDN Sire List rankings.
+
+TDN renders the sire-list table server-side, so a plain HTTP GET returns the
+complete result set — no browser required. This module used to drive headless
+Chrome via Selenium and spun up a fresh driver per (list_type, year), which
+dominated the job's ~26 minute runtime. It now uses a single pooled
+`requests.Session`, which brings a full scrape down to seconds and makes the
+job cheap enough to run several times a day.
+"""
 
 import re
 import time
@@ -6,19 +14,19 @@ from dataclasses import dataclass
 from typing import Optional, List
 from datetime import datetime
 
-try:
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.chrome.service import Service
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    from webdriver_manager.chrome import ChromeDriverManager
-    SELENIUM_AVAILABLE = True
-except ImportError:
-    SELENIUM_AVAILABLE = False
-
+import requests
 from bs4 import BeautifulSoup
+
+# TDN serves the identical table to a default python-requests UA (verified),
+# so this is defensive rather than required — it just avoids being the most
+# obvious bot in the logs if TDN ever starts filtering on User-Agent.
+USER_AGENT = (
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+    'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+)
+
+REQUEST_TIMEOUT = 45
+MAX_RETRIES = 3
 
 
 @dataclass
@@ -135,21 +143,43 @@ def build_sire_list_url(stats_year: int, list_type: str, interface_year: Optiona
     )
 
 
-def create_driver() -> 'webdriver.Chrome':
-    """Create a headless Chrome driver."""
-    if not SELENIUM_AVAILABLE:
-        raise RuntimeError("Selenium not available")
+def create_session() -> requests.Session:
+    """Create a pooled HTTP session with a browser User-Agent."""
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': USER_AGENT,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+    })
+    return session
 
-    options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--window-size=1920,1080')
-    options.add_argument('user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36')
 
-    service = Service(ChromeDriverManager().install())
-    return webdriver.Chrome(service=service, options=options)
+def fetch_sire_list_html(url: str, session: Optional[requests.Session] = None) -> Optional[str]:
+    """Fetch a sire-list page, retrying on transient network/5xx failures.
+
+    Returns the HTML, or None if every attempt failed. A None here means the
+    fetch failed — distinct from a successful fetch whose table lacks the
+    target sire, which is a parse-level miss.
+    """
+    own_session = session is None
+    session = session or create_session()
+    try:
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                response = session.get(url, timeout=REQUEST_TIMEOUT)
+                response.raise_for_status()
+                return response.text
+            except requests.RequestException as e:
+                if attempt == MAX_RETRIES:
+                    print(f"    Fetch failed after {MAX_RETRIES} attempts: {e}")
+                    return None
+                backoff = 2 ** attempt
+                print(f"    Fetch attempt {attempt} failed ({e}); retrying in {backoff}s")
+                time.sleep(backoff)
+    finally:
+        if own_session:
+            session.close()
+    return None
 
 
 def parse_number(text: str) -> Optional[int]:
@@ -174,10 +204,10 @@ def parse_earnings(text: str) -> Optional[int]:
     return parse_number(text)
 
 
-def scrape_sire_from_list(driver: 'webdriver.Chrome', url: str, target_sire: str,
-                          year: int, list_type: str) -> Optional[SireRankingData]:
+def parse_sire_row(html: str, target_sire: str, year: int, list_type: str,
+                   source_url: Optional[str] = None) -> Optional[SireRankingData]:
     """
-    Scrape a specific sire's data from the TDN sire list.
+    Extract a specific sire's row from TDN sire-list HTML.
 
     TDN table structure (14 cells per row):
     0: Rank
@@ -196,16 +226,6 @@ def scrape_sire_from_list(driver: 'webdriver.Chrome', url: str, target_sire: str
     13: Total Earnings
     """
     try:
-        print(f"    Loading {LIST_TYPES.get(list_type, {}).get('label', list_type)} list...")
-        driver.get(url)
-
-        # Wait for page to load
-        WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.TAG_NAME, "body"))
-        )
-        time.sleep(5)
-
-        html = driver.page_source
         soup = BeautifulSoup(html, 'html.parser')
 
         # Find all tables and look for sire data
@@ -240,7 +260,7 @@ def scrape_sire_from_list(driver: 'webdriver.Chrome', url: str, target_sire: str
                     year=year,
                     list_type=list_type,
                     sire_name=target_sire,
-                    source_url=url,
+                    source_url=source_url,
                 )
 
                 # Cell 0: Rank
@@ -332,10 +352,20 @@ def scrape_sire_from_list(driver: 'webdriver.Chrome', url: str, target_sire: str
         return None
 
     except Exception as e:
-        print(f"    Error scraping sire list: {e}")
+        print(f"    Error parsing sire list: {e}")
         import traceback
         traceback.print_exc()
         return None
+
+
+def scrape_sire_from_list(url: str, target_sire: str, year: int, list_type: str,
+                          session: Optional[requests.Session] = None) -> Optional[SireRankingData]:
+    """Fetch a sire-list page and extract the target sire's row."""
+    print(f"    Loading {LIST_TYPES.get(list_type, {}).get('label', list_type)} list...")
+    html = fetch_sire_list_html(url, session=session)
+    if html is None:
+        return None
+    return parse_sire_row(html, target_sire, year, list_type, source_url=url)
 
 
 def scrape_stallion_rankings(sire_name: str, year: Optional[int] = None,
@@ -352,10 +382,6 @@ def scrape_stallion_rankings(sire_name: str, year: Optional[int] = None,
     Returns:
         List of SireRankingData for each list the sire appears in
     """
-    if not SELENIUM_AVAILABLE:
-        print("Error: Selenium is required for TDN scraping")
-        return []
-
     if year is None:
         year = datetime.now().year
 
@@ -365,11 +391,9 @@ def scrape_stallion_rankings(sire_name: str, year: Optional[int] = None,
         list_types = ['third_crop']
 
     results = []
-    driver = None
+    session = create_session()
 
     try:
-        driver = create_driver()
-
         for list_type in list_types:
             if list_type not in LIST_TYPES:
                 continue
@@ -382,7 +406,7 @@ def scrape_stallion_rankings(sire_name: str, year: Optional[int] = None,
                 print(f"    Using manual URL override for {sire_name} {list_type} {year}")
             else:
                 url = build_sire_list_url(year, list_type, interface_year=datetime.now().year, region=region)
-            data = scrape_sire_from_list(driver, url, sire_name, year, list_type)
+            data = scrape_sire_from_list(url, sire_name, year, list_type, session=session)
 
             if data:
                 results.append(data)
@@ -397,21 +421,16 @@ def scrape_stallion_rankings(sire_name: str, year: Optional[int] = None,
                     f"{override_key!r}"
                 )
 
-            time.sleep(2)  # Rate limiting
+            time.sleep(1)  # Be polite to TDN between requests
 
     finally:
-        if driver:
-            driver.quit()
+        session.close()
 
     return results
 
 
 if __name__ == "__main__":
     import sys
-
-    if not SELENIUM_AVAILABLE:
-        print("Please install Selenium: pip install selenium webdriver-manager")
-        sys.exit(1)
 
     sire = sys.argv[1] if len(sys.argv) > 1 else "McKinzie"
     year = int(sys.argv[2]) if len(sys.argv) > 2 else 2026
