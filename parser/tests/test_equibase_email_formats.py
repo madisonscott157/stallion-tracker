@@ -165,3 +165,66 @@ def test_scratch_with_ampersand_track():
     assert s is not None
     assert s.track == "MOUNTAINEER CASINO RACETRACK & RESORT"
     assert s.race_number == 3
+
+
+def _entry_html(body: str) -> str:
+    """Minimal Early Entry email wrapping `body` as the race-detail text."""
+    return ("<html><body>Life Changing is entered to run on September 5, 2026, at "
+            "SARATOGA.Your comments for this horse were: (24 Into Mischief - Dam)"
+            + body + "PPHorseA/SMed</body></html>")
+
+
+def test_stakes_name_not_polluted_by_flattened_html_neighbours():
+    # The email body is flattened HTML with no separators, so the race name is
+    # glued to the owner, the entries link label, the wager menu or the post
+    # time. The old unanchored regex swallowed all of it and the card read
+    # "Repole StableFull Entries for RaceSpinaway S." (24 entries, 13 results).
+    for body, want in [
+        ("Repole StableFull Entries for RaceSpinaway S. - Grade: 1 Purse: $ 300,000."
+         "Race: 11 - 5:45 PM Seven Furlongs.",
+         "Spinaway S."),
+        ("Full Entries for RaceRegret S. - Grade: 3 Purse: $ 200,000."
+         "Race: 9 - 4:12 PM One Mile.",
+         "Regret S."),
+        ("Full Entries for RaceRace: 7 - 3:46 PM Odd vs EvenSTAKES   "
+         "Old Forester Mint Julep S. - Grade: 3 Purse: $ 200,000. One Mile.",
+         "Old Forester Mint Julep S."),
+        ("Full Entries for RaceRace: 6 - 1:05 PM\n   \xa0\xa0 \xa0\xa0\xa0   "
+         "STAKES   United Nations S. - Grade: 2 Purse: $ 300,000. One Mile.",
+         "United Nations S."),
+        ("Full Entries for RaceRace: 4 - 2:07 PM SwingerSTAKES   Jacques Cartier S. - Grade: 3 Purse: $ 175,000. Six Furlongs.",
+         "Jacques Cartier S."),
+    ]:
+        e = parse_entry_email(_entry_html(body), "id", "Early Entry Notification")
+        assert e is not None, body
+        assert e.race_name == want, (body, e.race_name)
+        assert e.is_stakes and e.race_type == "STK"
+
+
+def test_stakes_name_keeps_hyphens_and_digits():
+    # The old character class excluded '-' and digits, so "Black-Eyed Susan S."
+    # was stored as "Eyed Susan S." (2 entries) — and a hyphenated non-graded
+    # stakes matched nothing at all, leaving race_name NULL.
+    e = parse_entry_email(_entry_html(
+        "Full Entries for RaceRace: 13 - 5:41 PM STAKES   Mitchell Black-Eyed "
+        "Susan S. - Grade: 2 Purse: $ 250,000. One And One Eighth Miles."),
+        "id", "Early Entry Notification")
+    assert e.race_name == "Mitchell Black-Eyed Susan S."
+
+    e = parse_entry_email(_entry_html(
+        "Full Entries for RaceRace: 8 - 4:02 PM STAKES   Jean-Louis Levesque S. "
+        "presented by Somebody Purse: $ 100,000. Six Furlongs."),
+        "id", "Early Entry Notification")
+    assert e.race_name == "Jean-Louis Levesque S."
+    assert e.is_stakes and e.stakes_grade is None
+
+
+def test_stakes_name_ending_in_the_word_stakes_survives_cleanup():
+    # The junk stripper is case-sensitive: uppercase STAKES is the race-type
+    # header, lowercase "Stakes" is part of the name. Stripping on a
+    # case-insensitive match would leave an empty race name here.
+    e = parse_entry_email(_entry_html(
+        "Full Entries for RaceRace: 5 - 2:30 PM STAKES   Kentucky Downs Juvenile "
+        "Stakes - Grade: 3 Purse: $ 400,000. Six And One Half Furlongs."),
+        "id", "Early Entry Notification")
+    assert e.race_name == "Kentucky Downs Juvenile Stakes"

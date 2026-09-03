@@ -109,6 +109,38 @@ def get_track_timezone(track: str) -> str:
     return 'ET'  # Default to Eastern
 
 
+# Characters that appear inside real stakes names: letters, digits, spaces and
+# the punctuation of "Black-Eyed Susan S.", "H. Allen Jerkens S.", "Alcibiades
+# S. presented by ...", "Baird Doubledogdare S.". Digits and '-' were missing,
+# which silently truncated hyphenated names ("Black-Eyed Susan S." was stored
+# as "Eyed Susan S."). ':' stays out on purpose — it is the hard left stop that
+# keeps a name from running back into "Race: 11 - 5:45 PM" / "Purse: $".
+_RACE_NAME_CHARS = r"[A-Za-z0-9\s\.'&\-]"
+
+# The email body is flattened HTML with no separator between elements, so the
+# race name is routinely glued to whatever rendered before it: the race-type
+# header ("...STAKES   Spinaway S."), the entries link label ("Full Entries for
+# RaceRegret S."), a wager menu ("Odd vs EvenSTAKES   Chicago S."), or the
+# owner carried over from the comments line ("Repole StableFull Entries for
+# RaceSpinaway S."). The name patterns below match leftmost-first and will run
+# back through all of it, so cut everything up to and including the LAST
+# structural marker. Owner and wager text always sits upstream of one of these
+# two markers, so they cover layouts we have not seen as well.
+# Case-sensitive by design: uppercase "STAKES" is the race-type header, while
+# lowercase "Stakes" is part of a race name.
+_NAME_JUNK_PREFIX = re.compile(r"^.*(?:STAKES|Full\s*Entries\s*for\s*Race)\s*", re.DOTALL)
+
+
+def _clean_race_name(name: str) -> str:
+    """Strip flattened-HTML junk glued to the front of a stakes race name."""
+    stripped = _NAME_JUNK_PREFIX.sub("", name, count=1)
+    # If the markers ate the whole thing (a race genuinely named in caps),
+    # keep the raw capture rather than storing an empty name.
+    if len(stripped.strip()) <= 2:
+        stripped = name
+    return " ".join(stripped.split())
+
+
 def parse_entry_email(html_content: str, email_id: str, subject: str,
                       email_date: Optional[datetime] = None) -> Optional[EntryData]:
     """
@@ -219,14 +251,13 @@ def parse_entry_email(html_content: str, email_id: str, subject: str,
     # Look for graded stakes pattern: "STAKES   Race Name S. - Grade: 3"
     # Supports Arabic (1/2/3) and Roman (I/II/III) grade numerals.
     graded_stakes_match = re.search(
-        r"(?:STAKES\s+)?([A-Za-z][A-Za-z\s\.']+?(?:S\.|Stakes))\s*-\s*Grade:\s*(I{1,3}|[123])",
+        r"(?:STAKES\s+)?([A-Za-z]" + _RACE_NAME_CHARS + r"+?(?:S\.|Stakes))\s*-\s*Grade:\s*(I{1,3}|[123])",
         text,
         re.IGNORECASE
     )
     if graded_stakes_match:
-        race_name = graded_stakes_match.group(1).strip()
-        # Remove any leading "STAKES" that might have been captured
-        race_name = re.sub(r'^STAKES\s+', '', race_name, flags=re.IGNORECASE)
+        # Drop the header/link/owner text the leftmost match dragged in.
+        race_name = _clean_race_name(graded_stakes_match.group(1))
         grade_num = graded_stakes_match.group(2).upper()
         grade_map = {'I': 'G1', 'II': 'G2', 'III': 'G3', '1': 'G1', '2': 'G2', '3': 'G3'}
         stakes_grade = grade_map.get(grade_num)
@@ -235,12 +266,12 @@ def parse_entry_email(html_content: str, email_id: str, subject: str,
     else:
         # Look for non-graded stakes: "STAKES   Race Name S. presented by" or "STAKES   Race Name S.Purse:"
         nongraded_stakes_match = re.search(
-            r"STAKES\s+([A-Za-z][A-Za-z\s\.']+?(?:S\.|Stakes))(?:\s+presented|\s*Purse:|\s*$)",
+            r"STAKES\s+([A-Za-z]" + _RACE_NAME_CHARS + r"+?(?:S\.|Stakes))(?:\s+presented|\s*Purse:|\s*$)",
             text,
             re.IGNORECASE
         )
         if nongraded_stakes_match:
-            race_name = nongraded_stakes_match.group(1).strip()
+            race_name = _clean_race_name(nongraded_stakes_match.group(1))
             is_stakes = True
             race_type = 'STK'
         else:
