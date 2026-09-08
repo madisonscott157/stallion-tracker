@@ -3,7 +3,7 @@
 # TDN renders the sire-list table server-side, so this scrape is a plain HTTP
 # GET per stallion — no Chrome, a few seconds end to end. Running it often
 # removes the need to guess when TDN posts the prior day's results: the site
-# now trails TDN by at most ~1 hour instead of up to a day.
+# now trails TDN by a few hours at most instead of up to a day.
 #
 # Note: GitHub runs scheduled workflows on a best-effort basis. On this repo
 # even the */15-minute pollers actually fire every ~2-4 hours (measured Sep
