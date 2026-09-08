@@ -1,9 +1,15 @@
-# Sire Rankings - Runs every 3 hours
+# Sire Rankings - Runs hourly
 #
 # TDN renders the sire-list table server-side, so this scrape is a plain HTTP
 # GET per stallion — no Chrome, a few seconds end to end. Running it often
 # removes the need to guess when TDN posts the prior day's results: the site
-# now trails TDN by at most ~3 hours instead of up to a day.
+# now trails TDN by at most ~1 hour instead of up to a day.
+#
+# Note: GitHub runs scheduled workflows on a best-effort basis. On this repo
+# even the */15-minute pollers actually fire every ~2-4 hours (measured Sep
+# 2026), so the effective cadence is much looser than the cron line. An hourly
+# cron keeps the gaps as short as GitHub allows; for guaranteed freshness the
+# scrape would have to move to the always-on Fly.io parser.
 #
 # Only current-year rows are scraped here. Historical years are closed and
 # cannot change, so daily-scraper.yml remains the only job that refreshes them.
@@ -14,7 +20,7 @@ name: Sire Rankings
 
 on:
   schedule:
-    - cron: '15 */3 * * *'
+    - cron: '15 * * * *'
   workflow_dispatch:  # Allow manual trigger
 
 # A long-running scrape should not overlap with the next scheduled one.

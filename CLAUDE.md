@@ -19,7 +19,7 @@ digest/      Python daily HTML digest email (Resend + Jinja2)
 - **Database:** Supabase (PostgreSQL) with Row Level Security
 - **Auth:** Supabase Auth + custom middleware; admin role check on /admin routes
 - **Parser:** Python 3.11+, imaplib, BeautifulSoup4, pdfplumber, Pydantic v2, schedule
-- **Scrapers:** Python + Selenium (TDN sales, Equineline), plain `requests` (TDN sire list); GitHub Actions — full scrape daily at 12:30 AM UTC, sire rankings every 3 hours
+- **Scrapers:** Python + Selenium (TDN sales, Equineline), plain `requests` (TDN sire list); GitHub Actions — full scrape daily at 12:30 AM UTC, sire rankings hourly
 - **Europe pipeline:** PMU France daily entries cron (02:00 UTC, T+0..T+3), PMU France results+scratch poller (*/15 min, 09:00–22:59 UTC), Racing API UK/IRE results poller (*/15 min, 09:00–22:59 UTC). See `europe-ingestion.md` for full architecture.
 - **PDF export:** jsPDF + html2canvas (client-side)
 - **Hosting:** Vercel (frontend), Fly.io (parser, app: `stallion-tracker-parser`, region: ord), GitHub Actions (scrapers)
@@ -175,10 +175,10 @@ name a tracked sire or the parser skips its notifications.
 
 ### Sire Rankings (TDN sire lists)
 - TDN renders the sire-list table **server-side** — a plain HTTP GET returns the full table. `tdn_sire_list_scraper.py` uses `requests` with a browser User-Agent (a default python-requests UA gets a different response). Do not reintroduce Selenium here; it used to spin up a fresh Chrome driver per (list_type, year) and dominated the job's ~26 min runtime. A full rankings pass is now ~55s.
-- Two workflows: `daily-scraper.yml` (12:30 AM UTC — sales + Equineline + historical ranking backfill, still Selenium) and `sire-rankings.yml` (every 3h — current-year rankings only, pure HTTP).
+- Two workflows: `daily-scraper.yml` (12:30 AM UTC — sales + Equineline + historical ranking backfill, still Selenium) and `sire-rankings.yml` (hourly — current-year rankings only, pure HTTP).
 - Rankings are upserted on `(stallion_id, year, list_type)`, so repeat runs are idempotent and the frequent job is safe.
-- **Why every 3h:** TDN posts the prior day's results at an unpublished time (observed absent at 06:00 UTC, present by 20:47 UTC), so the old single overnight scrape left the StatsBar trailing the near-real-time results feed by a day. Frequent polling removes the need to guess.
-- Historical years are closed and cannot change — `--current-year-only` skips them so the 3-hourly job makes ~10 requests, not ~35.
+- **Why hourly:** TDN posts the prior day's results at an unpublished time (observed absent at 06:00 UTC, present by 20:47 UTC), so the old single overnight scrape left the StatsBar trailing the near-real-time results feed by a day. Frequent polling removes the need to guess. GitHub's cron is best-effort — on this repo even the `*/15` pollers actually fire every ~2–4h (measured Sep 2026) — so an hourly cron keeps the real gap to a few hours; guaranteed freshness would need the scrape to run from the always-on Fly.io parser. **Scheduled workflows only run from the default branch**: a workflow file on a feature branch never fires.
+- Historical years are closed and cannot change — `--current-year-only` skips them so the hourly job makes ~10 requests, not ~35.
 - CLI: `python3 sales_scraper_main.py --rankings-only --current-year-only [--dry-run]`. Always check with `--dry-run` first.
 - `SIRE_LIST_URL_OVERRIDES` holds verbatim URLs for (sire, list_type, year) combos where the default builder returns an empty table. Add an entry when the scrape logs a `WARNING: no row found`.
 
