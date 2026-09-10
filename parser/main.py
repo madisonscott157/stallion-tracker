@@ -236,9 +236,24 @@ def check_emails(db: Database, tracked_stallions: list[str], limit: int = 20):
 
     try:
         with GmailClient() as gmail:
-            # Pass 1 (unchanged): Equibase Virtual Stable emails.
-            for email_msg in gmail.fetch_equibase_emails(limit=limit):
-                # Skip if already processed
+            # Pass 1: Equibase Virtual Stable emails. List Message-IDs first
+            # (two IMAP round-trips, no bodies), drop the ones already in
+            # email_log in a single batched query, and download only what is
+            # genuinely new. Fetching every match and skipping it afterwards
+            # made each cycle take ~23 minutes against a 1-minute schedule.
+            eq_pairs = gmail.list_message_ids(GmailClient.EQUIBASE_SEARCH, limit=limit)
+            eq_new = db.filter_unprocessed([mid for _, mid in eq_pairs])
+            skipped += len(eq_pairs) - len(eq_new)
+            print(f"  Equibase: {len(eq_pairs)} matched, {len(eq_new)} new")
+
+            for imap_id, message_id in eq_pairs:
+                if message_id not in eq_new:
+                    continue
+                email_msg = gmail.fetch_email(imap_id)
+                if not email_msg:
+                    continue
+                # Defensive re-check: the batch above is a snapshot, and a
+                # retried message must not be processed twice.
                 if db.is_email_processed(email_msg.id):
                     skipped += 1
                     continue
@@ -298,7 +313,18 @@ def check_emails(db: Database, tracked_stallions: list[str], limit: int = 20):
 
             # Pass 2: Arion Horse Tracker emails, oldest-first so each
             # day's entries land before that day's results.
-            for email_msg in gmail.fetch_arion_emails(limit=limit, oldest_first=True):
+            ar_pairs = gmail.list_message_ids(GmailClient.ARION_SEARCH, limit=limit,
+                                              oldest_first=True)
+            ar_new = db.filter_unprocessed([mid for _, mid in ar_pairs])
+            skipped += len(ar_pairs) - len(ar_new)
+            print(f"  Arion: {len(ar_pairs)} matched, {len(ar_new)} new")
+
+            for imap_id, message_id in ar_pairs:
+                if message_id not in ar_new:
+                    continue
+                email_msg = gmail.fetch_email(imap_id)
+                if not email_msg:
+                    continue
                 if db.is_email_processed(email_msg.id):
                     skipped += 1
                     continue

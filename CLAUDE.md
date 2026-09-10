@@ -45,6 +45,14 @@ RLS helper functions: `get_user_organization_id()`, `is_admin()`, `get_user_stal
 - `web/app/api/` — API routes (dashboard/summary, entries, results, workouts, stats, bookings, admin/*)
 - `web/middleware.ts` — auth guard + admin role check
 
+## Email Poll Cadence
+
+- `check_emails()` is **list-then-fetch**, and must stay that way: `gmail_client.list_message_ids()` does one IMAP SEARCH plus one batched `BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)]` fetch, `db.filter_unprocessed()` drops known ids in one chunked query, and only genuinely new mail gets an `(RFC822)` body download.
+- The old loop fetched every match in full and called `is_email_processed()` per message — ~200 body downloads + ~200 round-trips per cycle. Measured Sep 10, 2026: a single cycle took **21.5 min**, so the nominal 1-minute poll really ran every ~23–26 min and entries/results surfaced that late. After the change a full cycle (both passes, 400 messages examined) takes **~30s**.
+- `BODY.PEEK` in the listing step is deliberate: a plain `BODY[]`/`RFC822` fetch sets the Seen flag, and listing must not change flags on mail it skips. This is also why `unseen_only=True` was rejected as the fix — it would depend on flags nothing else may touch.
+- The per-message `is_email_processed()` check is kept as a defensive re-check inside the loop; the batch is a snapshot.
+- `PYTHONUNBUFFERED=1` is set in `fly.toml` — without it Python block-buffers in the container and `fly logs` delivers an hour of output in one burst, which is what made this hard to diagnose.
+
 ## Parser Structure
 - `parser/main.py` — entry point, polling loop
 - `parser/gmail_client.py` — IMAP connection

@@ -9,6 +9,10 @@ primary_region = 'ord'
 [env]
   # Non-sensitive env vars can go here
   # Sensitive ones (GMAIL_APP_PASSWORD, SUPABASE_SERVICE_KEY) set via: fly secrets set
+  # Unbuffered stdout: without this Python block-buffers in the container and
+  # `fly logs` delivers an hour of output in one burst, which makes the poll
+  # cadence impossible to read from the logs.
+  PYTHONUNBUFFERED = "1"
 
 [processes]
   parser = "python3 main.py"

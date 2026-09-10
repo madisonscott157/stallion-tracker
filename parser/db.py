@@ -534,6 +534,32 @@ class Database:
 
         return len(result.data) > 0
 
+    def filter_unprocessed(self, email_ids: list[str]) -> set[str]:
+        """Return the subset of `email_ids` with no email_log row yet.
+
+        One query per chunk instead of one per message: the poll cycle used to
+        make ~200 individual `is_email_processed` calls and re-download every
+        body just to skip it, which stretched a nominally 1-minute cycle to
+        ~23 minutes. Chunked because the ids ride in a URL query string.
+        """
+        if not email_ids:
+            return set()
+
+        seen: set[str] = set()
+        CHUNK = 50
+        for i in range(0, len(email_ids), CHUNK):
+            chunk = email_ids[i:i + CHUNK]
+            # PostgREST `in.()` needs each value quoted — Message-IDs contain
+            # commas and parentheses often enough to matter.
+            quoted = ','.join('"' + v.replace('"', '\\"') + '"' for v in chunk)
+            result = self.client.table("email_log") \
+                .select("email_id") \
+                .filter("email_id", "in", f"({quoted})") \
+                .execute()
+            seen.update(row["email_id"] for row in (result.data or []))
+
+        return {eid for eid in email_ids if eid not in seen}
+
     def log_email(self, email_id: str, subject: str, email_date, email_type: str,
                   success: bool = True, error_message: str = None):
         """Log email processing."""

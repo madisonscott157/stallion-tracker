@@ -3,6 +3,7 @@
 import os
 import imaplib
 import email
+import re
 from email.header import decode_header
 from datetime import datetime
 from typing import Generator, Optional
@@ -51,6 +52,62 @@ class GmailClient:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.disconnect()
 
+    # Search criteria, shared by the listing and streaming paths.
+    EQUIBASE_SEARCH = '(OR FROM "equibase.com" SUBJECT "Notification")'
+    ARION_SEARCH = '(FROM "arionpedigrees.co.nz")'
+
+    def list_message_ids(self, search_criteria: str, limit: int = 200,
+                         oldest_first: bool = False) -> list[tuple[bytes, str]]:
+        """List (imap_id, Message-ID) pairs without downloading message bodies.
+
+        One SEARCH plus one batched header FETCH, so a poll cycle spends two
+        round-trips working out what is new instead of re-downloading every
+        message it has already processed. `BODY.PEEK` is used deliberately:
+        a plain `BODY[]`/`RFC822` fetch sets the Seen flag, and listing must
+        not change flags on mail it decides to skip.
+
+        Messages with no Message-ID header fall back to the IMAP id, matching
+        `_fetch_email`'s own fallback so dedup keys stay consistent.
+        """
+        if not self.mail:
+            raise RuntimeError("Not connected to Gmail")
+
+        status, messages = self.mail.search(None, search_criteria)
+        if status != "OK":
+            return []
+
+        email_ids = messages[0].split()
+        if not email_ids:
+            return []
+
+        # Keep the most recent `limit`, then order as the caller asked.
+        email_ids = email_ids[-limit:] if len(email_ids) > limit else email_ids
+        ordered = email_ids if oldest_first else list(reversed(email_ids))
+
+        id_set = b','.join(ordered)
+        status, data = self.mail.fetch(id_set, "(BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])")
+        if status != "OK":
+            return []
+
+        # imaplib returns one tuple per message: (b'<seq> (BODY[...] {n}', b'Message-ID: <..>')
+        by_seq: dict[bytes, str] = {}
+        for part in data:
+            if not isinstance(part, tuple):
+                continue
+            seq_match = re.match(rb'\s*(\d+)', part[0] or b'')
+            if not seq_match:
+                continue
+            mid_match = re.search(rb'Message-ID:\s*(<[^>]+>)', part[1] or b'', re.IGNORECASE)
+            seq = seq_match.group(1)
+            by_seq[seq] = mid_match.group(1).decode(errors='replace') if mid_match else seq.decode()
+
+        # Preserve the requested order; skip any id the server did not return.
+        return [(eid, by_seq[eid]) for eid in ordered if eid in by_seq]
+
+    def fetch_email(self, email_id: bytes) -> Optional[EmailMessage]:
+        """Fetch and parse one message by IMAP id (downloads the full body)."""
+        return self._fetch_email(email_id)
+
     def fetch_equibase_emails(self, limit: int = 200, unseen_only: bool = False) -> Generator[EmailMessage, None, None]:
         """
         Fetch emails from Equibase Virtual Stable.
@@ -66,7 +123,7 @@ class GmailClient:
             raise RuntimeError("Not connected to Gmail")
 
         # Search for Equibase emails (direct or forwarded)
-        search_criteria = '(OR FROM "equibase.com" SUBJECT "Notification")'
+        search_criteria = self.EQUIBASE_SEARCH
         if unseen_only:
             search_criteria = f'(UNSEEN {search_criteria})'
 
@@ -103,7 +160,7 @@ class GmailClient:
         if not self.mail:
             raise RuntimeError("Not connected to Gmail")
 
-        search_criteria = '(FROM "arionpedigrees.co.nz")'
+        search_criteria = self.ARION_SEARCH
         if unseen_only:
             search_criteria = f'(UNSEEN {search_criteria})'
 
