@@ -341,6 +341,29 @@ def check_emails(db: Database, tracked_stallions: list[str], limit: int = 20):
     print(f"\nSummary: {processed} processed, {skipped} skipped, {errors} errors")
 
 
+def run_rankings(db: Database) -> None:
+    """Refresh the current year's TDN sire rankings.
+
+    This lives in the parser loop because GitHub Actions fires the equivalent
+    `sire-rankings.yml` cron on a best-effort basis only — measured at every
+    2.4-4.9h against an hourly cron (Sep 2026), which left the site up to five
+    hours behind TDN. This process is always on, so its cadence is real. The
+    scrape is pure HTTP (~55s for all stallions, no Chrome), and the import is
+    deferred so a scraper-side import error can never stop the email poller
+    from starting.
+
+    Every exception is swallowed: `schedule.run_pending()` re-raises a failed
+    job into the polling loop's outer handler, which sleeps 30 seconds — a TDN
+    hiccup must not stall the 1-minute email poll.
+    """
+    try:
+        from sales_scraper_main import scrape_all_stallions
+        scrape_all_stallions(db, do_sales=False, do_rankings=True,
+                             do_equineline=False, current_year_only=True)
+    except Exception as e:
+        print(f"[rankings] scrape failed, retrying next cycle: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(description='Stallion Tracker Email Parser')
     parser.add_argument('--once', action='store_true',
@@ -349,6 +372,8 @@ def main():
                        help='Poll interval in minutes (default: 1)')
     parser.add_argument('--limit', type=int, default=200,
                        help='Max emails to process per run (default: 200)')
+    parser.add_argument('--rankings-interval', type=int, default=30,
+                       help='Minutes between TDN sire-ranking refreshes (default: 30, 0 disables)')
     args = parser.parse_args()
 
     # Get tracked stallions from environment
@@ -374,6 +399,14 @@ def main():
         schedule.every(args.interval).minutes.do(
             check_emails, db, tracked_stallions, limit=args.limit
         )
+
+        # TDN sire rankings — see run_rankings() for why this is not left to
+        # the GitHub Actions cron. Runs once now so a redeploy refreshes
+        # immediately, then on its own interval.
+        if args.rankings_interval > 0:
+            print(f"Refreshing TDN sire rankings every {args.rankings_interval} minute(s).")
+            run_rankings(db)
+            schedule.every(args.rankings_interval).minutes.do(run_rankings, db)
 
         while True:
             try:
