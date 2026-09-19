@@ -6,17 +6,8 @@ The Stallion Tracker is a web-based dashboard that automatically aggregates and 
 
 Live Site: https://web-delta-sable-62.vercel.app 
 
-Admin - 
-Login: madison@solislitt.com
-Pass: Olympiad2026
-
-Users � 
-
-Login: LNJ Foxwoods
-Pass: Covfefe4
-
-Login: Grandview Equine
-Pass: Olympiad!
+Login credentials are not kept in this repository. Admin and client logins are managed in
+Supabase Auth (Admin → Users) and shared with each organization privately.
 
 ---
 
