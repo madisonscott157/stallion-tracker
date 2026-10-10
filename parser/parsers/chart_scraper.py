@@ -274,7 +274,7 @@ def extract_race_details(text: str) -> ChartData:
                 amount = (usd or native).rstrip(',').replace(',', '')
                 data.position_payouts[int(pos)] = int(amount)
 
-    # Extract race type - MSW, MCL, CLM, AOC, ALW, STK
+    # Extract race type - MSW, MCL, MOC, CLM, AOC, ALW, STK
     # Order matters - more specific patterns first
     # Note: PDF text often has no spaces, so patterns use \s* liberally
     race_type_patterns = [
@@ -282,6 +282,9 @@ def extract_race_details(text: str) -> ChartData:
         (r'\bMSW\b', 'MSW'),  # Word-bounded so abbreviations don't match inside other words
         (r'MAIDEN\s*CLAIMING', 'MCL'),
         (r'\bMCL\b', 'MCL'),
+        # MOC before the bare OPTIONAL CLAIMING -> AOC pattern below
+        (r'MAIDEN\s*OPTIONAL\s*CLAIMING', 'MOC'),
+        (r'\bMOC\b', 'MOC'),
         (r'ALLOWANCE\s*OPTIONAL\s*CLAIMING', 'AOC'),
         (r'OPTIONAL\s*CLAIMING\s*ALLOWANCE', 'AOC'),
         (r'OPTIONAL\s*CLAIMING', 'AOC'),
@@ -320,7 +323,8 @@ def extract_race_details(text: str) -> ChartData:
     header_match = re.search(
         r'(MAIDEN\s*SPECIAL\s*WEIGHT|MAIDEN\s*CLAIMING|'
         r'STARTER\s*OPTIONAL\s*CLAIMING|STARTER\s*ALLOWANCE|'
-        r'ALLOWANCE\s*OPTIONAL\s*CLAIMING|OPTIONAL\s*CLAIMING|'
+        r'ALLOWANCE\s*OPTIONAL\s*CLAIMING|MAIDEN\s*OPTIONAL\s*CLAIMING|'
+        r'OPTIONAL\s*CLAIMING|'
         r'GRADED\s*STAKES|STAKES|ALLOWANCE|CLAIMING)\s*-\s*Thoroughbred',
         text,
         re.IGNORECASE,
@@ -334,6 +338,7 @@ def extract_race_details(text: str) -> ChartData:
             'MAIDEN SPECIAL WEIGHT': 'MSW',
             'MAIDEN CLAIMING': 'MCL',
             'ALLOWANCE OPTIONAL CLAIMING': 'AOC',
+            'MAIDEN OPTIONAL CLAIMING': 'MOC',
             'OPTIONAL CLAIMING': 'AOC',
             'STARTER OPTIONAL CLAIMING': 'SOC',
             'STARTER ALLOWANCE': 'SOC',

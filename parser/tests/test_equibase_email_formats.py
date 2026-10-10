@@ -101,10 +101,26 @@ def test_chart_race_type_survives_concatenated_header():
         ("MAIDENSPECIALWEIGHT-Thoroughbred", "MSW"),
         ("CLAIMING-Thoroughbred", "CLM"),
         ("ALLOWANCE OPTIONAL CLAIMING - Thoroughbred", "AOC"),
+        # Maiden optional claiming is its own type, not AOC (bare
+        # OPTIONALCLAIMING tail) and not hidden as a claiming race.
+        ("MAIDENOPTIONALCLAIMING-Thoroughbred", "MOC"),
+        ("MAIDEN OPTIONAL CLAIMING - Thoroughbred", "MOC"),
     ]:
         d = extract_race_details(f"SomeRace {header} MainTrackFOR THREE YEAR OLDS "
                                  "Distance:SixFurlongsOnTheDirt Purse:$20,000")
         assert d.race_type == want, (header, d.race_type)
+
+
+def test_entry_maiden_optional_claiming_is_moc():
+    # Market Perception, Belmont R7 2026-10-09: the bare CLAIMING
+    # alternative matched and the entry was typed CLM, hiding it from
+    # users with claiming races turned off.
+    html = _load("race_day_moc_market_perception.html")
+    e = parse_entry_email(html, "id", "Race Day Notification",
+                          email_date=datetime(2026, 10, 9, 12, 0))
+    assert e is not None
+    assert e.horse.name == "Market Perception"
+    assert e.race_type == "MOC"
 
 
 def test_entry_surface_from_parenthetical_not_contingency_prose():

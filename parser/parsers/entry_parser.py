@@ -278,7 +278,7 @@ def parse_entry_email(html_content: str, email_id: str, subject: str,
             # Look for race type header. Order matters in alternation: longer
             # phrases first so AOC beats plain ALLOWANCE.
             race_type_match = re.search(
-                r"(ALLOWANCE OPTIONAL CLAIMING|"
+                r"(ALLOWANCE OPTIONAL CLAIMING|MAIDEN OPTIONAL CLAIMING|"
                 r"STARTER OPTIONAL CLAIMING|STARTER ALLOWANCE|"
                 r"MAIDEN SPECIAL WEIGHT|MAIDEN CLAIMING|"
                 r"GRADED STAKES?|STAKES?|"
@@ -295,6 +295,7 @@ def parse_entry_email(html_content: str, email_id: str, subject: str,
                 # contains "CLAIMING" and "ALLOWANCE")
                 type_map = [
                     ('ALLOWANCE OPTIONAL CLAIMING', 'AOC'),
+                    ('MAIDEN OPTIONAL CLAIMING', 'MOC'),
                     ('STARTER OPTIONAL CLAIMING', 'SOC'),
                     ('STARTER ALLOWANCE', 'SOC'),
                     ('MAIDEN SPECIAL WEIGHT', 'MSW'),

@@ -47,6 +47,7 @@ def build_replay_url(
         'CLM': 'CLM  ',
         'ALW': 'ALW  ',
         'AOC': 'AOC  ',
+        'MOC': 'MOC  ',
         'STK': 'STK  ',
         'SOC': 'SOC  ',
     }

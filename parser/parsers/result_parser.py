@@ -190,8 +190,9 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
     # claiming race the conditions paragraph mentions both words.
     race_type = None
     type_match = re.search(
-        r"(ALLOWANCE OPTIONAL CLAIMING|MAIDEN SPECIAL WEIGHT|MAIDEN CLAIMING|"
-        r"\bAOC\b|\bMSW\b|\bMCL\b|\bALW\b|\bCLM\b|\bSOC\b|\bSTK\b|"
+        r"(ALLOWANCE OPTIONAL CLAIMING|MAIDEN OPTIONAL CLAIMING|"
+        r"MAIDEN SPECIAL WEIGHT|MAIDEN CLAIMING|"
+        r"\bAOC\b|\bMOC\b|\bMSW\b|\bMCL\b|\bALW\b|\bCLM\b|\bSOC\b|\bSTK\b|"
         r"ALLOWANCE|CLAIMING|STAKES)",
         text,
         re.IGNORECASE
@@ -200,6 +201,7 @@ def parse_result_email(html_content: str, email_id: str, subject: str) -> Option
         type_word = type_match.group(1).upper()
         type_map = {
             'ALLOWANCE OPTIONAL CLAIMING': 'AOC', 'AOC': 'AOC',
+            'MAIDEN OPTIONAL CLAIMING': 'MOC', 'MOC': 'MOC',
             'MAIDEN SPECIAL WEIGHT': 'MSW', 'MSW': 'MSW',
             'MAIDEN CLAIMING': 'MCL', 'MCL': 'MCL',
             'ALLOWANCE': 'ALW', 'ALW': 'ALW',
